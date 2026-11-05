@@ -35,5 +35,7 @@ playwright-report/
 *.sqlite
 *.sqlite-*
 *.db
+*.db-shm
+*.db-wal
 .aidlc/worktrees/
 .DS_Store
