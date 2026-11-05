@@ -1,0 +1,32 @@
+{
+  "stage": "functional-design",
+  "unit": "u3-kitchen-board",
+  "generated_at": "2026-11-05",
+  "upstream_ids": [
+    "US5.1", "US5.2", "US5.3",
+    "US6.1", "US6.2", "US6.3",
+    "FR2.1", "FR2.2", "FR2.3", "FR2.4", "FR2.5", "FR2.6", "FR2.7",
+    "FR4.1", "FR4.2",
+    "NFR1", "NFR5", "NFR6"
+  ],
+  "coverage": [
+    { "id": "US5.1", "status": "OK", "target": "src/client/screens/KitchenBoardScreen.tsx" },
+    { "id": "US5.2", "status": "OK", "target": "src/client/components/TableCard.tsx" },
+    { "id": "US5.3", "status": "OK", "target": "src/client/components/NewHighlight.tsx" },
+    { "id": "US6.1", "status": "OK", "target": "src/client/components/ActionButtons.tsx" },
+    { "id": "US6.2", "status": "OK", "target": "src/client/components/CancelButton.tsx" },
+    { "id": "US6.3", "status": "OK", "target": "src/client/components/MenuAvailabilityPanel.tsx" },
+    { "id": "FR2.1", "status": "OK", "target": "src/client/views/StaffView.tsx" },
+    { "id": "FR2.2", "status": "OK", "target": "src/client/components/TableCard.tsx" },
+    { "id": "FR2.3", "status": "OK", "target": "src/client/hooks/useStaffSSE.ts" },
+    { "id": "FR2.4", "status": "OK", "target": "src/client/components/NewHighlight.tsx" },
+    { "id": "FR2.5", "status": "OK", "target": "src/client/components/ActionButtons.tsx" },
+    { "id": "FR2.6", "status": "OK", "target": "src/client/components/CancelButton.tsx" },
+    { "id": "FR2.7", "status": "OK", "target": "src/client/components/SoldOutSwitch.tsx" },
+    { "id": "FR4.1", "status": "OK", "target": "src/client/hooks/useStaffSSE.ts" },
+    { "id": "FR4.2", "status": "OK", "target": "src/client/hooks/useStaffSSE.ts" },
+    { "id": "NFR1", "status": "OK", "target": "src/client/hooks/useStaffSSE.ts" },
+    { "id": "NFR5", "status": "OK", "target": "src/client/components/StatusPill.tsx" },
+    { "id": "NFR6", "status": "OK", "target": "src/client/screens/KitchenBoardScreen.tsx" }
+  ]
+}

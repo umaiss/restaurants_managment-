@@ -1,0 +1,104 @@
+{
+  "unit": "u4-bill-and-close",
+  "stage": "functional-design",
+  "upstream": [
+    {
+      "id": "US7.1",
+      "type": "user-story",
+      "summary": "Staff views itemised bill for a table",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Layout and structure" },
+        { "artifact": "functional-spec.md", "section": "Server — Billing component / GET /api/tables/:id/bill" }
+      ]
+    },
+    {
+      "id": "US7.2",
+      "type": "user-story",
+      "summary": "Staff closes a table after all orders are completed",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Close table flow" },
+        { "artifact": "functional-spec.md", "section": "Server — Billing component / POST /api/tables/:id/close" },
+        { "artifact": "rules.md", "section": "BR2 — Close guard" },
+        { "artifact": "rules.md", "section": "BR3 — Close action effects" }
+      ]
+    },
+    {
+      "id": "FR3.1",
+      "type": "functional-requirement",
+      "summary": "Bill shows combined total computed from all non-cancelled orders",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Server — GET /api/tables/:id/bill / Response 200" },
+        { "artifact": "rules.md", "section": "BR1.2 — combined_total_cents computed at read time" },
+        { "artifact": "rules.md", "section": "BR1.3 — order subtotal_cents from line quantities and prices" },
+        { "artifact": "entities.md", "section": "Bill / combined_total_cents" }
+      ]
+    },
+    {
+      "id": "FR3.2",
+      "type": "functional-requirement",
+      "summary": "Cancelled orders are excluded from the bill display and totals",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Layout and structure" },
+        { "artifact": "rules.md", "section": "BR1.1 — Cancelled orders excluded" },
+        { "artifact": "entities.md", "section": "Bill / orders (non-cancelled only)" }
+      ]
+    },
+    {
+      "id": "FR3.3",
+      "type": "functional-requirement",
+      "summary": "Close table button disabled when any order is Pending or Preparing",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Close table button state" },
+        { "artifact": "rules.md", "section": "BR2.1 — close_available conditions" },
+        { "artifact": "rules.md", "section": "BR2.2 — blocking_orders list" },
+        { "artifact": "rules.md", "section": "BR2.3 — POST refused with CLOSE_BLOCKED or TABLE_EMPTY" }
+      ]
+    },
+    {
+      "id": "FR3.4",
+      "type": "functional-requirement",
+      "summary": "Close table button disabled when table has no orders",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Close table button state" },
+        { "artifact": "rules.md", "section": "BR2.1 — at least one order required" },
+        { "artifact": "rules.md", "section": "BR2.3 — TABLE_EMPTY refusal" }
+      ]
+    },
+    {
+      "id": "FR3.5",
+      "type": "functional-requirement",
+      "summary": "Closing a table archives the visit and removes the table from the Kitchen Board",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Server — POST /api/tables/:id/close / Success response 200" },
+        { "artifact": "rules.md", "section": "BR3.1 — Tables.closeVisit archives the visit" },
+        { "artifact": "rules.md", "section": "BR3.3 — Kitchen Board no longer shows the table" },
+        { "artifact": "entities.md", "section": "CloseAction / archived_visit_id" }
+      ]
+    },
+    {
+      "id": "FR3.6",
+      "type": "functional-requirement",
+      "summary": "TABLE_CLOSED SSE event resets every open diner view within 2 seconds",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Close table flow" },
+        { "artifact": "rules.md", "section": "BR3.2 — TABLE_CLOSED published to staff and table channels" }
+      ]
+    },
+    {
+      "id": "NFR5",
+      "type": "non-functional-requirement",
+      "summary": "Status pills use icon + label (accessible status display)",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Screen S2 — Table Bill / Layout and structure" }
+      ]
+    },
+    {
+      "id": "NFR6",
+      "type": "non-functional-requirement",
+      "summary": "Keyboard and screen-reader accessibility",
+      "satisfied_by": [
+        { "artifact": "functional-spec.md", "section": "Keyboard and accessibility (NFR6)" }
+      ]
+    }
+  ]
+}

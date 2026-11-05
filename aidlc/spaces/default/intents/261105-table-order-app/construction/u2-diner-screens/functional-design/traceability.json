@@ -1,0 +1,41 @@
+{
+  "stage": "functional-design",
+  "unit": "u2-diner-screens",
+  "generated_at": "2026-11-05",
+  "upstream_ids": [
+    "US1.1", "US1.2",
+    "US2.1", "US2.2", "US2.3", "US2.4", "US2.5",
+    "US3.1", "US3.2",
+    "US4.1",
+    "FR1.1", "FR1.2", "FR1.3", "FR1.4", "FR1.5", "FR1.6", "FR1.7", "FR1.8", "FR1.9",
+    "FR3.6",
+    "FR4.1", "FR4.2",
+    "NFR5", "NFR6"
+  ],
+  "coverage": [
+    { "id": "US1.1", "status": "OK", "target": "src/client/screens/MenuScreen.tsx" },
+    { "id": "US1.2", "status": "OK", "target": "src/client/components/CategoryPillBar.tsx" },
+    { "id": "US2.1", "status": "OK", "target": "src/client/components/AddPill.tsx" },
+    { "id": "US2.2", "status": "OK", "target": "src/client/components/QuantitySelector.tsx" },
+    { "id": "US2.3", "status": "OK", "target": "src/client/hooks/useCartStore.ts" },
+    { "id": "US2.4", "status": "OK", "target": "src/client/components/PlaceOrderButton.tsx" },
+    { "id": "US2.5", "status": "OK", "target": "src/client/components/PlaceOrderButton.tsx" },
+    { "id": "US3.1", "status": "OK", "target": "src/client/screens/MyOrdersScreen.tsx" },
+    { "id": "US3.2", "status": "OK", "target": "src/client/components/CancelOrderButton.tsx" },
+    { "id": "US4.1", "status": "OK", "target": "src/client/components/TableClosedTakeover.tsx" },
+    { "id": "FR1.1", "status": "OK", "target": "src/client/views/TableView.tsx" },
+    { "id": "FR1.2", "status": "OK", "target": "src/client/screens/MenuScreen.tsx" },
+    { "id": "FR1.3", "status": "OK", "target": "src/client/components/AddPill.tsx" },
+    { "id": "FR1.4", "status": "OK", "target": "src/client/components/QuantitySelector.tsx" },
+    { "id": "FR1.5", "status": "OK", "target": "src/client/hooks/useCartStore.ts" },
+    { "id": "FR1.6", "status": "OK", "target": "src/client/components/PlaceOrderButton.tsx" },
+    { "id": "FR1.7", "status": "OK", "target": "src/client/components/PlaceOrderButton.tsx" },
+    { "id": "FR1.8", "status": "OK", "target": "src/client/components/CancelOrderButton.tsx" },
+    { "id": "FR1.9", "status": "OK", "target": "src/client/screens/MyOrdersScreen.tsx" },
+    { "id": "FR3.6", "status": "OK", "target": "src/client/components/TableClosedTakeover.tsx" },
+    { "id": "FR4.1", "status": "OK", "target": "src/client/hooks/useTableSSE.ts" },
+    { "id": "FR4.2", "status": "OK", "target": "src/client/hooks/useTableSSE.ts" },
+    { "id": "NFR5", "status": "OK", "target": "src/client/components/StatusPill.tsx" },
+    { "id": "NFR6", "status": "OK", "target": "src/client/views/TableView.tsx" }
+  ]
+}
