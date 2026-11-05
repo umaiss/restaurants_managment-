@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Refined Mockups — Table Order Web App</title>
+<style>
+  :root {
+    --bg: #0F1216;
+    --bg-raised: #171B22;
+    --bg-overlay: #1F2630;
+    --border: #2A313C;
+    --text-primary: #F1F3F6;
+    --text-secondary: #A6AEB8;
+    --text-disabled: #4E5560;
+    --accent: #FFB04A;
+    --accent-fg: #0F1216;
+    --status-pending: #FFC75A;
+    --status-preparing: #4CB3FF;
+    --status-completed: #5DD48E;
+    --status-cancelled: #8A94A2;
+    --highlight-new: #FFD98A;
+    --danger: #FF6B6B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", Segoe UI, sans-serif;
+    background: #05070A;
+    color: var(--text-primary);
+    padding: 24px;
+  }
+  h1 { font-weight: 700; letter-spacing: -0.01em; margin: 0 0 8px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 32px; }
+  h2 { color: var(--text-primary); margin: 48px 0 8px; font-size: 22px; }
+  h3 { color: var(--text-secondary); font-weight: 500; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 32px; }
+  /* phone frame (diner) */
+  .phone {
+    width: 360px;
+    background: var(--bg);
+    border-radius: 36px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+    margin: 0 auto;
+  }
+  .phone-screen {
+    background: var(--bg);
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 720px;
+  }
+  .top-strip {
+    padding: 12px 20px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: flex; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .online { color: var(--status-completed); }
+  .cat-pills {
+    display: flex; gap: 8px;
+    padding: 12px 16px;
+    background: rgba(31,38,48,0.9);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 2;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .pill {
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .pill.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+  .menu-list { padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1; }
+  .item {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 6px 20px rgba(0,0,0,0.25);
+  }
+  .emoji { font-size: 32px; display: flex; align-items: center; justify-content: center; }
+  .item-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .item-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .item-name { font-weight: 600; }
+  .item-price { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .item-desc { color: var(--text-secondary); font-size: 13px; }
+  .add-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+  .add { background: var(--accent); color: var(--accent-fg); font-weight: 700; border: none; padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; }
+  .sold-out { background: transparent; color: var(--text-disabled); border: 1px solid var(--border); }
+  .cart-bar {
+    background: var(--bg-overlay);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; bottom: 56px;
+  }
+  .cart-text { font-size: 14px; }
+  .btn-primary { background: var(--accent); color: var(--accent-fg); font-weight: 700; border: none; padding: 10px 16px; border-radius: 18px; }
+  .btn-secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--border); padding: 8px 14px; border-radius: 16px; font-size: 13px; }
+  .btn-danger { background: var(--danger); color: #0F1216; font-weight: 700; border: none; padding: 8px 14px; border-radius: 16px; font-size: 13px; }
+  .tabbar {
+    display: flex;
+    background: rgba(31,38,48,0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 8px 0;
+  }
+  .tab { flex: 1; text-align: center; color: var(--text-secondary); font-size: 12px; padding: 8px 0; position: relative; }
+  .tab.active { color: var(--accent); font-weight: 700; }
+  .tab .badge { background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 10px; margin-left: 4px; }
+  /* cart */
+  .cart-line {
+    background: var(--bg-raised); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; display: grid; grid-template-columns: 44px 1fr; gap: 12px;
+  }
+  .qty { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+  .qty button { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-overlay); color: var(--text-primary); border: 1px solid var(--border); font-size: 16px; }
+  .qty .n { min-width: 24px; text-align: center; font-weight: 600; }
+  .subtotal { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  .cart-total {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px; border-top: 1px dashed var(--border);
+    font-weight: 700; font-size: 18px;
+  }
+  .place-order {
+    padding: 16px;
+  }
+  .place-order .btn-primary { width: 100%; padding: 14px; font-size: 16px; }
+  /* orders */
+  .order-card {
+    background: var(--bg-raised); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .order-head { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 13px; font-weight: 600;
+  }
+  .st-pending   { background: rgba(255,199,90,0.18);  color: var(--status-pending); }
+  .st-preparing { background: rgba(76,179,255,0.18); color: var(--status-preparing); }
+  .st-completed { background: rgba(93,212,142,0.18); color: var(--status-completed); }
+  .st-cancelled { background: rgba(138,148,162,0.18); color: var(--status-cancelled); }
+  .st-new       { background: rgba(255,217,138,0.22); color: var(--highlight-new); }
+  .line { display: flex; justify-content: space-between; margin: 6px 0; }
+  .line .label { color: var(--text-primary); }
+  .line .price { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .cancel-row { display: flex; justify-content: flex-end; margin-top: 10px; }
+  /* staff board */
+  .board {
+    background: var(--bg);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin: 0 auto;
+    max-width: 1100px;
+  }
+  .board-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 10px; margin-bottom: 14px;
+  }
+  .board-head h2 { margin: 0; font-size: 22px; }
+  .board-meta { color: var(--text-secondary); font-size: 13px; }
+  .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .table-card {
+    background: var(--bg-raised); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px;
+  }
+  .table-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 2px 0 10px; border-bottom: 1px solid var(--border);
+    color: var(--text-primary); font-weight: 700; cursor: pointer;
+  }
+  .table-head .chev { color: var(--text-secondary); }
+  .ord {
+    padding: 12px 0; border-bottom: 1px dashed var(--border);
+  }
+  .ord:last-child { border-bottom: none; }
+  .ord-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .ord-no { color: var(--text-secondary); font-size: 13px; }
+  .ord-time { color: var(--text-secondary); font-size: 13px; }
+  .ord-items { color: var(--text-primary); font-size: 14px; margin: 4px 0 10px; }
+  .ord-actions { display: flex; gap: 8px; }
+  .new-glow {
+    box-shadow: 0 0 0 2px var(--highlight-new), 0 0 20px rgba(255,217,138,0.25);
+  }
+  /* availability panel */
+  .panel {
+    background: var(--bg-raised); border-radius: 16px; border: 1px solid var(--border);
+    width: 360px; padding: 20px;
+  }
+  .avail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .avail-row:last-child { border-bottom: none; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; }
+  .toggle { width: 42px; height: 24px; border-radius: 12px; background: var(--accent); position: relative; }
+  .toggle .knob { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-fg); position: absolute; top: 2px; right: 2px; }
+  .toggle.off { background: var(--border); }
+  .toggle.off .knob { left: 2px; right: auto; background: var(--text-disabled); }
+  /* bill */
+  .bill {
+    background: var(--bg); border-radius: 16px; border: 1px solid var(--border);
+    padding: 20px; max-width: 720px; margin: 0 auto;
+  }
+  .bill h2 { margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center; }
+  .bill-order { padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .bill-order:last-of-type { border-bottom: none; }
+  .bill-head { display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 13px; margin-bottom: 8px; }
+  .bill-line { display: flex; justify-content: space-between; padding: 4px 0; font-variant-numeric: tabular-nums; }
+  .bill-line .left { display: flex; gap: 10px; }
+  .bill-sub { display: flex; justify-content: space-between; padding-top: 10px; color: var(--text-secondary); font-size: 13px; }
+  .bill-total { display: flex; justify-content: space-between; padding: 16px; margin-top: 14px; border-top: 2px solid var(--border); font-weight: 700; font-size: 18px; }
+  .close-row { display: flex; justify-content: center; padding-top: 14px; }
+  .close-row .btn-primary { padding: 12px 36px; font-size: 16px; }
+  /* takeover */
+  .takeover {
+    background: var(--bg); border-radius: 36px; border: 1px solid var(--border);
+    height: 720px; width: 360px; margin: 0 auto;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px;
+    text-align: center;
+  }
+  .takeover .big { font-size: 80px; color: var(--status-completed); }
+  .takeover h2 { margin: 0; }
+  .takeover p { color: var(--text-secondary); }
+  .caption { color: var(--text-secondary); font-size: 13px; margin-top: 8px; text-align: center; }
+  details { margin-top: 48px; }
+  summary { color: var(--text-secondary); cursor: pointer; font-size: 14px; }
+  .files { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .files a {
+    color: var(--accent); text-decoration: none;
+    padding: 8px 14px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 8px;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Refined Mockups — Table Order Web App</h1>
+<p class="subtitle">Dark theme (Q1 • option B) · USD prices (Q2 • option A) · Menu availability side panel on Kitchen Board (Q3 • option A)</p>
+
+<h2>Diner screens (customer view at <code>/table/:id</code>)</h2>
+<div class="grid">
+
+  <div>
+    <h3>D1 — Menu</h3>
+    <div class="phone"><div class="phone-screen">
+      <div class="top-strip"><span>TABLE #5</span><span class="online">◉ online</span></div>
+      <div class="cat-pills">
+        <div class="pill">Starters</div>
+        <div class="pill active">Mains</div>
+        <div class="pill">Desserts</div>
+        <div class="pill">Drinks</div>
+      </div>
+      <div class="menu-list">
+        <div class="item">
+          <div class="emoji">🍔</div>
+          <div class="item-main">
+            <div class="item-row"><span class="item-name">Classic burger</span><span class="item-price">$10.50</span></div>
+            <div class="item-desc">Beef patty, cheddar, lettuce</div>
+            <div class="add-row"><button class="add">+ Add</button></div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="emoji">🍝</div>
+          <div class="item-main">
+            <div class="item-row"><span class="item-name">Spaghetti bolognese</span><span class="item-price">$12.00</span></div>
+            <div class="item-desc">Slow-cooked beef ragù</div>
+            <div class="add-row"><button class="add">+ Add</button></div>
+          </div>
+        </div>
+        <div class="item" style="opacity:0.55">
+          <div class="emoji">🍕</div>
+          <div class="item-main">
+            <div class="item-row"><span class="item-name">Margherita pizza</span><span class="item-price">$11.00</span></div>
+            <div class="item-desc">Tomato, mozzarella, basil</div>
+            <div class="add-row"><button class="add sold-out">Sold out</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="cart-bar">
+        <span class="cart-text">View cart (2 items · $23.50)</span>
+        <button class="btn-primary">Place →</button>
+      </div>
+      <div class="tabbar">
+        <div class="tab active">Menu</div>
+        <div class="tab">Cart <span class="badge">2</span></div>
+        <div class="tab">My orders</div>
+      </div>
+    </div></div>
+  </div>
+
+  <div>
+    <h3>D2 — Cart</h3>
+    <div class="phone"><div class="phone-screen">
+      <div class="top-strip"><span>TABLE #5</span><span class="online">◉ online</span></div>
+      <div style="padding:16px; display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="margin:0; font-size:20px;">Your cart</h2>
+        <button class="btn-secondary">Clear all</button>
+      </div>
+      <div style="padding:0 16px; display:flex; flex-direction:column; gap:12px;">
+        <div class="cart-line">
+          <div class="emoji">🍔</div>
+          <div class="item-main">
+            <div class="item-row"><span class="item-name">Classic burger</span><span class="item-price">$10.50</span></div>
+            <div class="qty"><button>−</button><span class="n">2</span><button>+</button></div>
+            <div class="subtotal"><span>Subtotal</span><span>$21.00</span></div>
+          </div>
+        </div>
+        <div class="cart-line">
+          <div class="emoji">🥤</div>
+          <div class="item-main">
+            <div class="item-row"><span class="item-name">Soft drink</span><span class="item-price">$3.00</span></div>
+            <div class="qty"><button>−</button><span class="n">1</span><button>+</button></div>
+            <div class="subtotal"><span>Subtotal</span><span>$3.00</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="cart-total"><span>Total</span><span>$24.00</span></div>
+      <div class="place-order"><button class="btn-primary">Place order</button></div>
+      <div style="flex-grow:1"></div>
+      <div class="tabbar">
+        <div class="tab">Menu</div>
+        <div class="tab active">Cart <span class="badge">3</span></div>
+        <div class="tab">My orders</div>
+      </div>
+    </div></div>
+  </div>
+
+  <div>
+    <h3>D3 — My orders</h3>
+    <div class="phone"><div class="phone-screen">
+      <div class="top-strip"><span>TABLE #5</span><span class="online">◉ online</span></div>
+      <div style="padding:16px;">
+        <h2 style="margin:0 0 12px; font-size:20px;">My orders</h2>
+        <div class="order-card">
+          <div class="order-head"><span>Order #15</span><span>Placed 7:04pm</span></div>
+          <span class="status-pill st-preparing">🔥 Preparing</span>
+          <div class="line"><span class="label">🍔 Classic burger × 2</span><span class="price">$21.00</span></div>
+          <div class="line"><span class="label">🥤 Soft drink × 1</span><span class="price">$3.00</span></div>
+          <div class="subtotal"><span>Subtotal</span><span>$24.00</span></div>
+        </div>
+        <div class="order-card">
+          <div class="order-head"><span>Order #18</span><span>Placed 7:12pm</span></div>
+          <span class="status-pill st-pending">⏳ Pending</span>
+          <div class="line"><span class="label">🍕 Margherita pizza × 1</span><span class="price">$11.00</span></div>
+          <div class="cancel-row"><button class="btn-danger">Cancel order</button></div>
+        </div>
+      </div>
+      <div style="flex-grow:1"></div>
+      <div class="tabbar">
+        <div class="tab">Menu</div>
+        <div class="tab">Cart</div>
+        <div class="tab active">My orders</div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<h2>Staff screens (staff view at <code>/staff</code>)</h2>
+
+<h3 style="margin-top:24px;">S1 — Kitchen Board</h3>
+<div class="board">
+  <div class="board-head">
+    <h2>Kitchen Board</h2>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <span class="board-meta">Updated live</span>
+      <button class="btn-secondary">Menu availability</button>
+    </div>
+  </div>
+  <div class="table-grid">
+
+    <div class="table-card">
+      <div class="table-head"><span>Table 5</span><span class="chev">→</span></div>
+      <div class="ord new-glow">
+        <div class="ord-top">
+          <div><span class="status-pill st-new">★ New</span> <span class="ord-no">#18</span></div>
+          <span class="ord-time">7:12pm</span>
+        </div>
+        <div class="ord-items">🍕 Margherita pizza × 1</div>
+        <div class="ord-actions">
+          <button class="btn-primary">Start preparing</button>
+          <button class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+      <div class="ord">
+        <div class="ord-top">
+          <div><span class="status-pill st-preparing">🔥 Preparing</span> <span class="ord-no">#15</span></div>
+          <span class="ord-time">7:04pm</span>
+        </div>
+        <div class="ord-items">🍔 Classic burger × 2 · 🥤 Soft drink × 1</div>
+        <div class="ord-actions">
+          <button class="btn-primary">Mark completed</button>
+          <button class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head"><span>Table 7</span><span class="chev">→</span></div>
+      <div class="ord">
+        <div class="ord-top">
+          <div><span class="status-pill st-preparing">🔥 Preparing</span> <span class="ord-no">#14</span></div>
+          <span class="ord-time">6:58pm</span>
+        </div>
+        <div class="ord-items">🍔 Classic burger × 2 · 🥤 Soft drink × 1</div>
+        <div class="ord-actions">
+          <button class="btn-primary">Mark completed</button>
+          <button class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+      <div class="ord">
+        <div class="ord-top">
+          <div><span class="status-pill st-completed">✓ Completed</span> <span class="ord-no">#11</span></div>
+          <span class="ord-time">6:40pm</span>
+        </div>
+        <div class="ord-items">🧀 Cheese board × 1</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head"><span>Table 3</span><span class="chev">→</span></div>
+      <div class="ord new-glow">
+        <div class="ord-top">
+          <div><span class="status-pill st-new">★ New</span> <span class="ord-no">#19</span></div>
+          <span class="ord-time">7:13pm</span>
+        </div>
+        <div class="ord-items">🌮 Tacos (3) × 1</div>
+        <div class="ord-actions">
+          <button class="btn-primary">Start preparing</button>
+          <button class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<h3 style="margin-top:32px;">S1a — Menu availability side panel</h3>
+<div class="panel">
+  <h2 style="margin:0 0 12px; font-size:18px;">Menu availability</h2>
+  <div class="avail-row"><span>🥗 House salad</span><span class="switch"><span class="toggle"><span class="knob"></span></span> On</span></div>
+  <div class="avail-row"><span>🥣 Tomato soup</span><span class="switch"><span class="toggle"><span class="knob"></span></span> On</span></div>
+  <div class="avail-row" style="opacity:0.7"><span>🧀 Cheese board</span><span class="switch"><span class="toggle off"><span class="knob"></span></span> Sold out</span></div>
+  <div class="avail-row"><span>🍔 Classic burger</span><span class="switch"><span class="toggle"><span class="knob"></span></span> On</span></div>
+  <div style="display:flex; justify-content:flex-end; padding-top:12px;"><button class="btn-primary">Done</button></div>
+</div>
+
+<h3 style="margin-top:32px;">S2 — Table Bill at <code>/staff/tables/:id</code></h3>
+<div class="bill">
+  <h2><span>Table 5 — Bill</span><button class="btn-secondary">← Board</button></h2>
+  <div class="bill-order">
+    <div class="bill-head"><span>Order #15 · <span class="status-pill st-completed">✓ Completed</span></span><span>Placed 7:04pm</span></div>
+    <div class="bill-line"><div class="left"><span>🍔</span><span>Classic burger × 2</span></div><span>$10.50 ea&nbsp;&nbsp;$21.00</span></div>
+    <div class="bill-line"><div class="left"><span>🥤</span><span>Soft drink × 1</span></div><span>&nbsp;&nbsp;$3.00 ea&nbsp;&nbsp;&nbsp;&nbsp;$3.00</span></div>
+    <div class="bill-sub"><span>Subtotal</span><span>$24.00</span></div>
+  </div>
+  <div class="bill-order">
+    <div class="bill-head"><span>Order #18 · <span class="status-pill st-completed">✓ Completed</span></span><span>Placed 7:12pm</span></div>
+    <div class="bill-line"><div class="left"><span>🍕</span><span>Margherita pizza × 1</span></div><span>$11.00 ea&nbsp;&nbsp;$11.00</span></div>
+    <div class="bill-sub"><span>Subtotal</span><span>$11.00</span></div>
+  </div>
+  <div class="bill-total"><span>Combined total</span><span>$35.00</span></div>
+  <div class="close-row"><button class="btn-primary">Close table</button></div>
+</div>
+
+<h3 style="margin-top:48px;">D3 — Table-closed takeover (triggered by Close)</h3>
+<div class="takeover">
+  <div class="big">✓</div>
+  <h2>This table was closed</h2>
+  <p>Thanks for visiting!</p>
+</div>
+
+<details>
+  <summary>Source files</summary>
+  <div class="files">
+    <a href="mockups.md">mockups.md</a>
+    <a href="design-system-mapping.md">design-system-mapping.md</a>
+    <a href="interaction-spec.md">interaction-spec.md</a>
+    <a href="accessibility-checklist.md">accessibility-checklist.md</a>
+  </div>
+</details>
+
+<p class="caption">Workflow paused at Delivery Planning. Say "resume" to continue.</p>
+
+</body>
+</html>

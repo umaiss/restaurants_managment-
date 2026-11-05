@@ -1,0 +1,17 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-walking-skeleton",
+  "version": 1,
+  "writes": [
+    { "path": "package.json" },
+    { "path": "tsconfig.json" },
+    { "path": "vite.config.ts" },
+    { "path": "vitest.config.ts" },
+    { "path": "playwright.config.ts" },
+    { "path": "index.html" },
+    { "path": ".env.example" },
+    { "path": "src/server/" },
+    { "path": "src/client/" },
+    { "path": "e2e/u1-walking-skeleton/" }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "stage": "units-generation",
+  "upstream_ids": [
+    "US1.1", "US1.2", "US2.1", "US2.2", "US2.3", "US2.4", "US2.5",
+    "US3.1", "US3.2", "US4.1",
+    "US5.1", "US5.2", "US5.3",
+    "US6.1", "US6.2", "US6.3",
+    "US7.1", "US7.2",
+    "US8.1"
+  ],
+  "coverage": [
+    { "id": "US1.1", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US1.2", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US2.1", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US2.2", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US2.3", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US2.4", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US2.5", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US3.1", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US3.2", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US4.1", "status": "OK", "target": "u2-diner-screens" },
+    { "id": "US5.1", "status": "OK", "target": "u3-kitchen-board" },
+    { "id": "US5.2", "status": "OK", "target": "u3-kitchen-board" },
+    { "id": "US5.3", "status": "OK", "target": "u3-kitchen-board" },
+    { "id": "US6.1", "status": "OK", "target": "u3-kitchen-board" },
+    { "id": "US6.2", "status": "OK", "target": "u3-kitchen-board" },
+    { "id": "US6.3", "status": "OK", "target": "u3-kitchen-board" },
+    { "id": "US7.1", "status": "OK", "target": "u4-bill-and-close" },
+    { "id": "US7.2", "status": "OK", "target": "u4-bill-and-close" },
+    { "id": "US8.1", "status": "OK", "target": "u1-walking-skeleton" }
+  ],
+  "reverse": [
+    { "id": "u1-walking-skeleton", "status": "OK", "target": "US8.1" },
+    { "id": "u2-diner-screens", "status": "OK", "target": "US1.1" },
+    { "id": "u3-kitchen-board", "status": "OK", "target": "US5.1" },
+    { "id": "u4-bill-and-close", "status": "OK", "target": "US7.1" }
+  ]
+}

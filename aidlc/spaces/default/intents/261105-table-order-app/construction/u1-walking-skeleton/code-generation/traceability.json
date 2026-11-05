@@ -1,0 +1,57 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-walking-skeleton",
+  "generated_at": "2026-11-05",
+  "upstream_ids": [
+    "US8.1",
+    "FR1.1",
+    "FR4.1",
+    "FR4.2",
+    "FR5.1",
+    "FR5.2",
+    "NFR2",
+    "NFR3"
+  ],
+  "coverage": [
+    {
+      "id": "US8.1",
+      "status": "OK",
+      "target": "src/server/index.ts"
+    },
+    {
+      "id": "FR1.1",
+      "status": "OK",
+      "target": "src/server/routes/menu.ts"
+    },
+    {
+      "id": "FR4.1",
+      "status": "OK",
+      "target": "src/server/sse.ts"
+    },
+    {
+      "id": "FR4.2",
+      "status": "OK",
+      "target": "src/server/sse.ts"
+    },
+    {
+      "id": "FR5.1",
+      "status": "OK",
+      "target": "src/client/App.tsx"
+    },
+    {
+      "id": "FR5.2",
+      "status": "OK",
+      "target": "src/server/db.ts"
+    },
+    {
+      "id": "NFR2",
+      "status": "OK",
+      "target": "src/server/repositories/orderRepo.ts"
+    },
+    {
+      "id": "NFR3",
+      "status": "OK",
+      "target": "src/server/index.ts"
+    }
+  ]
+}

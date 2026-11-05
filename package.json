@@ -1,0 +1,38 @@
+{
+  "name": "table-order",
+  "version": "1.0.0",
+  "description": "Table Order web app — diner ordering and kitchen board",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server/index.ts",
+    "dev": "concurrently \"tsx watch src/server/index.ts\" \"vite\"",
+    "build": "vite build",
+    "test": "vitest run --reporter=verbose --reporter=json --outputFile=test-results/unit.json --coverage",
+    "test:e2e": "playwright test --reporter=json --output=test-results/e2e.json",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.0",
+    "express": "^4.18.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.22.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.1",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@types/supertest": "^6.0.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.4.0",
+    "concurrently": "^8.2.2",
+    "supertest": "^6.3.4",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6",
+    "vitest": "^1.4.0"
+  }
+}
