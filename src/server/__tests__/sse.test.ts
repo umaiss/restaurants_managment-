@@ -49,7 +49,7 @@ describe('SSE channel', () => {
 
     const writeSpy = (res as any).write as ReturnType<typeof vi.fn>;
     // Find the write call with the event (not the retry: 2000 initial line)
-    const eventWrite = writeSpy.mock.calls.find(([arg]: [string]) => arg.includes('event: ORDER_PLACED'));
+    const eventWrite = writeSpy.mock.calls.find((call: unknown[]) => String(call[0]).includes('event: ORDER_PLACED'));
     expect(eventWrite).toBeDefined();
     const payload = eventWrite![0] as string;
     expect(payload).toContain('id: 1');
@@ -71,7 +71,7 @@ describe('SSE channel', () => {
     subscribe('table:1', res);
 
     const writeSpy = (res as any).write as ReturnType<typeof vi.fn>;
-    const dataWrites = writeSpy.mock.calls.filter(([arg]: [string]) => arg.includes('event: ORDER_PLACED'));
+    const dataWrites = writeSpy.mock.calls.filter((call: unknown[]) => String(call[0]).includes('event: ORDER_PLACED'));
     expect(dataWrites).toHaveLength(2);
     expect((dataWrites[0][0] as string)).toContain('"n":2');
     expect((dataWrites[1][0] as string)).toContain('"n":3');
