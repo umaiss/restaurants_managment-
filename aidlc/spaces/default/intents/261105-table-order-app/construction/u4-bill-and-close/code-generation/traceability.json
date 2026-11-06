@@ -1,0 +1,34 @@
+{
+  "stage": "code-generation",
+  "unit": "u4-bill-and-close",
+  "upstream_ids": [
+    "BR1.1",
+    "BR1.2",
+    "BR1.3",
+    "BR1.4",
+    "BR2.1",
+    "BR2.2",
+    "BR2.3",
+    "BR2.4",
+    "BR3.1",
+    "BR3.2",
+    "BR3.3",
+    "BR4.1",
+    "BR4.2"
+  ],
+  "coverage": [
+    { "id": "BR1.1", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "BR1.2", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "BR1.3", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "BR1.4", "status": "OK", "target": "src/server/__tests__/billing.test.ts" },
+    { "id": "BR2.1", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "BR2.2", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "BR2.3", "status": "OK", "target": "src/server/routes/billing.ts" },
+    { "id": "BR2.4", "status": "OK", "target": "src/server/routes/billing.ts" },
+    { "id": "BR3.1", "status": "OK", "target": "src/server/repositories/tableRepo.ts" },
+    { "id": "BR3.2", "status": "OK", "target": "src/server/__tests__/billing-api.test.ts" },
+    { "id": "BR3.3", "status": "OK", "target": "e2e/u4-bill-and-close/bill-and-close.spec.ts" },
+    { "id": "BR4.1", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "BR4.2", "status": "OK", "target": "src/server/repositories/billingRepo.ts" }
+  ]
+}

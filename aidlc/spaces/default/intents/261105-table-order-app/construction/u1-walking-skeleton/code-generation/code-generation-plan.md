@@ -80,76 +80,76 @@
 ## Steps
 
 ### Step 1 — Project structure and configuration skeleton
-- [x] Create `package.json` with scripts: `start` (tsx server), `build` (vite), `test` (vitest with JSON reporter → `test-results/unit.json`), `test:e2e` (playwright → `test-results/e2e.json`), `dev`
-- [x] Add runtime dependencies: `express`, `better-sqlite3`, `react`, `react-dom`, `react-router-dom`
-- [x] Add dev dependencies: `typescript`, `tsx`, `vite`, `@vitejs/plugin-react`, `vitest`, `@vitest/coverage-v8`, `@playwright/test`, `@types/express`, `@types/better-sqlite3`, `@types/react`, `@types/react-dom`
-- [x] Create `tsconfig.json` (strict, ESM for server + bundler for client)
-- [x] Create `vite.config.ts` (React plugin, outDir `dist`, proxy `/api` and `/sse` to Express in dev)
-- [x] Run `npm install`
+- [ ] Create `package.json` with scripts: `start` (tsx server), `build` (vite), `test` (vitest with JSON reporter → `test-results/unit.json`), `test:e2e` (playwright → `test-results/e2e.json`), `dev`
+- [ ] Add runtime dependencies: `express`, `better-sqlite3`, `react`, `react-dom`, `react-router-dom`
+- [ ] Add dev dependencies: `typescript`, `tsx`, `vite`, `@vitejs/plugin-react`, `vitest`, `@vitest/coverage-v8`, `@playwright/test`, `@types/express`, `@types/better-sqlite3`, `@types/react`, `@types/react-dom`
+- [ ] Create `tsconfig.json` (strict, ESM for server + bundler for client)
+- [ ] Create `vite.config.ts` (React plugin, outDir `dist`, proxy `/api` and `/sse` to Express in dev)
+- [ ] Run `npm install`
 - [ ] Install Playwright with Chromium: `npx playwright install chromium` — awaiting permission to run npx
 
 *Traces: US8.1 (FR5.1 — one-command startup)*
 
 ### Step 2 — Bootstrap test runner and record unit-scoped command
-- [x] Create `vitest.config.ts`: include `src/**/*.test.ts`, reporters `verbose` + `json` to `test-results/unit.json`, coverage via `@vitest/coverage-v8` to `coverage/`
-- [x] Create `playwright.config.ts`: project Chromium only, `webServer` starts Express on `E2E_PORT` (default 3100), `baseURL` reads `E2E_PORT`, output `test-results/e2e.json`
-- [x] Create `e2e/u1-walking-skeleton/` directory with a placeholder `skeleton.spec.ts` that imports `@playwright/test` (so playwright config is valid before the full spec is written in Step 10)
-- [x] Verify unit-scoped command runs: `npx vitest run --reporter=verbose src/server`
+- [ ] Create `vitest.config.ts`: include `src/**/*.test.ts`, reporters `verbose` + `json` to `test-results/unit.json`, coverage via `@vitest/coverage-v8` to `coverage/`
+- [ ] Create `playwright.config.ts`: project Chromium only, `webServer` starts Express on `E2E_PORT` (default 3100), `baseURL` reads `E2E_PORT`, output `test-results/e2e.json`
+- [ ] Create `e2e/u1-walking-skeleton/` directory with a placeholder `skeleton.spec.ts` that imports `@playwright/test` (so playwright config is valid before the full spec is written in Step 10)
+- [ ] Verify unit-scoped command runs: `npx vitest run --reporter=verbose src/server`
 
 *Traces: FR5.1, FR5.2 (platform bootstrap)*
 
 ### Step 3 — Data model: implement
-- [x] Create `src/server/db.ts`: open SQLite at `process.env.DB_FILE ?? 'table-order.db'`, export typed `db` instance
-- [x] Write schema creation (runs on first open):
+- [ ] Create `src/server/db.ts`: open SQLite at `process.env.DB_FILE ?? 'table-order.db'`, export typed `db` instance
+- [ ] Write schema creation (runs on first open):
   - `tables` (id, label, status: open|closed)
   - `categories` (id, name, sort_order)
   - `items` (id, category_id, name, description, price_cents, image_url, available)
   - `visits` (id, table_id, opened_at, closed_at)
   - `orders` (id, order_number, visit_id, table_id, status: Pending|Preparing|Completed|Cancelled, placed_by: diner, placement_key, placed_at)
   - `order_items` (id, order_id, item_id, quantity, unit_price_cents)
-- [x] Write `seedIfEmpty()`: inserts 10 tables, 4 categories (Starters/Mains/Desserts/Drinks), 12 items with realistic names/prices/images if tables count is 0
-- [x] Export `openVisit(tableId)` and `getCurrentVisit(tableId)` helpers
+- [ ] Write `seedIfEmpty()`: inserts 10 tables, 4 categories (Starters/Mains/Desserts/Drinks), 12 items with realistic names/prices/images if tables count is 0
+- [ ] Export `openVisit(tableId)` and `getCurrentVisit(tableId)` helpers
 
 *Traces: FR5.1 (DB), FR1.1 (menu read), FR2.1 (kitchen board), FR3.1 (billing)*
 
 ### Step 4 — Data model: tests
-- [x] Create `src/server/__tests__/db.test.ts`
-- [x] Test: `seedIfEmpty()` creates 10 tables, 4 categories, 12 items in a fresh in-memory DB (`:memory:` or temp DB_FILE)
-- [x] Test: calling `seedIfEmpty()` twice keeps counts the same (idempotent)
-- [x] Test: `openVisit(tableId)` creates a visit row with the correct table_id
-- [x] Test: `getCurrentVisit(tableId)` returns the open visit; returns null when none
-- [x] Test: schema enforces NOT NULL on `order_number` and `placement_key`
-- [x] Run `npx vitest run --reporter=verbose src/server/__tests__/db.test.ts`
+- [ ] Create `src/server/__tests__/db.test.ts`
+- [ ] Test: `seedIfEmpty()` creates 10 tables, 4 categories, 12 items in a fresh in-memory DB (`:memory:` or temp DB_FILE)
+- [ ] Test: calling `seedIfEmpty()` twice keeps counts the same (idempotent)
+- [ ] Test: `openVisit(tableId)` creates a visit row with the correct table_id
+- [ ] Test: `getCurrentVisit(tableId)` returns the open visit; returns null when none
+- [ ] Test: schema enforces NOT NULL on `order_number` and `placement_key`
+- [ ] Run `npx vitest run --reporter=verbose src/server/__tests__/db.test.ts`
 
 *Traces: FR5.1, FR5.2*
 
 ### Step 5 — Repository / data access: implement
-- [x] Create `src/server/repositories/menuRepo.ts`: `getMenu()` returns `{categories, items}` with availability flag
-- [x] Create `src/server/repositories/orderRepo.ts`:
+- [ ] Create `src/server/repositories/menuRepo.ts`: `getMenu()` returns `{categories, items}` with availability flag
+- [ ] Create `src/server/repositories/orderRepo.ts`:
   - `placeOrder(tableId, visitId, placementKey, lines[])` — idempotency: `(table_id, visit_id, placement_key)` unique; generates `order_number` (e.g. `ORD-<timestamp>`); drops lines for unavailable items; returns `{order_number, dropped[]}` 
   - `transitionOrder(orderNumber, newStatus, by)` — validates legal transitions (Pending→Preparing, Preparing→Completed, Pending→Cancelled); checks `by` is `"diner"` or `"staff"` (throws `INVALID_ACTOR`); diner can only Cancel Pending; staff can Prepare and Complete
   - `getOrdersByVisit(visitId)` returns orders with their items
-- [x] Create `src/server/repositories/tableRepo.ts`: `getTableStatus(tableId)`, `openVisit(tableId)`, `closeVisit(visitId, tableId)`
+- [ ] Create `src/server/repositories/tableRepo.ts`: `getTableStatus(tableId)`, `openVisit(tableId)`, `closeVisit(visitId, tableId)`
 
 *Traces: FR1.3 (place order), FR1.6 (order placed), FR1.7 (cancel), FR2.4–FR2.6 (transitions), FR3.1 (billing reads ordering)*
 
 ### Step 6 — Repository: tests
-- [x] Create `src/server/__tests__/orderRepo.test.ts`
-- [x] Test: `placeOrder` creates an order, returns order_number and empty dropped[]
-- [x] Test: `placeOrder` with same placement_key returns same order_number (idempotent)
-- [x] Test: `placeOrder` with same placement_key but different table_id creates a NEW order
-- [x] Test: `placeOrder` drops lines for items where `available = 0`, lists them in `dropped`
-- [x] Test: `transitionOrder` Pending→Preparing succeeds
-- [x] Test: `transitionOrder` Preparing→Completed succeeds
-- [x] Test: `transitionOrder` Pending→Completed throws (illegal transition)
-- [x] Test: `transitionOrder` with `by: "diner"` on Preparing→Completed throws `INVALID_ACTOR`
-- [x] Test: `transitionOrder` Pending→Cancelled with `by: "diner"` succeeds
-- [x] Run `npx vitest run --reporter=verbose src/server/__tests__/orderRepo.test.ts`
+- [ ] Create `src/server/__tests__/orderRepo.test.ts`
+- [ ] Test: `placeOrder` creates an order, returns order_number and empty dropped[]
+- [ ] Test: `placeOrder` with same placement_key returns same order_number (idempotent)
+- [ ] Test: `placeOrder` with same placement_key but different table_id creates a NEW order
+- [ ] Test: `placeOrder` drops lines for items where `available = 0`, lists them in `dropped`
+- [ ] Test: `transitionOrder` Pending→Preparing succeeds
+- [ ] Test: `transitionOrder` Preparing→Completed succeeds
+- [ ] Test: `transitionOrder` Pending→Completed throws (illegal transition)
+- [ ] Test: `transitionOrder` with `by: "diner"` on Preparing→Completed throws `INVALID_ACTOR`
+- [ ] Test: `transitionOrder` Pending→Cancelled with `by: "diner"` succeeds
+- [ ] Run `npx vitest run --reporter=verbose src/server/__tests__/orderRepo.test.ts`
 
 *Traces: FR1.6, FR1.7, FR2.4, FR2.5, FR2.6, NFR5 (idempotency)*
 
 ### Step 7 — Business logic (SSE channel): implement
-- [x] Create `src/server/sse.ts`: in-memory SSE channel manager
+- [ ] Create `src/server/sse.ts`: in-memory SSE channel manager
   - `subscribe(channel, res)` — registers a Response as an SSE subscriber; sets SSE headers; on `close` removes subscriber
   - `publish(channel, eventType, data)` — broadcasts to all subscribers on that channel; ring-buffer of last 60 events per channel (1-hour at 1 event/min); replays from `Last-Event-ID` on reconnect; assigns monotonic `id` to each event
   - Channels: `'staff'` and `'table:<id>'`
@@ -157,35 +157,35 @@
 *Traces: FR4.1 (SSE), FR4.2 (reconnect), NFR1 (latency ≤2s), NFR2 (reconnect)*
 
 ### Step 8 — SSE channel: tests
-- [x] Create `src/server/__tests__/sse.test.ts`
-- [x] Test: `publish` to a channel with no subscribers does not throw
-- [x] Test: `subscribe` then `publish` calls `res.write` with correct SSE event format (`event:`, `data:`, `id:`)
-- [x] Test: ring-buffer holds published events; replay from `Last-Event-ID` sends only newer events
-- [x] Test: closed subscriber is removed on the next publish (no dead writes)
-- [x] Run `npx vitest run --reporter=verbose src/server/__tests__/sse.test.ts`
+- [ ] Create `src/server/__tests__/sse.test.ts`
+- [ ] Test: `publish` to a channel with no subscribers does not throw
+- [ ] Test: `subscribe` then `publish` calls `res.write` with correct SSE event format (`event:`, `data:`, `id:`)
+- [ ] Test: ring-buffer holds published events; replay from `Last-Event-ID` sends only newer events
+- [ ] Test: closed subscriber is removed on the next publish (no dead writes)
+- [ ] Run `npx vitest run --reporter=verbose src/server/__tests__/sse.test.ts`
 
 *Traces: FR4.1, FR4.2*
 
 ### Step 9 — API / endpoint: implement
-- [x] Create `src/server/routes/menu.ts`: `GET /api/menu` — returns `{categories, items}` from `menuRepo.getMenu()`
-- [x] Create `src/server/routes/orders.ts`:
+- [ ] Create `src/server/routes/menu.ts`: `GET /api/menu` — returns `{categories, items}` from `menuRepo.getMenu()`
+- [ ] Create `src/server/routes/orders.ts`:
   - `POST /api/tables/:id/orders` — reads `{placement_key, lines[{item_id, quantity}]}` from body; calls `placeOrder`; publishes `ORDER_PLACED` to `'staff'` and `'table:<id>'` with full payload `{order_number, table_id, visit_id, items:[{name, quantity, unit_price_cents}], total_cents, status:'Pending'}`; returns 201 `{order_number, dropped}`
   - `POST /api/orders/:order_number/transition` — reads `{status, by}` from body; calls `transitionOrder`; publishes `ORDER_STATUS_CHANGED` to `'staff'` and the order's `'table:<id>'`; returns 200 `{order_number, status}`; on `INVALID_ACTOR` returns 400 `{error:'INVALID_ACTOR'}`; on illegal transition returns 422
-- [x] Create `src/server/routes/sse.ts`: `GET /sse/staff` and `GET /sse/tables/:id` — subscribe `res` to the matching channel; seed a `HELLO` test event on subscribe (for the walking-skeleton SSE spec)
-- [x] Create `src/server/index.ts`: Express app; `express.json()`; mount all routes; serve built SPA with `res.sendFile('index.html', { root: distDir })` (never absolute path); `seedIfEmpty()` on startup; listen on `PORT` (default 3000)
+- [ ] Create `src/server/routes/sse.ts`: `GET /sse/staff` and `GET /sse/tables/:id` — subscribe `res` to the matching channel; seed a `HELLO` test event on subscribe (for the walking-skeleton SSE spec)
+- [ ] Create `src/server/index.ts`: Express app; `express.json()`; mount all routes; serve built SPA with `res.sendFile('index.html', { root: distDir })` (never absolute path); `seedIfEmpty()` on startup; listen on `PORT` (default 3000)
 
 *Traces: FR1.3 (place order endpoint), FR1.6 (ORDER_PLACED), FR1.7 (cancel via transition), FR2.3 (live updates), FR2.4–FR2.6 (transitions), FR5.1 (one-command start), FR5.2 (seed)*
 
 ### Step 10 — API: tests + Playwright E2E skeleton
-- [x] Create `src/server/__tests__/api.test.ts` using `supertest` (add to devDeps)
-- [x] Test: `GET /api/menu` returns `{categories, items}` with the seeded data
-- [x] Test: `POST /api/tables/1/orders` with valid body returns 201 and an `order_number`
-- [x] Test: `POST /api/tables/1/orders` with same `placement_key` and same table returns same `order_number` (idempotency)
-- [x] Test: `POST /api/tables/1/orders` with same `placement_key` but different table returns a different `order_number`
-- [x] Test: `POST /api/orders/<number>/transition` with `{status:'Preparing', by:'staff'}` returns 200
-- [x] Test: `POST /api/orders/<number>/transition` with `{status:'Completed', by:'diner'}` returns 400 `INVALID_ACTOR`
-- [x] Run `npx vitest run --reporter=verbose src/server/__tests__/api.test.ts`
-- [x] Update `e2e/u1-walking-skeleton/skeleton.spec.ts` with full Playwright spec:
+- [ ] Create `src/server/__tests__/api.test.ts` using `supertest` (add to devDeps)
+- [ ] Test: `GET /api/menu` returns `{categories, items}` with the seeded data
+- [ ] Test: `POST /api/tables/1/orders` with valid body returns 201 and an `order_number`
+- [ ] Test: `POST /api/tables/1/orders` with same `placement_key` and same table returns same `order_number` (idempotency)
+- [ ] Test: `POST /api/tables/1/orders` with same `placement_key` but different table returns a different `order_number`
+- [ ] Test: `POST /api/orders/<number>/transition` with `{status:'Preparing', by:'staff'}` returns 200
+- [ ] Test: `POST /api/orders/<number>/transition` with `{status:'Completed', by:'diner'}` returns 400 `INVALID_ACTOR`
+- [ ] Run `npx vitest run --reporter=verbose src/server/__tests__/api.test.ts`
+- [ ] Update `e2e/u1-walking-skeleton/skeleton.spec.ts` with full Playwright spec:
   - Opens `/table/5` — page title or heading visible
   - Opens `/staff` — page loads without error
   - Connects `EventSource` to `/sse/tables/5` — receives an event within 2 seconds
@@ -194,17 +194,17 @@
 *Traces: FR5.1 (startup), FR5.2 (seed), FR1.3 (place order), NFR5 (idempotency), NFR1 (SSE latency)*
 
 ### Step 11 — Frontend behavior: implement (React SPA shell)
-- [x] Create `src/client/main.tsx`: renders `<App />` into `#root`
-- [x] Create `src/client/App.tsx`: `<BrowserRouter>` with routes `/table/:id` → `<TableView />` and `/staff` → `<StaffView />`; dark-theme CSS variables on `:root`
-- [x] Create `src/client/views/TableView.tsx`: reads `:id` param; renders "Table {id}" heading + three bottom-tab-bar placeholder tabs (Menu, Cart, My orders) — real screens are U2's work; add `data-testid` on each tab
-- [x] Create `src/client/views/StaffView.tsx`: renders "Kitchen" heading + placeholder content; `data-testid="staff-view"`
-- [x] Create `src/client/index.html`: Vite entry point with `<div id="root">`
-- [x] Run `npm run build` to verify Vite bundles without errors
+- [ ] Create `src/client/main.tsx`: renders `<App />` into `#root`
+- [ ] Create `src/client/App.tsx`: `<BrowserRouter>` with routes `/table/:id` → `<TableView />` and `/staff` → `<StaffView />`; dark-theme CSS variables on `:root`
+- [ ] Create `src/client/views/TableView.tsx`: reads `:id` param; renders "Table {id}" heading + three bottom-tab-bar placeholder tabs (Menu, Cart, My orders) — real screens are U2's work; add `data-testid` on each tab
+- [ ] Create `src/client/views/StaffView.tsx`: renders "Kitchen" heading + placeholder content; `data-testid="staff-view"`
+- [ ] Create `src/client/index.html`: Vite entry point with `<div id="root">`
+- [ ] Run `npm run build` to verify Vite bundles without errors
 
 *Traces: US8.1 (FR5.1 — SPA shell, routing), US1.1 (tab bar placeholder for U2), US5.1 (staff view placeholder for U3)*
 
 ### Step 12 — Frontend behavior: tests (mockup-match spec)
-- [x] Create `e2e/u1-walking-skeleton/mockup-match.spec.ts`
+- [ ] Create `e2e/u1-walking-skeleton/mockup-match.spec.ts`
   - Verifies `/table/5` renders the bottom-tab-bar placeholder (data-testid="tab-bar")
   - Verifies `/staff` renders the staff view (data-testid="staff-view")
   - Saves screenshots to `test-results/mockup-match/u1-walking-skeleton/`
@@ -214,18 +214,18 @@
 *Traces: FR5.1 (SPA routing verified), NFR5 (accessibility landmark — tab bar in DOM)*
 
 ### Step 13 — Environment and build configuration
-- [x] Add `.env.example`: `PORT=3000`, `E2E_PORT=3100`, `DB_FILE=table-order.db`
-- [x] Add `.gitignore` entries for `dist/`, `node_modules/`, `*.db`, `test-results/`, `coverage/` (if not already present — the existing `.gitignore` is the person's; only add if the work cannot proceed without it)
-- [x] Add `npm run start` script: `tsx src/server/index.ts`
-- [x] Verify `npm install && npm start` starts the app on `http://localhost:3000`
+- [ ] Add `.env.example`: `PORT=3000`, `E2E_PORT=3100`, `DB_FILE=table-order.db`
+- [ ] Add `.gitignore` entries for `dist/`, `node_modules/`, `*.db`, `test-results/`, `coverage/` (if not already present — the existing `.gitignore` is the person's; only add if the work cannot proceed without it)
+- [ ] Add `npm run start` script: `tsx src/server/index.ts`
+- [ ] Verify `npm install && npm start` starts the app on `http://localhost:3000`
 - [ ] Run full verification: `npm test && npm run test:e2e` — unit tests pass (27/27); E2E awaiting Playwright install permission
 
 *Traces: FR5.1, FR5.2*
 
 ### Step 14 — Documentation and traceability
-- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/code-summary.md`
-- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/traceability.json` via `aidlc engine sensor-traceability`
-- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/source-manifest.json`
+- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/code-summary.md`
+- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/traceability.json` via `aidlc engine sensor-traceability`
+- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/source-manifest.json`
 
 ---
 

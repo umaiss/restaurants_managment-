@@ -1,0 +1,31 @@
+{
+  "stage": "code-generation",
+  "unit": "u4-bill-and-close",
+  "version": 1,
+  "writes": [
+    { "path": "src/server/repositories/tableRepo.ts" },
+    { "path": "src/server/repositories/billingRepo.ts" },
+    { "path": "src/server/routes/billing.ts" },
+    { "path": "src/server/routes/orders.ts" },
+    { "path": "src/server/index.ts" },
+    { "path": "src/server/__tests__/tableClose.test.ts" },
+    { "path": "src/server/__tests__/billing.test.ts" },
+    { "path": "src/server/__tests__/billing-api.test.ts" },
+    { "path": "src/client/components/ConfirmModal.tsx" },
+    { "path": "src/client/components/__tests__/ConfirmModal.test.tsx" },
+    { "path": "src/client/hooks/useBill.ts" },
+    { "path": "src/client/hooks/__tests__/useBill.test.ts" },
+    { "path": "src/client/components/staff/money.ts" },
+    { "path": "src/client/components/staff/BillOrderCard.tsx" },
+    { "path": "src/client/components/staff/BillTotal.tsx" },
+    { "path": "src/client/components/staff/CloseTableSection.tsx" },
+    { "path": "src/client/components/staff/__tests__/BillOrderCard.test.tsx" },
+    { "path": "src/client/components/staff/__tests__/BillTotal.test.tsx" },
+    { "path": "src/client/components/staff/__tests__/CloseTableSection.test.tsx" },
+    { "path": "src/client/screens/staff/TableBillScreen.tsx" },
+    { "path": "src/client/screens/staff/__tests__/TableBillScreen.test.tsx" },
+    { "path": "src/client/views/StaffView.tsx" },
+    { "path": "e2e/u4-bill-and-close/bill-and-close.spec.ts" },
+    { "path": "e2e/u4-bill-and-close/mockup-match.spec.ts" }
+  ]
+}

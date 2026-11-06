@@ -1,0 +1,20 @@
+{
+  "stage": "code-generation",
+  "unit": "u2-diner-screens",
+  "version": 1,
+  "writes": [
+    { "path": "package.json" },
+    { "path": "package-lock.json" },
+    { "path": "vitest.config.ts" },
+    { "path": "src/test-setup.ts" },
+    { "path": "src/client/views/TableView.tsx" },
+    { "path": "src/client/components/" },
+    { "path": "src/client/hooks/" },
+    { "path": "src/client/screens/" },
+    { "path": "src/server/__tests__/api.test.ts" },
+    { "path": "src/server/repositories/orderRepo.ts" },
+    { "path": "src/server/routes/orders.ts" },
+    { "path": "src/server/sse.ts" },
+    { "path": "e2e/u2-diner-screens/" }
+  ]
+}

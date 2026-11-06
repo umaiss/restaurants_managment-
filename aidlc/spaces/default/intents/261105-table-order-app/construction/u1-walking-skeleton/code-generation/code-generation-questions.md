@@ -15,8 +15,8 @@ Approve the code plan for u1-walking-skeleton?
 Full plan: aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/code-generation-plan.md
 Test instructions: aidlc/spaces/default/intents/261105-table-order-app/construction/u1-walking-skeleton/code-generation/unit-test-instructions.md
 
-[Approval Fingerprint]: sha256:v3:e7730c8c353aec48b9920089abefc151ec3c03c514422f51f947bad08de950c9
-[Planned Source]: 080336db3bbbeee6a2e286f68a0a9d42b05ea8343d04148a55e20064c4092ed7
+[Approval Fingerprint]: sha256:v3:b0b5fc75beda5a795263c7c86fba3ddab64da255694fc36fea2666fe396201a9
+[Planned Source]: 802b94eafa7769eb7d41d02c543efb51d4cb2fc3cb7e51e6a86811ccc3d6cc41
 
 - A. Approve Plan
 - B. Request Changes

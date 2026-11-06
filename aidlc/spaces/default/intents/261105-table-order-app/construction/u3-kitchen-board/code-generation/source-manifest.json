@@ -1,0 +1,14 @@
+{
+  "stage": "code-generation",
+  "unit": "u3-kitchen-board",
+  "version": 1,
+  "writes": [
+    { "path": "src/client/App.tsx" },
+    { "path": "src/client/views/StaffView.tsx" },
+    { "path": "src/client/components/" },
+    { "path": "src/client/hooks/" },
+    { "path": "src/client/screens/" },
+    { "path": "e2e/u1-walking-skeleton/mockup-match.spec.ts" },
+    { "path": "e2e/u3-kitchen-board/" }
+  ]
+}

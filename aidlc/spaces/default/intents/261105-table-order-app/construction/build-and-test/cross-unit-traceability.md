@@ -1,0 +1,52 @@
+# Cross-Unit Traceability — Table Order Web App
+
+## Sources
+
+- [desc] Initial description: "Build the Table Order web app based on ideas/table-order/IDEA.md"
+- [scope] Workflow-selected scope: `dpl-workshop`
+- Output of `aidlc engine sensor-traceability --stage build-and-test`, 2026-11-06
+
+## Verdict: FAIL (6 of 31 IDs uncovered)
+
+| ID | Built in | Covered |
+|---|---|---|
+| FR1.1 | U1 `src/server/routes/menu.ts`; U2 `src/client/hooks/useCart.ts` | Yes |
+| FR1.2 | U2 `src/client/screens/diner/MenuScreen.tsx` | Yes |
+| FR1.3, FR1.4 | U2 `src/client/screens/diner/CartScreen.tsx` | Yes |
+| FR1.5 | U2 `src/client/hooks/useCart.ts` | Yes |
+| FR1.6, FR1.7, FR1.8 | U2 `src/client/screens/diner/MyOrdersScreen.tsx` | Yes |
+| FR1.9 | U2 `src/client/components/diner/TableClosedTakeover.tsx` | Yes |
+| FR2.1 | U3 `src/client/screens/staff/KitchenBoardScreen.tsx` | Yes |
+| FR2.2, FR2.3 | U3 `src/client/components/staff/OrderCard.tsx` | Yes |
+| FR2.4 | U3 `src/client/components/staff/NewHighlight.tsx` | Yes |
+| FR2.5 | U3 `src/client/hooks/useBoardOrders.ts` | Yes |
+| FR2.6 | U3 `src/client/hooks/useMenuAvailability.ts` | Yes |
+| FR2.7 | U3 `src/client/components/staff/MenuAvailabilityPanel.tsx` | Yes |
+| **FR3.1** | via US7.1 — not built in the record | **No** |
+| **FR3.2** | via US7.1 — not built in the record | **No** |
+| **FR3.3** | via US7.2 — not built in the record | **No** |
+| **FR3.4** | via US7.2 — not built in the record | **No** |
+| **FR3.5** | via US7.2 — not built in the record | **No** |
+| FR3.6 | U2 `src/client/views/TableView.tsx` | Yes |
+| FR4.1, FR4.2 | U1 `src/server/sse.ts`; U2 `src/client/hooks/useTableSSE.ts` | Yes |
+| FR5.1 | U1 `src/client/App.tsx` | Yes |
+| FR5.2 | U1 `src/server/db.ts` | Yes |
+| NFR1 | U3 `src/client/hooks/useBoardOrders.ts` | Yes |
+| NFR2 | U1 `src/server/repositories/orderRepo.ts` | Yes |
+| NFR3 | U1 `src/server/index.ts` | Yes |
+| **NFR4** | via US7.1 — not built in the record | **No** |
+| NFR5 | U2 `MyOrdersScreen.tsx`; U3 `OrderCard.tsx` | Yes |
+| NFR6 | U2 `DinerTabBar.tsx`; U3 `KitchenBoardScreen.tsx` | Yes, but see below |
+
+## Uncovered elements
+
+FR3.1, FR3.2, FR3.3, FR3.4, FR3.5 and NFR4 are owned by U4 `u4-bill-and-close` (stories US7.1 and US7.2). The code and tests exist: `src/server/repositories/billingRepo.ts`, `src/server/routes/billing.ts`, `src/client/screens/staff/TableBillScreen.tsx`, `e2e/u4-bill-and-close/bill-and-close.spec.ts`. The gap is U4's `code-generation/traceability.json`, which lists only BR1.1 to BR4.2 and has no rows for US7.1, US7.2, FR3.1 to FR3.5 or NFR4. Owner: code-generation, U4. Fix recorded in Loop-Back 1.
+
+## Coverage that holds on paper but fails in use
+
+- **FR3.1, FR3.3, FR3.5 and NFR6 from the screens.** A table leaves the Kitchen Board when its last open order is completed, so the link to its bill is gone (`keyboard-journey.spec.ts` and `board-bill-link.spec.ts` fail in Chromium, Chrome and WebKit). Owner: code-generation, U3 `src/client/screens/staff/KitchenBoardScreen.tsx`. Fix recorded in Loop-Back 1.
+
+## Where each check ran
+
+- Node and jsdom: unit, component and server tests (228).
+- Real browser engines: the browser flows of every Unit, the keyboard journey and the mockup match in Chromium; the same flows (without the mockup match) in installed Google Chrome and in WebKit; the timing check in Chromium.
