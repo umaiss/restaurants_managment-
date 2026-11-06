@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { seedIfEmpty } from './db.js';
 import menuRouter from './routes/menu.js';
 import ordersRouter from './routes/orders.js';
+import billingRouter from './routes/billing.js';
 import sseRouter from './routes/sse.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,6 +17,7 @@ app.use(express.json());
 // API routes
 app.use('/api', menuRouter);
 app.use('/api', ordersRouter);
+app.use('/api', billingRouter);
 
 // SSE routes
 app.use('/sse', sseRouter);

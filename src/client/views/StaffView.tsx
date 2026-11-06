@@ -1,22 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import KitchenBoardScreen from '../screens/staff/KitchenBoardScreen';
-
-// Placeholder for U4's TableBillScreen — built in Bolt 4
-function TableBillPlaceholder() {
-  return (
-    <div
-      data-testid="table-bill-placeholder"
-      style={{
-        padding: '2rem 1rem',
-        color: 'var(--text-secondary, #94a3b8)',
-        textAlign: 'center',
-      }}
-    >
-      <p>Table bill — coming in Bolt 4</p>
-    </div>
-  );
-}
+import TableBillScreen from '../screens/staff/TableBillScreen';
 
 export default function StaffView() {
   return (
@@ -30,7 +15,7 @@ export default function StaffView() {
     >
       <Routes>
         <Route index element={<KitchenBoardScreen />} />
-        <Route path="tables/:id" element={<TableBillPlaceholder />} />
+        <Route path="tables/:id" element={<TableBillScreen />} />
       </Routes>
     </div>
   );

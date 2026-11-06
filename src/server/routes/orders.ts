@@ -47,8 +47,8 @@ router.post('/tables/:id/orders', (req, res) => {
       return;
     }
 
-    // TODO(U4): answer TABLE_CLOSED for a closed table once U4 adds "Close table".
-    // Until then no table can be closed, so there is nothing to refuse here.
+    // A closed table is not refused: closing "resets" the table, so the next order placed here
+    // opens a new visit (getOrOpenVisit below). The TABLE_CLOSED error code stays unused by order placement.
 
     const visitId = getOrOpenVisit(tableId);
 

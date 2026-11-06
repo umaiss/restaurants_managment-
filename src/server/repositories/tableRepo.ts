@@ -56,6 +56,30 @@ export function openVisit(tableId: number): string {
   return dbOpenVisit(tableId);
 }
 
+/**
+ * Archives the table's open visit (sets closed_at) and returns its id.
+ * Returns null when the table has no open visit. The orders stay in the database.
+ */
+export function closeCurrentVisit(tableId: number): string | null {
+  const db = getDb();
+  const visit = getCurrentVisit(tableId);
+  if (!visit) return null;
+  db.prepare("UPDATE visits SET closed_at = datetime('now') WHERE id = ? AND table_id = ? AND closed_at IS NULL").run(
+    visit.id,
+    tableId
+  );
+  return visit.id;
+}
+
+/** True when the table has at least one archived (closed) visit. */
+export function hasClosedVisit(tableId: number): boolean {
+  const db = getDb();
+  const row = db.prepare('SELECT COUNT(*) as cnt FROM visits WHERE table_id = ? AND closed_at IS NOT NULL').get(tableId) as {
+    cnt: number;
+  };
+  return row.cnt > 0;
+}
+
 export function closeVisit(visitId: string, tableId: number): void {
   const db = getDb();
   db.prepare("UPDATE visits SET closed_at = datetime('now') WHERE id = ? AND table_id = ?").run(
