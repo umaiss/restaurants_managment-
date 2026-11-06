@@ -1,4 +1,22 @@
 import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import KitchenBoardScreen from '../screens/staff/KitchenBoardScreen';
+
+// Placeholder for U4's TableBillScreen — built in Bolt 4
+function TableBillPlaceholder() {
+  return (
+    <div
+      data-testid="table-bill-placeholder"
+      style={{
+        padding: '2rem 1rem',
+        color: 'var(--text-secondary, #94a3b8)',
+        textAlign: 'center',
+      }}
+    >
+      <p>Table bill — coming in Bolt 4</p>
+    </div>
+  );
+}
 
 export default function StaffView() {
   return (
@@ -6,49 +24,14 @@ export default function StaffView() {
       data-testid="staff-view"
       style={{
         minHeight: '100vh',
-        background: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        padding: '1.5rem 1rem',
+        background: 'var(--bg-primary, #0f172a)',
+        color: 'var(--text-primary, #f8fafc)',
       }}
     >
-      {/* Header */}
-      <header
-        style={{
-          marginBottom: '1.5rem',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          paddingBottom: '1rem',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '1.5rem',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Kitchen Board
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-          Live orders across all tables
-        </p>
-      </header>
-
-      {/* Placeholder content — real board built in U3 */}
-      <section
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '50vh',
-          gap: '0.75rem',
-          color: 'var(--text-muted)',
-        }}
-      >
-        <span style={{ fontSize: '3rem' }}>🍽️</span>
-        <p style={{ fontSize: '1rem', fontWeight: 500 }}>Orders will appear here</p>
-        <p style={{ fontSize: '0.875rem' }}>Kitchen board UI coming in Bolt 3</p>
-      </section>
+      <Routes>
+        <Route index element={<KitchenBoardScreen />} />
+        <Route path="tables/:id" element={<TableBillPlaceholder />} />
+      </Routes>
     </div>
   );
 }

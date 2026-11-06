@@ -8,7 +8,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/table/:id" element={<TableView />} />
-        <Route path="/staff" element={<StaffView />} />
+        <Route path="/staff/*" element={<StaffView />} />
         <Route path="/" element={<Navigate to="/staff" replace />} />
         <Route path="*" element={<Navigate to="/staff" replace />} />
       </Routes>

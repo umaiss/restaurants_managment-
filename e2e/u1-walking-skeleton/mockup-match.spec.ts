@@ -46,8 +46,9 @@ test('staff view shell — staff-view visible at /staff', async ({ page }) => {
   // Check heading text
   await expect(page.locator('h1')).toContainText('Kitchen Board');
 
-  // Check placeholder message
-  await expect(page.locator('body')).toContainText('Orders will appear here');
+  // Note: The placeholder message "Orders will appear here" was shown by U1's stub StaffView.
+  // U3 replaces the stub with the real Kitchen Board (empty-state or live orders).
+  // The U3 mockup-match spec covers the full Kitchen Board UI.
 
   // Save screenshot
   await page.screenshot({
