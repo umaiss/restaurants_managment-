@@ -9,18 +9,32 @@ const router = Router();
 // POST /api/tables/:id/orders
 router.post('/tables/:id/orders', (req, res) => {
   const tableId = parseInt(req.params.id, 10);
-  const { placement_key, lines } = req.body as {
-    placement_key: string;
-    lines: Array<{ menu_item_id: string; quantity: number }>;
-  };
+  const body = (req.body ?? {}) as { placement_key?: unknown; lines?: unknown };
 
-  if (!placement_key) {
-    res.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'placement_key is required' } });
+  if (typeof body.placement_key !== 'string' || body.placement_key.trim() === '') {
+    res.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'placement_key is required and must be a string' } });
     return;
   }
-  if (!Array.isArray(lines) || lines.length === 0) {
+  const placement_key = body.placement_key;
+
+  if (!Array.isArray(body.lines) || body.lines.length === 0) {
     res.status(400).json({ error: { code: 'EMPTY_ORDER', message: 'lines must be a non-empty array' } });
     return;
+  }
+
+  // Every line must be an object with a string menu_item_id and a whole-number quantity of 1 to 20.
+  const lines: Array<{ menu_item_id: string; quantity: number }> = [];
+  for (const raw of body.lines as unknown[]) {
+    const line = (raw ?? {}) as { menu_item_id?: unknown; quantity?: unknown };
+    if (typeof raw !== 'object' || raw === null || typeof line.menu_item_id !== 'string' || line.menu_item_id === '') {
+      res.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'each line needs a menu_item_id string and a quantity' } });
+      return;
+    }
+    if (typeof line.quantity !== 'number' || !Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > 20) {
+      res.status(400).json({ error: { code: 'INVALID_QUANTITY', message: `quantity for ${line.menu_item_id} must be a whole number from 1 to 20` } });
+      return;
+    }
+    lines.push({ menu_item_id: line.menu_item_id, quantity: line.quantity });
   }
 
   try {
@@ -33,9 +47,8 @@ router.post('/tables/:id/orders', (req, res) => {
       return;
     }
 
-    if (tableStatus.state === 'closed') {
-      // Check if already has a closed visit — treat as TABLE_CLOSED
-    }
+    // TODO(U4): answer TABLE_CLOSED for a closed table once U4 adds "Close table".
+    // Until then no table can be closed, so there is nothing to refuse here.
 
     const visitId = getOrOpenVisit(tableId);
 

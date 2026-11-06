@@ -13,6 +13,9 @@ router.get('/staff', (req, res) => {
 // GET /sse/tables/:id
 router.get('/tables/:id', (req, res) => {
   const tableId = req.params.id;
+  // Read lastEventId from query param or header for future replay support
+  const _lastEventId = (req.query['lastEventId'] as string | undefined) || (req.headers['last-event-id'] as string | undefined);
+  // TODO: replay missed events using lastEventId when event log is persisted
   const channel = `table:${tableId}`;
   subscribe(channel, res);
   // Send HELLO immediately

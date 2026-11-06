@@ -136,6 +136,21 @@ describe('KitchenBoardScreen', () => {
     expect(cards.map((c) => c.getAttribute('data-testid'))).toEqual(['order-card-21', 'order-card-20']);
   });
 
+  it('regression: table cards sit in a grid, not one full-width column', async () => {
+    setupFetchMock({
+      tableOrders: {
+        1: [makeOrder({ order_number: 40, table_id: 1 })],
+        2: [makeOrder({ order_number: 41, table_id: 2 })],
+      },
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('board-grid')).toBeTruthy());
+    const grid = screen.getByTestId('board-grid');
+    expect(grid.style.display).toBe('grid');
+    expect(grid.contains(screen.getByTestId('table-section-1'))).toBe(true);
+    expect(grid.contains(screen.getByTestId('table-section-2'))).toBe(true);
+  });
+
   it('a table with only Completed or Cancelled orders shows no card', async () => {
     setupFetchMock({
       tableOrders: {

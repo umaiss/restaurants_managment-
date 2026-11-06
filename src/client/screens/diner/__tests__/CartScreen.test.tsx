@@ -101,6 +101,96 @@ describe('CartScreen', () => {
     expect(screen.getByTestId('order-success-banner')).toHaveTextContent('#10');
   });
 
+  it('regression: Place order works for a cart restored with no placement key (a new tab)', async () => {
+    seedCart();
+    sessionStorage.removeItem(`cart-placement-key:${TABLE_ID}`);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ order_number: 51 }),
+    } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<CartScreen tableId={TABLE_ID} visitId={VISIT_ID} />);
+    fireEvent.click(screen.getByTestId('place-order-button'));
+    fireEvent.click(screen.getByTestId('confirm-modal-confirm'));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(typeof body.placement_key).toBe('string');
+    expect(body.placement_key.length).toBeGreaterThan(0);
+  });
+
+  it("regression: a sold-out line is named from the cart when the server sends { menu_item_id, reason }", async () => {
+    seedCart();
+    const onOrderPlaced = vi.fn();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          order_number: 52,
+          dropped_lines: [{ menu_item_id: 'i-02', reason: 'SOLD_OUT_AT_SUBMIT' }],
+        }),
+      } as Response)
+    );
+
+    render(<CartScreen tableId={TABLE_ID} visitId={VISIT_ID} onOrderPlaced={onOrderPlaced} />);
+    fireEvent.click(screen.getByTestId('place-order-button'));
+    fireEvent.click(screen.getByTestId('confirm-modal-confirm'));
+
+    await waitFor(() => expect(onOrderPlaced).toHaveBeenCalled());
+    expect(onOrderPlaced).toHaveBeenCalledWith({
+      orderNumber: 52,
+      droppedLines: [{ menu_item_id: 'i-02', name: 'Fries', quantity: 1 }],
+    });
+  });
+
+  it("regression: the server's own error message is shown", async () => {
+    seedCart();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { code: 'INVALID_QUANTITY', message: 'quantity must be from 1 to 20' } }),
+      } as Response)
+    );
+
+    render(<CartScreen tableId={TABLE_ID} visitId={VISIT_ID} />);
+    fireEvent.click(screen.getByTestId('place-order-button'));
+    fireEvent.click(screen.getByTestId('confirm-modal-confirm'));
+
+    await waitFor(() => expect(screen.getByTestId('order-error-banner')).toHaveTextContent('quantity must be from 1 to 20'));
+  });
+
+  it('empty cart offers "Back to menu"; a filled cart offers "Clear all"', () => {
+    const onBackToMenu = vi.fn();
+    const { unmount } = render(<CartScreen tableId={TABLE_ID} visitId={VISIT_ID} onBackToMenu={onBackToMenu} />);
+    expect(screen.getByText('Browse the menu to get started')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('back-to-menu'));
+    expect(onBackToMenu).toHaveBeenCalled();
+    unmount();
+
+    seedCart();
+    render(<CartScreen tableId={TABLE_ID} visitId={VISIT_ID} />);
+    expect(screen.getByText('Your cart')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('clear-cart'));
+    expect(screen.getByTestId('cart-empty')).toBeInTheDocument();
+  });
+
+  it('a line cannot go above 20', () => {
+    seedCart();
+    localStorage.setItem(
+      `cart:table:${TABLE_ID}`,
+      JSON.stringify([{ menuItemId: 'i-01', name: 'Burger', priceCents: 1050, quantity: 20 }])
+    );
+    render(<CartScreen tableId={TABLE_ID} visitId={VISIT_ID} />);
+    fireEvent.click(screen.getByTestId('cart-increase-i-01'));
+    expect(screen.getByTestId('cart-qty-i-01')).toHaveTextContent('20');
+  });
+
   it('shows error banner on API error and re-enables Place order', async () => {
     seedCart();
     vi.stubGlobal(

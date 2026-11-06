@@ -37,8 +37,8 @@ test.describe('Kitchen Board E2E', () => {
     await page.goto('/staff');
     await expect(page.getByTestId('kitchen-board')).toBeVisible({ timeout: 8000 });
 
-    // Wait for the board to finish loading (empty-state or table section appears)
-    await expect(page.locator('[data-testid^="table-section-"]').first()).toBeVisible({ timeout: 8000 });
+    // Wait for this order's own table card (table 1) to appear
+    await expect(page.getByTestId('table-section-1')).toBeVisible({ timeout: 8000 });
 
     // The order card for our order should be visible
     await expect(page.getByTestId(`order-card-${order_number}`)).toBeVisible({ timeout: 5000 });
@@ -46,7 +46,7 @@ test.describe('Kitchen Board E2E', () => {
     await expect(page.getByTestId(`order-card-${order_number}`)).toContainText('Pending');
   });
 
-  test('Flow 2: "Start preparing" click transitions order to Preparing; button changes to "Mark complete"', async ({ page, request, baseURL }) => {
+  test('Flow 2: "Start preparing" click transitions order to Preparing; button changes to "Mark completed"', async ({ page, request, baseURL }) => {
     const url = baseURL!;
     const itemId = await getFirstMenuItemId(request, url);
     const order_number = await placeOrder(request, url, 2, `e2e-f2-${Date.now()}`, [{ menu_item_id: itemId, quantity: 1 }]);
@@ -57,14 +57,14 @@ test.describe('Kitchen Board E2E', () => {
     // Click "Start preparing"
     await page.getByTestId(`btn-preparing-${order_number}`).click();
 
-    // The "Mark complete" button should appear
+    // The "Mark completed" button should appear
     await expect(page.getByTestId(`btn-complete-${order_number}`)).toBeVisible({ timeout: 5000 });
 
     // The "Start preparing" button should be gone
     await expect(page.getByTestId(`btn-preparing-${order_number}`)).not.toBeVisible({ timeout: 3000 });
   });
 
-  test('Flow 3: "Mark complete" transitions to Completed; card no longer shows action buttons', async ({ page, request, baseURL }) => {
+  test('Flow 3: "Mark completed" moves the order to Completed on the server; the card shows no action buttons', async ({ page, request, baseURL }) => {
     const url = baseURL!;
     const itemId = await getFirstMenuItemId(request, url);
     const order_number = await placeOrder(request, url, 3, `e2e-f3-${Date.now()}`, [{ menu_item_id: itemId, quantity: 1 }]);
@@ -77,13 +77,30 @@ test.describe('Kitchen Board E2E', () => {
     await page.goto('/staff');
     await expect(page.getByTestId(`order-card-${order_number}`)).toBeVisible({ timeout: 8000 });
 
-    // Click "Mark complete"
+    // Click "Mark completed"
     await page.getByTestId(`btn-complete-${order_number}`).click();
 
-    // Both action buttons should disappear once completed
-    // Completed orders are filtered out from the board
-    await expect(page.getByTestId(`btn-complete-${order_number}`)).not.toBeVisible({ timeout: 5000 });
-    await expect(page.getByTestId(`btn-preparing-${order_number}`)).not.toBeVisible({ timeout: 3000 });
+    // The server recorded the order as Completed
+    await expect
+      .poll(
+        async () => {
+          const res = await request.get(`${url}/api/tables/3/orders?visit=current`);
+          const body = (await res.json()) as { orders: Array<{ order_number: number; status: string }> };
+          return body.orders.find((o) => o.order_number === order_number)?.status;
+        },
+        { timeout: 5000 }
+      )
+      .toBe('Completed');
+
+    // On the board the card has no action buttons. If table 3 has no other open order the whole
+    // card goes away; if it has one, this order stays on the card marked Completed.
+    const card = page.getByTestId(`order-card-${order_number}`);
+    await expect(async () => {
+      if ((await card.count()) > 0) await expect(card).toContainText('Completed');
+    }).toPass({ timeout: 5000 });
+    await expect(page.getByTestId(`btn-complete-${order_number}`)).toHaveCount(0);
+    await expect(page.getByTestId(`btn-preparing-${order_number}`)).toHaveCount(0);
+    await expect(page.getByTestId(`btn-cancel-${order_number}`)).toHaveCount(0);
   });
 
   test('Flow 4: New order SSE arrives → "★ New" highlight visible after page reload then transitions to Preparing → highlight clears', async ({ page, request, baseURL }) => {

@@ -11,6 +11,8 @@ interface CartScreenProps {
   tableId: string;
   visitId: string;
   onOrderPlaced?: (placed: PlacedOrder) => void;
+  /** Called by the empty cart's "Back to menu" link. */
+  onBackToMenu?: () => void;
 }
 
 function formatPrice(cents: number): string {
@@ -19,8 +21,8 @@ function formatPrice(cents: number): string {
 
 type OrderStatus = 'idle' | 'posting' | 'success' | 'partial' | 'error';
 
-export default function CartScreen({ tableId, visitId, onOrderPlaced }: CartScreenProps) {
-  const { items, totalCents, placementKey, addItem, removeItem, updateQuantity, clearCart } =
+export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMenu }: CartScreenProps) {
+  const { items, totalCents, addItem, removeItem, updateQuantity, clearCart, ensurePlacementKey } =
     useCart(tableId);
 
   const [showConfirm, setShowConfirm] = useState(false);
@@ -32,12 +34,14 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced }: CartScre
   const isEmpty = items.length === 0;
 
   async function handlePlaceOrder() {
-    if (isEmpty || !placementKey) return;
+    if (isEmpty) return;
     setShowConfirm(false);
     setOrderStatus('posting');
     setErrorMessage(null);
 
     try {
+      // A cart restored in a new tab has no placement key yet; make one now so Place order always works.
+      const placementKey = ensurePlacementKey();
       const res = await fetch(`/api/tables/${tableId}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,9 +52,16 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced }: CartScre
       });
 
       if (res.ok) {
-        const data = (await res.json()) as { order_number: number; dropped_lines?: Array<{ menu_item_id: string; name: string; quantity: number }> };
+        // The server reports a sold-out line as { menu_item_id, reason }; name it from the cart.
+        const data = (await res.json()) as {
+          order_number: number;
+          dropped_lines?: Array<{ menu_item_id: string; reason?: string }>;
+        };
         setOrderNumber(data.order_number);
-        const dropped = data.dropped_lines ?? [];
+        const dropped = (data.dropped_lines ?? []).map((d) => {
+          const line = items.find((i) => i.menuItemId === d.menu_item_id);
+          return { menu_item_id: d.menu_item_id, name: line?.name ?? d.menu_item_id, quantity: line?.quantity ?? 1 };
+        });
         setDroppedLines(dropped);
         setOrderStatus(dropped.length > 0 ? 'partial' : 'success');
         clearCart();
@@ -58,8 +69,8 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced }: CartScre
         return;
       }
 
-      const data = (await res.json()) as { message?: string };
-      setErrorMessage(data.message ?? 'Failed to place order. Please try again.');
+      const data = (await res.json().catch(() => ({}))) as { error?: { message?: string }; message?: string };
+      setErrorMessage(data.error?.message ?? data.message ?? 'We could not place your order. Please try again.');
       setOrderStatus('error');
     } catch {
       setErrorMessage('Network error. Please try again.');
@@ -150,14 +161,50 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced }: CartScre
           </span>
           <p style={{ fontWeight: 500 }}>Your cart is empty</p>
           <p style={{ fontSize: '0.875rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>
-            Add items from the menu
+            Browse the menu to get started
           </p>
+          {onBackToMenu && (
+            <button
+              data-testid="back-to-menu"
+              onClick={onBackToMenu}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1.1rem',
+                borderRadius: '999px',
+                border: '1px solid var(--accent, #ffb04a)',
+                background: 'transparent',
+                color: 'var(--accent, #ffb04a)',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Back to menu
+            </button>
+          )}
         </div>
       )}
 
       {/* Cart items */}
       {!isEmpty && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Your cart</h2>
+            <button
+              data-testid="clear-cart"
+              onClick={clearCart}
+              style={{
+                padding: '0.35rem 0.8rem',
+                borderRadius: '999px',
+                border: '1px solid var(--border, rgba(255,255,255,0.15))',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+            >
+              Clear all
+            </button>
+          </div>
           {items.map((item) => (
             <div
               key={item.menuItemId}
@@ -287,9 +334,9 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced }: CartScre
             border: 'none',
             background:
               isEmpty || orderStatus === 'posting'
-                ? 'rgba(99,102,241,0.3)'
-                : 'var(--accent, #6366f1)',
-            color: isEmpty || orderStatus === 'posting' ? 'rgba(255,255,255,0.4)' : '#fff',
+                ? 'var(--accent-soft, rgba(255,176,74,0.3))'
+                : 'var(--accent, #ffb04a)',
+            color: isEmpty || orderStatus === 'posting' ? 'var(--text-muted, rgba(255,255,255,0.4))' : 'var(--accent-fg, #0f1216)',
             cursor: isEmpty || orderStatus === 'posting' ? 'not-allowed' : 'pointer',
             fontWeight: 700,
             fontSize: '1rem',

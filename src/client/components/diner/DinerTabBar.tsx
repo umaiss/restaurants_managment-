@@ -78,7 +78,7 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
               style={{
                 fontSize: '1.25rem',
                 lineHeight: 1,
-                filter: isActive ? 'drop-shadow(0 0 6px rgba(99,102,241,0.6))' : 'none',
+                filter: isActive ? 'drop-shadow(0 0 6px rgba(255,176,74,0.6))' : 'none',
                 transition: 'filter 150ms ease-out',
               }}
             >
@@ -94,7 +94,7 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
                   top: '0.3rem',
                   right: 'calc(50% - 1rem)',
                   background: 'var(--accent, #6366f1)',
-                  color: '#fff',
+                  color: 'var(--accent-fg, #0f1216)',
                   borderRadius: '50%',
                   width: '1.1rem',
                   height: '1.1rem',

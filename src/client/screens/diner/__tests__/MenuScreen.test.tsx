@@ -64,6 +64,54 @@ afterEach(() => {
 });
 
 describe('MenuScreen', () => {
+  it('regression: an emoji image is shown as an emoji, never loaded as a broken picture', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          categories: MENU_RESPONSE.categories,
+          items: [
+            { id: 'i-10', name: 'Garlic Bread', description: 'Toasted', price_cents: 650, category: 'Starters', image: '🍞', available: true },
+            { id: 'i-11', name: 'Photo Dish', description: 'Has a photo', price_cents: 700, category: 'Mains', image: '/images/photo.png', available: true },
+          ],
+        }),
+      } as Response)
+    );
+    const { container } = render(<MenuScreen tableId="5" />);
+    await waitFor(() => expect(screen.getByTestId('item-emoji-i-10')).toHaveTextContent('🍞'));
+    // The emoji item has no <img>; the item with a real picture address keeps its <img>
+    const images = Array.from(container.querySelectorAll('img')).map((i) => i.getAttribute('src'));
+    expect(images).toEqual(['/images/photo.png']);
+  });
+
+  it('regression: a live sold-out change updates the Menu without leaving the tab', async () => {
+    mockFetchSuccess();
+    const { rerender } = render(<MenuScreen tableId="5" events={[]} />);
+    await waitFor(() => expect(screen.getByTestId('add-item-i-01')).toBeInTheDocument());
+
+    rerender(
+      <MenuScreen
+        tableId="5"
+        events={[{ type: 'MENU_AVAILABILITY_CHANGED', data: { menu_item_id: 'i-01', available: false }, seq: 1 }]}
+      />
+    );
+    // The Burger can no longer be added: its + Add is replaced by "Sold out"
+    await waitFor(() => expect(screen.queryByTestId('add-item-i-01')).toBeNull());
+
+    // And it can come back
+    rerender(
+      <MenuScreen
+        tableId="5"
+        events={[
+          { type: 'MENU_AVAILABILITY_CHANGED', data: { menu_item_id: 'i-01', available: false }, seq: 1 },
+          { type: 'MENU_AVAILABILITY_CHANGED', data: { menu_item_id: 'i-01', available: true }, seq: 2 },
+        ]}
+      />
+    );
+    await waitFor(() => expect(screen.getByTestId('add-item-i-01')).toBeInTheDocument());
+  });
+
   it('shows loading shimmer while fetching menu', async () => {
     // Keep fetch pending
     vi.stubGlobal(

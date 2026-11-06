@@ -100,38 +100,48 @@ export default function KitchenBoardScreen() {
           marginBottom: '1.25rem',
         }}
       >
-        <div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Kitchen Board</h1>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)', margin: '0.2rem 0 0' }}>
-            Updated live
-          </p>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Kitchen Board</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)' }}>Updated live</span>
+          <button
+            onClick={() => setPanelOpen(true)}
+            style={{
+              padding: '0.4rem 0.9rem',
+              borderRadius: '0.375rem',
+              border: '1px solid var(--border, rgba(255,255,255,0.15))',
+              background: 'none',
+              color: 'var(--text-primary, #f8fafc)',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+            }}
+          >
+            Menu availability
+          </button>
         </div>
-        <button
-          onClick={() => setPanelOpen(true)}
-          style={{
-            padding: '0.4rem 0.9rem',
-            borderRadius: '0.375rem',
-            border: '1px solid rgba(255,255,255,0.15)',
-            background: 'none',
-            color: 'var(--text-primary, #f8fafc)',
-            fontSize: '0.85rem',
-            cursor: 'pointer',
-          }}
-        >
-          Menu availability
-        </button>
       </div>
 
       {/* Content */}
       {loading && <BoardShimmer />}
       {!loading && activeTables.length === 0 && <BoardEmptyState />}
-      {!loading && activeTables.map(([tableId, orders]) => (
-        <TableSection
-          key={tableId}
-          tableId={tableId}
-          orders={orders}
-        />
-      ))}
+      {!loading && activeTables.length > 0 && (
+        <div
+          data-testid="board-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(20rem, 1fr))',
+            gap: '1rem',
+            alignItems: 'start',
+          }}
+        >
+          {activeTables.map(([tableId, orders]) => (
+            <TableSection
+              key={tableId}
+              tableId={tableId}
+              orders={orders}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Menu availability side panel */}
       {panelOpen && <MenuAvailabilityPanel onClose={closePanel} />}
@@ -159,7 +169,6 @@ function TableSection({ tableId, orders }: TableSectionProps) {
     <section
       data-testid={`table-section-${tableId}`}
       style={{
-        marginBottom: '1.5rem',
         background: 'var(--bg-secondary, #1e1e2e)',
         borderRadius: '0.75rem',
         padding: '0.875rem',

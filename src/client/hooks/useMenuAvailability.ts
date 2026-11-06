@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStaffSSE } from './useStaffSSE';
 
 export interface Category {
@@ -33,7 +33,8 @@ export function useMenuAvailability(): {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { lastEvent } = useStaffSSE();
+  const { events } = useStaffSSE();
+  const processedSeqRef = useRef(0);
 
   useEffect(() => {
     // Fetch initial menu state
@@ -51,14 +52,19 @@ export function useMenuAvailability(): {
 
   // React to MENU_AVAILABILITY_CHANGED events from the shared SSE connection
   useEffect(() => {
-    if (!lastEvent || lastEvent.type !== 'MENU_AVAILABILITY_CHANGED') return;
-    const data = lastEvent.data as { menu_item_id: string; available: boolean };
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === data.menu_item_id ? { ...item, available: data.available } : item
-      )
-    );
-  }, [lastEvent]);
+    for (const ev of events) {
+      const seq = ev.seq ?? 0;
+      if (seq <= processedSeqRef.current) continue;
+      processedSeqRef.current = seq;
+      if (ev.type !== 'MENU_AVAILABILITY_CHANGED') continue;
+      const data = ev.data as { menu_item_id: string; available: boolean };
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === data.menu_item_id ? { ...item, available: data.available } : item
+        )
+      );
+    }
+  }, [events]);
 
   const toggleAvailability = useCallback(async (menuItemId: string, available: boolean) => {
     // Optimistic update

@@ -161,6 +161,26 @@ describe('MyOrdersScreen', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('regression: a cancel refused because staff already started the order says so', async () => {
+    const preparing = { ...PENDING_ORDER, status: 'Preparing' };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [PENDING_ORDER] }) } as Response)
+      // The cancel is refused: staff moved the order to Preparing first
+      .mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ error: { code: 'ILLEGAL_TRANSITION' } }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [preparing] }) } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('btn-cancel-order-1'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('btn-confirm-cancel-1'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('cancel-notice')).toHaveTextContent('can no longer be cancelled'));
+    expect(screen.getByTestId('order-status-1')).toHaveTextContent('Preparing');
+  });
+
   it('shows cancel button for Pending orders and completes cancel flow', async () => {
     const cancelledOrder = { ...PENDING_ORDER, status: 'Cancelled' };
     // First fetch: pending order; subsequent fetches (after cancel): cancelled order

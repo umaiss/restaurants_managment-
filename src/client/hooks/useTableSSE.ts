@@ -3,23 +3,39 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 export interface SSEEvent {
   type: string;
   data: unknown;
+  /** Position in this connection's event list; set by the hook. */
+  seq?: number;
 }
 
 export interface UseTableSSEResult {
+  /** The newest event. Events that arrive together replace each other here; use `events` to see all of them. */
   lastEvent: SSEEvent | null;
+  /** Every event received (the newest 200), in order, each with a `seq`. */
+  events: SSEEvent[];
   connected: boolean;
 }
+
+const MAX_EVENTS_KEPT = 200;
 
 const BACKOFF_STEPS = [1000, 2000, 5000, 10000, 15000, 15000];
 
 /**
  * Subscribe to the SSE stream for a table.
- * Reconnects with exponential backoff (1s → 2s → 4s → … capped at 30s).
+ * Reconnects with exponential backoff (1s → 2s → 5s → 10s → 15s, then every 15s).
  * Sends Last-Event-ID on reconnect for event replay.
  */
 export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null);
+  const [events, setEvents] = useState<SSEEvent[]>([]);
   const [connected, setConnected] = useState(false);
+  const seqRef = useRef(0);
+
+  // Keep every event, not only the newest: two events that arrive together must both reach the consumer.
+  const pushEvent = useCallback((ev: SSEEvent) => {
+    const numbered = { ...ev, seq: ++seqRef.current };
+    setLastEvent(numbered);
+    setEvents((prev) => [...prev, numbered].slice(-MAX_EVENTS_KEPT));
+  }, []);
 
   // Refs to persist across renders without re-triggering effect
   const lastEventIdRef = useRef<string | null>(null);
@@ -68,9 +84,9 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
       }
       try {
         const parsed = JSON.parse(ev.data as string) as unknown;
-        setLastEvent({ type: 'message', data: parsed });
+        pushEvent({ type: 'message', data: parsed });
       } catch {
-        setLastEvent({ type: 'message', data: ev.data });
+        pushEvent({ type: 'message', data: ev.data });
       }
     };
 
@@ -91,9 +107,9 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
         }
         try {
           const parsed = JSON.parse(msgEv.data as string) as unknown;
-          setLastEvent({ type: eventType, data: parsed });
+          pushEvent({ type: eventType, data: parsed });
         } catch {
-          setLastEvent({ type: eventType, data: msgEv.data });
+          pushEvent({ type: eventType, data: msgEv.data });
         }
       });
     }
@@ -114,7 +130,7 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
         }
       }, delay);
     };
-  }, [tableId, disconnect]);
+  }, [tableId, disconnect, pushEvent]);
 
   useEffect(() => {
     if (!tableId) return;
@@ -127,5 +143,5 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
     };
   }, [tableId, connect, disconnect]);
 
-  return { lastEvent, connected };
+  return { lastEvent, events, connected };
 }

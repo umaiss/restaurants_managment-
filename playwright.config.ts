@@ -6,6 +6,9 @@ const baseURL = `http://localhost:${E2E_PORT}`;
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
+  // Every spec shares one server and one database (orders, tables, menu availability),
+  // so spec files run one after another. Parallel files made tests see each other's orders.
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: [['json', { outputFile: 'test-results/e2e.json' }]],
@@ -22,7 +25,8 @@ export default defineConfig({
   webServer: {
     command: `E2E_PORT=${E2E_PORT} DB_FILE=:memory: tsx src/server/index.ts`,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    // Always start a fresh server with an in-memory database; never reuse one left running on the port.
+    reuseExistingServer: false,
     timeout: 30000,
   },
 });

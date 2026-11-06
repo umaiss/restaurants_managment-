@@ -51,6 +51,33 @@ describe('API endpoints', () => {
     expect(res2.body.lines).toHaveLength(1);
   });
 
+  describe('regression: order input is validated and refused with 400, never a 500', () => {
+    const post = (body: unknown) => request(app).post('/api/tables/1/orders').send(body as object);
+    const ok = { menu_item_id: 'i-01', quantity: 1 };
+
+    it.each([
+      ['a fractional quantity', { placement_key: 'v-1', lines: [{ ...ok, quantity: 1.5 }] }, 'INVALID_QUANTITY'],
+      ['a quantity sent as a string', { placement_key: 'v-2', lines: [{ ...ok, quantity: '2' }] }, 'INVALID_QUANTITY'],
+      ['a quantity that is not a number', { placement_key: 'v-3', lines: [{ ...ok, quantity: 'abc' }] }, 'INVALID_QUANTITY'],
+      ['a quantity of 21', { placement_key: 'v-4', lines: [{ ...ok, quantity: 21 }] }, 'INVALID_QUANTITY'],
+      ['a null line', { placement_key: 'v-5', lines: [null] }, 'INVALID_REQUEST'],
+      ['a line that is not an object', { placement_key: 'v-6', lines: ['i-01'] }, 'INVALID_REQUEST'],
+      ['a menu_item_id that is not a string', { placement_key: 'v-7', lines: [{ menu_item_id: 7, quantity: 1 }] }, 'INVALID_REQUEST'],
+      ['a placement_key that is not a string', { placement_key: 12, lines: [ok] }, 'INVALID_REQUEST'],
+      ['an empty placement_key', { placement_key: '  ', lines: [ok] }, 'INVALID_REQUEST'],
+      ['no lines', { placement_key: 'v-8' }, 'EMPTY_ORDER'],
+    ])('rejects %s', async (_name, body, code) => {
+      const res = await post(body);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe(code);
+    });
+
+    it('rejects a request with no body at all', async () => {
+      const res = await request(app).post('/api/tables/1/orders');
+      expect(res.status).toBe(400);
+    });
+  });
+
   it('POST /api/tables/2/orders with same placement_key but different table returns different order_number', async () => {
     const res1 = await request(app)
       .post('/api/tables/1/orders')

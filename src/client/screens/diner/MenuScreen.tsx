@@ -21,6 +21,12 @@ interface MenuCategory {
   display_order?: number;
 }
 
+// The menu's `image` is either a picture address or, in the seed data, a single emoji.
+// Only an address (http(s), protocol-relative, a path, or a data URI) goes into an <img>.
+function isImageAddress(value: string | undefined): value is string {
+  return !!value && /^(https?:)?\/\/|^\/|^data:image\//i.test(value);
+}
+
 // Default fallback category config in case API doesn't return them
 const DEFAULT_CATEGORIES: MenuCategory[] = [
   { id: 'c-01', name: 'Starters' },
@@ -35,9 +41,11 @@ function formatPrice(cents: number): string {
 
 interface MenuScreenProps {
   tableId: string;
+  /** Live events from the table's stream; a MENU_AVAILABILITY_CHANGED updates the menu in place. */
+  events?: Array<{ type: string; data: unknown; seq?: number }>;
 }
 
-export default function MenuScreen({ tableId }: MenuScreenProps) {
+export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
@@ -70,6 +78,25 @@ export default function MenuScreen({ tableId }: MenuScreenProps) {
   useEffect(() => {
     fetchMenu();
   }, [fetchMenu]);
+
+  // Apply sold-out changes as they arrive, so a diner who stays on the Menu sees them within
+  // seconds. Events from before this screen opened are already in the menu it just fetched.
+  const processedSeqRef = useRef(events.length > 0 ? (events[events.length - 1].seq ?? 0) : 0);
+  useEffect(() => {
+    for (const ev of events) {
+      const seq = ev.seq ?? 0;
+      if (seq <= processedSeqRef.current) continue;
+      processedSeqRef.current = seq;
+      if (ev.type !== 'MENU_AVAILABILITY_CHANGED') continue;
+      const data = ev.data as { menu_item_id?: string; available?: boolean };
+      if (typeof data?.menu_item_id !== 'string' || typeof data.available !== 'boolean') continue;
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === data.menu_item_id ? { ...item, available: data.available as boolean } : item
+        )
+      );
+    }
+  }, [events]);
 
   // IntersectionObserver to highlight the active category pill
   useEffect(() => {
@@ -160,7 +187,7 @@ export default function MenuScreen({ tableId }: MenuScreenProps) {
             padding: '0.65rem 1.5rem',
             borderRadius: '0.5rem',
             background: 'var(--accent, #6366f1)',
-            color: '#fff',
+            color: 'var(--accent-fg, #0f1216)',
             border: 'none',
             cursor: 'pointer',
             fontWeight: 600,
@@ -215,7 +242,7 @@ export default function MenuScreen({ tableId }: MenuScreenProps) {
                   ? '1.5px solid var(--accent, #6366f1)'
                   : '1.5px solid rgba(255,255,255,0.15)',
                 background: isActive ? 'var(--accent, #6366f1)' : 'transparent',
-                color: isActive ? '#fff' : 'var(--text-secondary)',
+                color: isActive ? 'var(--accent-fg, #0f1216)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: isActive ? 600 : 400,
@@ -301,7 +328,7 @@ function MenuItemCard({ item, cartQuantity, onAdd }: MenuItemCardProps) {
       }}
     >
       {/* Item image */}
-      {(item.image_url || item.image) ? (
+      {isImageAddress(item.image_url ?? item.image) ? (
         <img
           src={item.image_url ?? item.image}
           alt={item.name}
@@ -326,9 +353,11 @@ function MenuItemCard({ item, cartQuantity, onAdd }: MenuItemCardProps) {
             justifyContent: 'center',
             fontSize: '1.5rem',
           }}
-          aria-hidden="true"
+          role="img"
+          aria-label={item.name}
+          data-testid={`item-emoji-${item.id}`}
         >
-          🍽️
+          {(item.image_url ?? item.image) || '🍽️'}
         </div>
       )}
 
@@ -408,10 +437,10 @@ function MenuItemCard({ item, cartQuantity, onAdd }: MenuItemCardProps) {
                 borderRadius: '999px',
                 background: cartQuantity >= 20
                   ? 'rgba(255,255,255,0.08)'
-                  : cartQuantity > 0 ? 'var(--accent, #6366f1)' : 'rgba(99,102,241,0.15)',
+                  : cartQuantity > 0 ? 'var(--accent, #6366f1)' : 'var(--accent-soft)',
                 color: cartQuantity >= 20
                   ? 'var(--text-muted)'
-                  : cartQuantity > 0 ? '#fff' : 'var(--accent, #6366f1)',
+                  : cartQuantity > 0 ? 'var(--accent-fg, #0f1216)' : 'var(--accent, #6366f1)',
                 border: cartQuantity >= 20
                   ? '1.5px solid rgba(255,255,255,0.1)'
                   : '1.5px solid var(--accent, #6366f1)',

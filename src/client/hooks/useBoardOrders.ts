@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStaffSSE } from './useStaffSSE';
 
 export type OrderStatus = 'Pending' | 'Preparing' | 'Completed' | 'Cancelled';
@@ -31,7 +31,9 @@ export function useBoardOrders(): {
 } {
   const [ordersByTable, setOrdersByTable] = useState<Map<number, Order[]>>(new Map());
   const [loading, setLoading] = useState(true);
-  const { lastEvent, connected } = useStaffSSE();
+  const { events, connected } = useStaffSSE();
+  // The board is built from events, so it must see every one, in order, even when several arrive together.
+  const processedSeqRef = useRef(0);
 
   const updateOrders = useCallback((updater: (prev: Map<number, Order[]>) => Map<number, Order[]>) => {
     setOrdersByTable((prev) => updater(prev));
@@ -81,7 +83,10 @@ export function useBoardOrders(): {
 
   // React to SSE events from the shared connection
   useEffect(() => {
-    if (!lastEvent) return;
+   for (const lastEvent of events) {
+    const seq = lastEvent.seq ?? 0;
+    if (seq <= processedSeqRef.current) continue;
+    processedSeqRef.current = seq;
 
     if (lastEvent.type === 'ORDER_PLACED') {
       const data = lastEvent.data as {
@@ -144,7 +149,8 @@ export function useBoardOrders(): {
         return next;
       });
     }
-  }, [lastEvent, updateOrders]);
+   }
+  }, [events, updateOrders]);
 
   return { ordersByTable, loading, connected };
 }

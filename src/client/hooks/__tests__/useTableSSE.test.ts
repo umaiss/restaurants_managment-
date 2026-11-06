@@ -114,10 +114,28 @@ describe('useTableSSE', () => {
       instances[0].triggerNamedEvent('ORDER_PLACED', { order_number: 1 }, '42');
     });
 
-    expect(result.current.lastEvent).toEqual({
+    expect(result.current.lastEvent).toMatchObject({
       type: 'ORDER_PLACED',
       data: { order_number: 1 },
     });
+  });
+
+  it('regression: two events that arrive together are both kept, in order', () => {
+    const { result } = renderHook(() => useTableSSE('5'));
+    act(() => {
+      instances[0].triggerOpen();
+    });
+
+    // Both events land in one batch, as a reconnect replay delivers them
+    act(() => {
+      instances[0].triggerNamedEvent('ORDER_PLACED', { order_number: 1 }, '1');
+      instances[0].triggerNamedEvent('ORDER_STATUS_CHANGED', { order_number: 1, status: 'Preparing' }, '2');
+    });
+
+    expect(result.current.events.map((e) => e.type)).toEqual(['ORDER_PLACED', 'ORDER_STATUS_CHANGED']);
+    expect(result.current.events.map((e) => e.seq)).toEqual([1, 2]);
+    // lastEvent alone would have shown only the second
+    expect(result.current.lastEvent?.type).toBe('ORDER_STATUS_CHANGED');
   });
 
   it('closes the EventSource and clears timers on unmount', () => {

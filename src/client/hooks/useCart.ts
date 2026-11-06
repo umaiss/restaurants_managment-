@@ -15,7 +15,12 @@ export interface UseCartResult {
   removeItem: (menuItemId: string) => void;
   updateQuantity: (menuItemId: string, quantity: number) => void;
   clearCart: () => void;
+  /** Returns the placement key, creating and saving one if the cart has none (e.g. a cart restored in a new tab). */
+  ensurePlacementKey: () => string;
 }
+
+/** The server accepts 1 to 20 of one item per order line. */
+export const MAX_LINE_QUANTITY = 20;
 
 function cartStorageKey(tableId: string): string {
   return `cart:table:${tableId}`;
@@ -118,7 +123,7 @@ export function useCart(tableId: string): UseCartResult {
         const updated = existing
           ? prev.map((i) =>
               i.menuItemId === menuItemId
-                ? { ...i, quantity: i.quantity + quantity }
+                ? { ...i, quantity: Math.min(MAX_LINE_QUANTITY, i.quantity + quantity) }
                 : i
             )
           : [...prev, { menuItemId, name, priceCents, quantity }];
@@ -148,7 +153,7 @@ export function useCart(tableId: string): UseCartResult {
       }
       setItems((prev) => {
         const updated = prev.map((i) =>
-          i.menuItemId === menuItemId ? { ...i, quantity } : i
+          i.menuItemId === menuItemId ? { ...i, quantity: Math.min(MAX_LINE_QUANTITY, quantity) } : i
         );
         saveItems(tableId, updated);
         return updated;
@@ -169,7 +174,19 @@ export function useCart(tableId: string): UseCartResult {
     }
   }, [tableId]);
 
+  const ensurePlacementKey = useCallback((): string => {
+    const stored = loadPlacementKey(tableId);
+    if (stored) {
+      setPlacementKey(stored);
+      return stored;
+    }
+    const created = generatePlacementKey();
+    savePlacementKey(tableId, created);
+    setPlacementKey(created);
+    return created;
+  }, [tableId]);
+
   const totalCents = items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0);
 
-  return { items, totalCents, placementKey, addItem, removeItem, updateQuantity, clearCart };
+  return { items, totalCents, placementKey, addItem, removeItem, updateQuantity, clearCart, ensurePlacementKey };
 }

@@ -99,6 +99,26 @@ test.describe('Kitchen Board mockup-match', () => {
     await page.screenshot({ path: path.join(screenshotDir, 'board-pending.png'), fullPage: true });
   });
 
+  test('S1 — table cards sit side by side in a grid at desktop width', async ({ page, request, baseURL }) => {
+    const url = baseURL!;
+    const itemId = await getFirstMenuItemId(request, url);
+    await placeOrder(request, url, 1, `mm-grid-1-${Date.now()}`, itemId, 1);
+    await placeOrder(request, url, 2, `mm-grid-2-${Date.now()}`, itemId, 1);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/staff');
+    const first = page.getByTestId('table-section-1');
+    const second = page.getByTestId('table-section-2');
+    await expect(first).toBeVisible({ timeout: 8000 });
+    await expect(second).toBeVisible({ timeout: 8000 });
+
+    const a = (await first.boundingBox())!;
+    const b = (await second.boundingBox())!;
+    // Same row (tops line up) and next to each other (second starts to the right of the first)
+    expect(Math.abs(a.y - b.y)).toBeLessThan(4);
+    expect(b.x).toBeGreaterThanOrEqual(a.x + a.width - 1);
+  });
+
   test('S1 — Preparing order shows Mark completed and Cancel, no Start preparing, no ★ New', async ({ page, request, baseURL }) => {
     const url = baseURL!;
     const itemId = await getFirstMenuItemId(request, url);

@@ -120,6 +120,27 @@ describe('useBoardOrders', () => {
     expect(result.current.ordersByTable.get(3)![0].isNew).toBe(true);
   });
 
+  it('regression: two events arriving together both reach the board', async () => {
+    setupFetchMock({});
+    const { result } = renderHook(() => useBoardOrders());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const es = MockEventSource.instance!;
+    const placed = (order_number: number, table_id: number) => ({
+      order_number,
+      table_id,
+      status: 'Pending',
+      placed_at: '2026-01-01T12:05:00Z',
+      lines: [{ menu_item_id: 'i-01', name: 'Burger', quantity: 1, price_cents_each: 1000, subtotal_cents: 1000 }],
+      visit_id: `v-${table_id}`,
+    });
+    act(() => {
+      es.triggerMessage('ORDER_PLACED', placed(7, 3));
+      es.triggerMessage('ORDER_PLACED', placed(8, 4));
+    });
+    expect(result.current.ordersByTable.get(3)![0].order_number).toBe(7);
+    expect(result.current.ordersByTable.get(4)![0].order_number).toBe(8);
+  });
+
   it('ORDER_STATUS_CHANGED updates status in map', async () => {
     const order = makeOrder({ order_number: 2, table_id: 2, status: 'Pending' });
     setupFetchMock({ 2: [order] });

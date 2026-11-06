@@ -85,15 +85,15 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               padding: '0.15rem 0.5rem',
               borderRadius: '1rem',
               background: isPending
-                ? 'rgba(245,158,11,0.15)'
+                ? 'var(--status-pending-soft)'
                 : isPreparing
-                ? 'rgba(239,68,68,0.15)'
-                : 'rgba(100,116,139,0.15)',
+                ? 'var(--status-preparing-soft)'
+                : 'var(--status-completed-soft)',
               color: isPending
-                ? '#f59e0b'
+                ? 'var(--status-pending)'
                 : isPreparing
-                ? '#ef4444'
-                : 'var(--text-secondary)',
+                ? 'var(--status-preparing)'
+                : 'var(--status-completed)',
             }}
           >
             <span>{STATUS_ICONS[order.status]}</span>
@@ -119,7 +119,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
 
         {/* Action buttons */}
         {transitionError && (
-          <p style={{ color: '#ef4444', fontSize: '0.75rem', marginBottom: '0.5rem' }}>{transitionError}</p>
+          <p style={{ color: 'var(--danger, #ff6b6b)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>{transitionError}</p>
         )}
         {cancelConfirming && (
           <div
@@ -180,8 +180,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.375rem',
                 border: 'none',
-                background: '#f59e0b',
-                color: '#000',
+                background: 'var(--accent, #ffb04a)',
+                color: 'var(--accent-fg, #0f1216)',
                 fontWeight: 600,
                 fontSize: '0.8rem',
                 cursor: inFlight ? 'not-allowed' : 'pointer',
@@ -200,8 +200,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.375rem',
                 border: 'none',
-                background: '#22c55e',
-                color: '#000',
+                background: 'var(--accent, #ffb04a)',
+                color: 'var(--accent-fg, #0f1216)',
                 fontWeight: 600,
                 fontSize: '0.8rem',
                 cursor: inFlight ? 'not-allowed' : 'pointer',
@@ -219,9 +219,9 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               style={{
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.375rem',
-                border: '1px solid rgba(239,68,68,0.4)',
+                border: '1px solid rgba(255,107,107,0.4)',
                 background: 'transparent',
-                color: '#ef4444',
+                color: 'var(--danger, #ff6b6b)',
                 fontWeight: 600,
                 fontSize: '0.8rem',
                 cursor: inFlight ? 'not-allowed' : 'pointer',

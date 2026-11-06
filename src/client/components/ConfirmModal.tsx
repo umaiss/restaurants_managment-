@@ -104,7 +104,7 @@ export default function ConfirmModal({
               borderRadius: '0.5rem',
               border: 'none',
               background: 'var(--accent, #6366f1)',
-              color: '#fff',
+              color: 'var(--accent-fg, #0f1216)',
               cursor: 'pointer',
               fontSize: '0.9rem',
               fontWeight: 600,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTableSSE } from '../hooks/useTableSSE.js';
 import { useCart } from '../hooks/useCart.js';
@@ -23,10 +23,10 @@ export default function TableView() {
   }, [placedOrder]);
 
   // SSE connection for live events
-  const { lastEvent, connected } = useTableSSE(tableId);
+  const { lastEvent, events, connected } = useTableSSE(tableId);
 
   // Cart state: now synced via cart-updated CustomEvent from useCart.
-  const { items, clearCart } = useCart(tableId ?? '');
+  const { items, totalCents, clearCart } = useCart(tableId ?? '');
 
   // Derive a stable visitId from the session. The server uses the current open
   // visit for a table; we pass it through so screens can pass it in API calls.
@@ -40,13 +40,20 @@ export default function TableView() {
     return newId;
   });
 
-  // Handle TABLE_CLOSED event: show takeover, clear cart
+  // Handle TABLE_CLOSED event: show takeover, clear cart. Read every event, so a
+  // TABLE_CLOSED that arrives together with another event is not missed.
+  const processedSeqRef = useRef(0);
   useEffect(() => {
-    if (lastEvent?.type === 'TABLE_CLOSED') {
-      setTableClosed(true);
-      clearCart();
+    for (const ev of events) {
+      const seq = ev.seq ?? 0;
+      if (seq <= processedSeqRef.current) continue;
+      processedSeqRef.current = seq;
+      if (ev.type === 'TABLE_CLOSED') {
+        setTableClosed(true);
+        clearCart();
+      }
     }
-  }, [lastEvent, clearCart]);
+  }, [events, clearCart]);
 
   // Show reconnect banner after 3 s of SSE disconnection
   useEffect(() => {
@@ -59,6 +66,8 @@ export default function TableView() {
   }, [connected]);
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  // The Menu shows a sticky "View cart" summary above the tab bar while the cart has items.
+  const showCartSummary = activeTab === 'menu' && cartCount > 0 && !tableClosed;
 
   if (!tableId) {
     return (
@@ -120,7 +129,8 @@ export default function TableView() {
         style={{
           flex: 1,
           overflowY: 'auto',
-          paddingBottom: '56px', // space for fixed tab bar
+          // space for the fixed tab bar, and for the cart summary bar above it on the Menu
+          paddingBottom: showCartSummary ? '7.5rem' : '56px',
         }}
       >
         {/* SSE reconnect banner */}
@@ -142,7 +152,7 @@ export default function TableView() {
             Reconnecting… Updates will resume shortly.
           </div>
         )}
-        {activeTab === 'menu' && <MenuScreen tableId={tableId} />}
+        {activeTab === 'menu' && <MenuScreen tableId={tableId} events={events} />}
         {placedOrder && placedOrder.droppedLines.length === 0 && (
           <div
             data-testid="order-success-banner"
@@ -190,6 +200,7 @@ export default function TableView() {
           <CartScreen
             tableId={tableId}
             visitId={visitId}
+            onBackToMenu={() => setActiveTab('menu')}
             onOrderPlaced={(placed) => {
               setPlacedOrder(placed);
               setActiveTab('orders');
@@ -204,6 +215,61 @@ export default function TableView() {
           />
         )}
       </main>
+
+      {/* Sticky cart summary above the tab bar (Menu only, while the cart has items) */}
+      {showCartSummary && (
+        <div
+          data-testid="menu-cart-summary"
+          style={{
+            position: 'fixed',
+            bottom: 'var(--tab-bar-height, 56px)',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            padding: '0.6rem 1rem',
+            background: 'var(--bg-tab-bar, rgba(15, 18, 22, 0.95))',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderTop: '1px solid var(--border, rgba(255,255,255,0.06))',
+            zIndex: 90,
+          }}
+        >
+          <button
+            data-testid="menu-view-cart"
+            onClick={() => setActiveTab('cart')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-primary)',
+              fontSize: '0.95rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left',
+              padding: '0.4rem 0',
+            }}
+          >
+            View cart ({cartCount} item{cartCount !== 1 ? 's' : ''} · ${(totalCents / 100).toFixed(2)})
+          </button>
+          <button
+            data-testid="menu-place-order"
+            onClick={() => setActiveTab('cart')}
+            style={{
+              padding: '0.55rem 1.1rem',
+              borderRadius: '999px',
+              border: 'none',
+              background: 'var(--accent, #ffb04a)',
+              color: 'var(--accent-fg, #0f1216)',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Place →
+          </button>
+        </div>
+      )}
 
       {/* Fixed bottom tab bar */}
       <DinerTabBar

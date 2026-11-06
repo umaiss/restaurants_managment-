@@ -32,11 +32,12 @@ router.post('/menu/items/:id/availability', (req, res) => {
     return;
   }
 
-  // Notify all channels
+  // Notify every table's channel, as the contract says, not only tables with an open visit:
+  // a diner who is still browsing has no visit yet but must see a sold-out item at once.
   const db = getDb();
-  const openVisits = db.prepare("SELECT table_id FROM visits WHERE closed_at IS NULL").all() as Array<{ table_id: number }>;
-  for (const v of openVisits) {
-    publish(`table:${v.table_id}`, 'MENU_AVAILABILITY_CHANGED', { menu_item_id: id, available });
+  const tableIds = db.prepare('SELECT id FROM tables').all() as Array<{ id: number }>;
+  for (const t of tableIds) {
+    publish(`table:${t.id}`, 'MENU_AVAILABILITY_CHANGED', { menu_item_id: id, available });
   }
   publish('staff', 'MENU_AVAILABILITY_CHANGED', { menu_item_id: id, available });
 

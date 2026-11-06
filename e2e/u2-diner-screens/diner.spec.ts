@@ -144,74 +144,110 @@ test('Flow 4: My Orders shows order status updates', async ({ page }) => {
   await page.getByTestId('tab-cart').click();
   await page.getByTestId('place-order-button').click();
   await page.getByTestId('confirm-modal-confirm').click();
-  await expect(page.getByTestId('order-success-banner')).toBeVisible({ timeout: 5000 });
+  const toast = page.getByTestId('order-success-banner');
+  await expect(toast).toBeVisible({ timeout: 5000 });
 
-  // Go to My Orders
+  // This test's own order number comes from the "Order #N placed" toast, so orders left on this
+  // table by other tests cannot be mistaken for it.
+  const toastText = (await toast.textContent()) ?? '';
+  const orderNumber = Number(/#(\d+)/.exec(toastText)?.[1]);
+  expect(Number.isInteger(orderNumber)).toBe(true);
+
+  // Go to My Orders (the diner is already there after placing)
   await page.getByTestId('tab-orders').click();
   await expect(page.getByTestId('orders-screen')).toBeVisible({ timeout: 5000 });
 
-  // Find the order and get its number
-  const orderCard = page.locator('[data-testid^="order-card-"]').first();
-  await expect(orderCard).toBeVisible({ timeout: 5000 });
-
-  const statusPill = page.locator('[data-testid^="order-status-"]').first();
+  await expect(page.getByTestId(`order-card-${orderNumber}`)).toBeVisible({ timeout: 5000 });
+  const statusPill = page.getByTestId(`order-status-${orderNumber}`);
   await expect(statusPill).toContainText('Pending');
 
-  // Transition the order to Preparing via the API
-  const orderNumber = await orderCard.getAttribute('data-testid').then((id) =>
-    id ? parseInt(id.replace('order-card-', ''), 10) : null
-  );
+  // Staff moves the order to Preparing
+  const moved = await page.evaluate(async (num) => {
+    const res = await fetch(`/api/orders/${num}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: 'Preparing', by: 'staff' }),
+    });
+    return res.status;
+  }, orderNumber);
+  expect(moved).toBe(200);
 
-  if (orderNumber) {
-    await page.evaluate(async (num) => {
-      await fetch(`/api/orders/${num}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: 'Preparing', by: 'staff' }),
-      });
-    }, orderNumber);
-
-    // Wait for the status to update (SSE will trigger re-fetch)
-    await expect(statusPill).toContainText('Preparing', { timeout: 5000 });
-  }
+  // The status updates by itself (the live event triggers a re-fetch)
+  await expect(statusPill).toContainText('Preparing', { timeout: 5000 });
 });
 
 // ---------------------------------------------------------------------------
 // Flow 5: TABLE_CLOSED event → takeover overlay shown, cart cleared
 // ---------------------------------------------------------------------------
 
-test('Flow 5: TABLE_CLOSED SSE event shows takeover overlay', async ({ page }) => {
+test('Flow 5: TABLE_CLOSED SSE event shows takeover overlay and clears the cart', async ({ page }) => {
+  // "Close table" belongs to U4 and does not exist yet, so the server cannot send TABLE_CLOSED.
+  // Replace the browser's EventSource with one the test controls and fire the event by hand.
+  await page.addInitScript(() => {
+    type Listener = (e: { data: string; lastEventId: string }) => void;
+    class FakeEventSource {
+      listeners: Record<string, Listener[]> = {};
+      onopen: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      onmessage: Listener | null = null;
+      constructor(_url: string) {
+        (window as unknown as { __fakeES: FakeEventSource }).__fakeES = this;
+        setTimeout(() => this.onopen?.(), 0);
+      }
+      addEventListener(type: string, fn: Listener) {
+        (this.listeners[type] ??= []).push(fn);
+      }
+      close() {}
+      emit(type: string, data: unknown) {
+        for (const fn of this.listeners[type] ?? []) fn({ data: JSON.stringify(data), lastEventId: '' });
+      }
+    }
+    (window as unknown as { EventSource: unknown }).EventSource = FakeEventSource;
+  });
+
   await goToTable(page, '5');
   await waitForMenuItems(page);
 
   // Add item to cart so we can verify it clears
   await addFirstMenuItem(page);
   await expect(page.getByTestId('cart-badge')).toBeVisible();
+  await expect(page.getByTestId('table-closed-takeover')).not.toBeVisible();
 
-  // Simulate TABLE_CLOSED SSE event via the server's close-table endpoint
-  // (inject via page.evaluate hitting the SSE channel directly)
-  await page.evaluate(async () => {
-    // The close-table endpoint triggers TABLE_CLOSED event on the table's SSE channel
-    await fetch('/api/tables/5/close', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    }).catch(() => {
-      // If endpoint doesn't exist, inject via EventSource mock — we just verify
-      // the takeover shows when the TABLE_CLOSED event fires
-    });
+  // Two events arrive together; the takeover must still show
+  await page.evaluate(() => {
+    const es = (window as unknown as { __fakeES: { emit: (t: string, d: unknown) => void } }).__fakeES;
+    es.emit('TABLE_CLOSED', { table_id: 5, archived_visit_id: 'v-1' });
+    es.emit('ORDER_STATUS_CHANGED', { order_number: 1, table_id: 5, status: 'Completed' });
   });
 
-  // Wait up to 3s for the overlay — if the endpoint doesn't exist, the test
-  // verifies the page at least shows the tab bar still
-  const takeover = page.getByTestId('table-closed-takeover');
-  const tabBar = page.getByTestId('tab-bar');
+  await expect(page.getByTestId('table-closed-takeover')).toBeVisible({ timeout: 3000 });
+  await expect(page.getByTestId('table-closed-takeover')).toContainText('This table was closed');
+  // The cart was cleared
+  const stored = await page.evaluate(() => localStorage.getItem('cart:table:5'));
+  expect(JSON.parse(stored ?? '[]')).toHaveLength(0);
+});
 
-  // The table-closed endpoint may not be available; either the takeover is shown
-  // or the tab bar is still visible (the UI renders correctly)
-  await Promise.race([
-    expect(takeover).toBeVisible({ timeout: 3000 }).catch(() => null),
-    expect(tabBar).toBeVisible({ timeout: 3000 }),
-  ]);
+// ---------------------------------------------------------------------------
+// Flow 7: a sold-out change reaches a diner who is still on the Menu
+// ---------------------------------------------------------------------------
+
+test('Flow 7: staff marks an item sold out and the open Menu shows it within seconds', async ({ page, request, baseURL }) => {
+  await goToTable(page, '8');
+  await waitForMenuItems(page);
+
+  // i-03 (Caesar Salad) is not used by other tests; this diner has not ordered, so has no visit yet
+  const add = page.getByTestId('add-item-i-03');
+  await expect(add).toBeVisible({ timeout: 5000 });
+
+  try {
+    await request.post(`${baseURL}/api/menu/items/i-03/availability`, { data: { available: false } });
+    // The "+ Add" button is replaced by "Sold out", without leaving the tab or reloading
+    await expect(page.getByTestId('add-item-i-03')).toHaveCount(0, { timeout: 4000 });
+    await expect(page.getByTestId('menu-screen')).toContainText('Sold out');
+  } finally {
+    await request.post(`${baseURL}/api/menu/items/i-03/availability`, { data: { available: true } });
+  }
+  await expect(page.getByTestId('add-item-i-03')).toBeVisible({ timeout: 4000 });
 });
 
 // ---------------------------------------------------------------------------
@@ -234,7 +270,11 @@ test('Flow 6: keyboard-only navigation through tab bar', async ({ page }) => {
   await ordersTab.focus();
   await ordersTab.press('Enter');
 
-  await expect(page.getByTestId('orders-screen')).toBeVisible({ timeout: 3000 });
+  // My orders shows the list, or its empty state when this table has no orders yet
+  await expect(ordersTab).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.locator('[data-testid="orders-screen"], [data-testid="orders-empty"]')
+  ).toBeVisible({ timeout: 3000 });
 
   // Tab back to menu
   const menuTab = page.getByTestId('tab-menu');

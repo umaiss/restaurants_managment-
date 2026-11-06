@@ -32,10 +32,10 @@ const STATUS_ICONS: Record<OrderStatus, string> = {
 };
 
 const STATUS_COLOURS: Record<OrderStatus, { bg: string; color: string }> = {
-  Pending: { bg: 'rgba(234, 179, 8, 0.15)', color: '#eab308' },
-  Preparing: { bg: 'rgba(249, 115, 22, 0.15)', color: '#f97316' },
-  Completed: { bg: 'rgba(34, 197, 94, 0.15)', color: '#22c55e' },
-  Cancelled: { bg: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' },
+  Pending: { bg: 'var(--status-pending-soft)', color: 'var(--status-pending)' },
+  Preparing: { bg: 'var(--status-preparing-soft)', color: 'var(--status-preparing)' },
+  Completed: { bg: 'var(--status-completed-soft)', color: 'var(--status-completed)' },
+  Cancelled: { bg: 'var(--status-cancelled-soft)', color: 'var(--status-cancelled)' },
 };
 
 function formatTime(iso: string): string {
@@ -54,6 +54,7 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
   // Which order is showing the inline cancel confirm dialog
   const [confirmCancelOrderNum, setConfirmCancelOrderNum] = useState<number | null>(null);
   const [cancellingOrderNum, setCancellingOrderNum] = useState<number | null>(null);
+  const [cancelNotice, setCancelNotice] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setError(null);
@@ -84,12 +85,19 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
   async function handleConfirmCancel(orderNumber: number) {
     setCancellingOrderNum(orderNumber);
     setConfirmCancelOrderNum(null);
+    setCancelNotice(null);
     try {
-      await fetch(`/api/orders/${orderNumber}/transition`, {
+      const res = await fetch(`/api/orders/${orderNumber}/transition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: 'Cancelled', by: 'diner' }),
       });
+      // Staff may have started the order first: say so instead of silently doing nothing
+      if (res.status === 422) {
+        setCancelNotice(`Order #${orderNumber} can no longer be cancelled; the kitchen has already started it.`);
+      } else if (!res.ok) {
+        setCancelNotice(`We could not cancel order #${orderNumber}. Please try again.`);
+      }
       // Re-fetch orders to show updated status
       await fetchOrders();
     } catch {
@@ -163,6 +171,22 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
 
   return (
     <div data-testid="orders-screen" style={{ padding: '1rem', paddingBottom: '5rem' }}>
+      {cancelNotice && (
+        <div
+          data-testid="cancel-notice"
+          role="alert"
+          style={{
+            marginBottom: '0.75rem',
+            padding: '0.6rem 0.9rem',
+            borderRadius: '0.6rem',
+            background: 'var(--status-pending-soft)',
+            color: 'var(--status-pending)',
+            fontSize: '0.9rem',
+          }}
+        >
+          {cancelNotice}
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {orders.map((order) => {
           const style = STATUS_COLOURS[order.status];
