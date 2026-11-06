@@ -223,7 +223,9 @@ Billing builds the bill by calling `Ordering.getOrdersForVisit(table_id, visit_i
 - `orders[].subtotal_cents` = sum of `lines[].subtotal_cents` for that order only.
 - `combined_total_cents` = sum of `orders[].subtotal_cents` across every non-cancelled order on the bill.
 - Cancelled orders are excluded from `orders[]`, from their order subtotal, and from `combined_total_cents`. [FR3.2]
-- `close_available` is `false` when any order is Pending or Preparing, or when there are no orders. `blocking_orders` lists the order numbers that keep Close disabled. [FR3.3], [FR3.4]
+- `close_available` is `false` when any order is Pending or Preparing, or when the visit has no orders at all. A visit whose orders were all Cancelled still has orders: its bill is empty (total 0) and `close_available` is `true`, so the table can always be closed. `blocking_orders` lists the order numbers that keep Close disabled. [FR3.3], [FR3.4]
+- Additive extension (added at U4 Code Generation review, AI decision under the team's review rule): each `orders[].lines[]` entry may carry an optional `image` (the menu item's emoji, read from the catalogue) so the bill shows the same emoji as the S2 mockup. Prices and subtotals still come only from the stored order lines.
+- For a table with no open visit, `GET` answers 200 with an empty `orders` list, a combined total of 0, `close_available: false` and no blocking orders; only an unknown table answers `UNKNOWN_TABLE` (404).
 
 #### `POST /api/tables/:id/close`
 
@@ -259,6 +261,7 @@ Publishes `TABLE_CLOSED` to the staff channel and the table's channel.
 ### Reconnect and catch-up
 
 - Clients use the browser `EventSource`; the server honours `Last-Event-ID` and replays every event from the per-channel ring buffer since that id.
+- Additive extension (added at U2 Code Generation review, team decision): the server also accepts the last event id as a `?lastEventId=<id>` query parameter on the stream URL, with the same replay. A client that opens a fresh `EventSource` after a drop cannot set the `Last-Event-ID` header, so the diner hook sends it this way. The header still works as described above.
 - The ring buffer keeps one hour of events per channel. [assumption]
 - A client with no `Last-Event-ID` does not receive history; the client is expected to call the matching HTTP endpoints to reconcile on first connect.
 

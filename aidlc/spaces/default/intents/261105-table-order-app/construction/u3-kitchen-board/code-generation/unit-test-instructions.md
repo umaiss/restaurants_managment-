@@ -15,10 +15,10 @@ This command is scoped to U3's files only and does not rerun U1 or U2 tests.
 ## E2E command (Playwright, Bolt 3 port)
 
 ```bash
-E2E_PORT=5100 DB_FILE=e2e-u3.db npx playwright test e2e/u3-kitchen-board/
+E2E_PORT=5100 npx playwright test e2e/u3-kitchen-board/
 ```
 
-The worktree uses `E2E_PORT=5100` and its own `DB_FILE` to avoid colliding with Bolt 2 running in parallel.
+The worktree uses `E2E_PORT=5100` to avoid colliding with Bolt 2 running in parallel. The test server uses an in-memory database, so nothing is kept between runs. Build the app first (`npm run build`): the test server serves the built files.
 
 ## Expected coverage targets
 
@@ -35,4 +35,4 @@ Standard strategy: 5–8 tests per component. No coverage floor is applied by th
 - Seed minimal order data per test: `{ id: 'ord-1', orderNumber: 1, tableId: 1, status: 'Pending', lines: [...], placedAt: '...' }`
 - Seed minimal menu data: `[{ id: 'i-01', name: 'Burger', available: true, category: 'Mains' }]`
 - Reset mock state in `beforeEach`
-- Playwright E2E: use `webServer` in `playwright.config.ts` with `E2E_PORT=5100` and `DB_FILE=e2e-u3.db`; each spec file gets a fresh database seeded with known order state via a setup script
+- Playwright E2E: the `webServer` in `playwright.config.ts` starts the app on `E2E_PORT` (set it to 5100 for this Bolt) with an in-memory database; each spec places the orders it needs through the API

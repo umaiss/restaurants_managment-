@@ -78,122 +78,122 @@
 ## Steps
 
 **Step 1** — Verify walking skeleton foundations [US1.1, US2.1, US3.1, US4.1]
-- [ ] Confirm U1 provides: `/api/menu`, `POST /api/orders`, `GET /api/orders`, `/sse/tables/:id`, `TableView` shell, `ConfirmModal` in `src/client/components/ConfirmModal.tsx`
-- [ ] Note any missing U1 exports and add minimal stubs if needed (without modifying U1 files)
+- [x] Confirm U1 provides: `/api/menu`, `POST /api/orders`, `GET /api/orders`, `/sse/tables/:id`, `TableView` shell, `ConfirmModal` in `src/client/components/ConfirmModal.tsx`
+- [x] Note any missing U1 exports and add minimal stubs if needed (without modifying U1 files)
 
 **Step 2** — Bootstrap unit-scoped test runner
-- [ ] Confirm vitest is configured; add `u2-diner-screens` test pattern to `vitest.config.ts` include list if needed
-- [ ] Verify unit-scoped command runs: `vitest run --reporter=json --outputFile=test-results/unit.json src/client/screens/diner src/client/hooks/useTableSSE.ts src/client/hooks/useCart.ts src/client/components/diner`
-- [ ] Record exact command in `unit-test-instructions.md`
+- [x] Confirm vitest is configured; add `u2-diner-screens` test pattern to `vitest.config.ts` include list if needed
+- [x] Verify unit-scoped command runs: `vitest run --reporter=json --outputFile=test-results/unit.json src/client/screens/diner src/client/hooks/useTableSSE.ts src/client/hooks/useCart.ts src/client/components/diner`
+- [x] Record exact command in `unit-test-instructions.md`
 
 **Step 3** — Implement `useTableSSE` hook [FR4.1, FR4.2] — `src/client/hooks/useTableSSE.ts`
-- [ ] `EventSource` to `/sse/tables/:id` with `Last-Event-ID` replay header
-- [ ] Exponential backoff reconnect (1 s → 2 s → 4 s → cap 30 s)
-- [ ] Returns `{ lastEvent: { type: string; data: unknown } | null, connected: boolean }`
-- [ ] `disconnect()` on unmount
+- [x] `EventSource` to `/sse/tables/:id` with `Last-Event-ID` replay header
+- [x] Exponential backoff reconnect (1 s → 2 s → 4 s → cap 30 s)
+- [x] Returns `{ lastEvent: { type: string; data: unknown } | null, connected: boolean }`
+- [x] `disconnect()` on unmount
 
 **Step 4** — Test `useTableSSE` (5–8 tests)
-- [ ] `src/client/hooks/__tests__/useTableSSE.test.ts`
-- [ ] Happy path: connects, receives event, updates `lastEvent`
-- [ ] Disconnects on unmount
-- [ ] Reconnects on error with backoff
-- [ ] `connected` toggles correctly
-- [ ] Run vitest scoped to this file; confirm green
+- [x] `src/client/hooks/__tests__/useTableSSE.test.ts`
+- [x] Happy path: connects, receives event, updates `lastEvent`
+- [x] Disconnects on unmount
+- [x] Reconnects on error with backoff
+- [x] `connected` toggles correctly
+- [x] Run vitest scoped to this file; confirm green
 
 **Step 5** — Implement `useCart` hook [US1.1, US1.2, FR1.1] — `src/client/hooks/useCart.ts`
-- [ ] Reads/writes `localStorage` key `cart:table:<tableId>`
-- [ ] `addItem(menuItemId, name, priceCents, quantity)`, `removeItem`, `updateQuantity`, `clearCart`
-- [ ] `placement_key` generated once on first add tap (not on render), stored in `sessionStorage key cart-placement-key:<tableId>`; reused on retries
-- [ ] Returns `{ items, totalCents, placementKey, addItem, removeItem, updateQuantity, clearCart }`
+- [x] Reads/writes `localStorage` key `cart:table:<tableId>`
+- [x] `addItem(menuItemId, name, priceCents, quantity)`, `removeItem`, `updateQuantity`, `clearCart`
+- [x] `placement_key` generated once on first add tap (not on render), stored in `sessionStorage key cart-placement-key:<tableId>`; reused on retries
+- [x] Returns `{ items, totalCents, placementKey, addItem, removeItem, updateQuantity, clearCart }`
 
 **Step 6** — Test `useCart` (5–8 tests)
-- [ ] `src/client/hooks/__tests__/useCart.test.ts`
-- [ ] Add item persists to localStorage
-- [ ] Remove item updates state and storage
-- [ ] `placement_key` generated on first add, not before
-- [ ] `clearCart` removes all items
-- [ ] Loads existing cart from localStorage on mount
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/hooks/__tests__/useCart.test.ts`
+- [x] Add item persists to localStorage
+- [x] Remove item updates state and storage
+- [x] `placement_key` generated on first add, not before
+- [x] `clearCart` removes all items
+- [x] Loads existing cart from localStorage on mount
+- [x] Run vitest scoped; confirm green
 
 **Step 7** — Implement `MenuScreen` [US1.1, US1.2, FR1.1, FR1.2] — `src/client/screens/diner/MenuScreen.tsx`
-- [ ] `GET /api/menu` on mount; loading shimmer, error state with Retry
-- [ ] Category pill bar (Starters, Mains, Desserts, Drinks) — sticky at top, smooth scroll-to-section, active pill filled when section is on screen
-- [ ] `MenuItem` card: image left, name + description + price, `+ Add` pill (32 px visual / 44 px touch, `data-testid="add-item-<id>"`)
-- [ ] Tapping `+ Add` calls `addItem` from `useCart`; pill shows count badge when item in cart
+- [x] `GET /api/menu` on mount; loading shimmer, error state with Retry
+- [x] Category pill bar (Starters, Mains, Desserts, Drinks) — sticky at top, smooth scroll-to-section, active pill filled when section is on screen
+- [x] `MenuItem` card: image left, name + description + price, `+ Add` pill (32 px visual / 44 px touch, `data-testid="add-item-<id>"`)
+- [x] Tapping `+ Add` calls `addItem` from `useCart`; pill shows count badge when item in cart
 
 **Step 8** — Test `MenuScreen` (5–8 tests)
-- [ ] `src/client/screens/diner/__tests__/MenuScreen.test.tsx`
-- [ ] Renders menu items from API response
-- [ ] Shows loading shimmer while fetching
-- [ ] Shows error + Retry on fetch failure
-- [ ] Category pills render; active pill highlights on scroll
-- [ ] `+ Add` tap calls `addItem`
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/screens/diner/__tests__/MenuScreen.test.tsx`
+- [x] Renders menu items from API response
+- [x] Shows loading shimmer while fetching
+- [x] Shows error + Retry on fetch failure
+- [x] Category pills render; active pill highlights on scroll
+- [x] `+ Add` tap calls `addItem`
+- [x] Run vitest scoped; confirm green
 
 **Step 9** — Implement `CartScreen` [US2.1, US2.2, US2.3, FR1.3, FR1.4, FR1.5] — `src/client/screens/diner/CartScreen.tsx`
-- [ ] Lists `useCart` items: name, quantity controls (`−`/`+`), price each, subtotal
-- [ ] `StickyCartSummary` bar just above tab bar: "View cart (N)" when items > 0
-- [ ] `Place order` button (above tab bar): disabled when cart empty, shows `ConfirmModal` on tap
-- [ ] On confirm: `POST /api/orders` with `{ tableId, visitId, placementKey, lines }`, spinner while posting
-- [ ] On success: `clearCart`, show "Order placed! #N" banner
-- [ ] On `DUPLICATE_PLACEMENT_KEY` (409): show "Order already placed" (idempotency)
-- [ ] On other error: show inline error banner, re-enable button
+- [x] Lists `useCart` items: name, quantity controls (`−`/`+`), price each, subtotal
+- [x] `StickyCartSummary` bar just above tab bar: "View cart (N)" when items > 0
+- [x] `Place order` button (above tab bar): disabled when cart empty, shows `ConfirmModal` on tap
+- [x] On confirm: `POST /api/orders` with `{ tableId, visitId, placementKey, lines }`, spinner while posting
+- [x] On success: `clearCart`, show "Order placed! #N" banner
+- [x] On `DUPLICATE_PLACEMENT_KEY` (409): show "Order already placed" (idempotency)
+- [x] On other error: show inline error banner, re-enable button
 
 **Step 10** — Test `CartScreen` (5–8 tests)
-- [ ] `src/client/screens/diner/__tests__/CartScreen.test.tsx`
-- [ ] Empty state: Place order disabled
-- [ ] With items: shows lines, subtotal
-- [ ] Place order tap opens ConfirmModal
-- [ ] On POST success: cart cleared, success banner shown
-- [ ] On 409 DUPLICATE_PLACEMENT_KEY: idempotency message shown
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/screens/diner/__tests__/CartScreen.test.tsx`
+- [x] Empty state: Place order disabled
+- [x] With items: shows lines, subtotal
+- [x] Place order tap opens ConfirmModal
+- [x] On POST success: cart cleared, success banner shown
+- [x] On 409 DUPLICATE_PLACEMENT_KEY: idempotency message shown
+- [x] Run vitest scoped; confirm green
 
 **Step 11** — Implement `MyOrdersScreen` [US3.1, US3.2, FR1.6, FR1.7, FR1.8] — `src/client/screens/diner/MyOrdersScreen.tsx`
-- [ ] `GET /api/orders?tableId=&visitId=` on mount and on `ORDER_STATUS_CHANGED` SSE event
-- [ ] Lists non-cancelled orders: `#N`, status pill (icon + word), placed time, line items
-- [ ] Loading shimmer; "No orders yet" empty state
-- [ ] Status pills: Pending (clock), Preparing (flame), Completed (tick)
+- [x] `GET /api/orders?tableId=&visitId=` on mount and on `ORDER_STATUS_CHANGED` SSE event
+- [x] Lists non-cancelled orders: `#N`, status pill (icon + word), placed time, line items
+- [x] Loading shimmer; "No orders yet" empty state
+- [x] Status pills: Pending (clock), Preparing (flame), Completed (tick)
 
 **Step 12** — Test `MyOrdersScreen` (5–8 tests)
-- [ ] `src/client/screens/diner/__tests__/MyOrdersScreen.test.tsx`
-- [ ] Renders orders from API
-- [ ] Shows correct status pill per status
-- [ ] Empty state when no orders
-- [ ] Loading state while fetching
-- [ ] Re-fetches on SSE ORDER_STATUS_CHANGED
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/screens/diner/__tests__/MyOrdersScreen.test.tsx`
+- [x] Renders orders from API
+- [x] Shows correct status pill per status
+- [x] Empty state when no orders
+- [x] Loading state while fetching
+- [x] Re-fetches on SSE ORDER_STATUS_CHANGED
+- [x] Run vitest scoped; confirm green
 
 **Step 13** — Implement `DinerTabBar` and `TableClosedTakeover` [FR3.6, FR1.9]
-- [ ] `src/client/components/diner/DinerTabBar.tsx`: fixed bottom, three tabs (Menu / Cart / Orders); Cart tab shows item count badge; active tab highlighted; `data-testid` on each tab
-- [ ] `src/client/components/diner/TableClosedTakeover.tsx`: full-screen overlay shown when `TABLE_CLOSED` SSE received; clears cart; "This table has been closed. Thank you!" message; `data-testid="table-closed-takeover"`
+- [x] `src/client/components/diner/DinerTabBar.tsx`: fixed bottom, three tabs (Menu / Cart / Orders); Cart tab shows item count badge; active tab highlighted; `data-testid` on each tab
+- [x] `src/client/components/diner/TableClosedTakeover.tsx`: full-screen overlay shown when `TABLE_CLOSED` SSE received; clears cart; "This table has been closed. Thank you!" message; `data-testid="table-closed-takeover"`
 
 **Step 14** — Test `DinerTabBar` and `TableClosedTakeover` (5–8 tests)
-- [ ] `src/client/components/diner/__tests__/DinerTabBar.test.tsx`: active tab highlighted, cart badge shows count
-- [ ] `src/client/components/diner/__tests__/TableClosedTakeover.test.tsx`: renders when shown; clears cart
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/components/diner/__tests__/DinerTabBar.test.tsx`: active tab highlighted, cart badge shows count
+- [x] `src/client/components/diner/__tests__/TableClosedTakeover.test.tsx`: renders when shown; clears cart
+- [x] Run vitest scoped; confirm green
 
 **Step 15** — Wire diner routing in `TableView.tsx`
-- [ ] Update `src/client/views/TableView.tsx` to render `DinerTabBar` + route between `MenuScreen`, `CartScreen`, `MyOrdersScreen`; show `TableClosedTakeover` overlay when `TABLE_CLOSED` received from `useTableSSE`
-- [ ] Pass `tableId` and `visitId` from URL params
+- [x] Update `src/client/views/TableView.tsx` to render `DinerTabBar` + route between `MenuScreen`, `CartScreen`, `MyOrdersScreen`; show `TableClosedTakeover` overlay when `TABLE_CLOSED` received from `useTableSSE`
+- [x] Pass `tableId` and `visitId` from URL params
 
 **Step 16** — Playwright E2E tests [US1.1–US4.1]
-- [ ] `e2e/u2-diner-screens/diner.spec.ts`
-- [ ] Flow 1: Browse menu → add item → cart badge updates
-- [ ] Flow 2: View cart → place order → success banner → orders appear in My Orders
-- [ ] Flow 3: Duplicate placement_key → idempotency message
-- [ ] Flow 4: My Orders shows Pending → Preparing → Completed status changes
-- [ ] Flow 5: TABLE_CLOSED event → takeover overlay shown, cart cleared
-- [ ] Flow 6: Keyboard-only navigation through tab bar and place order
+- [x] `e2e/u2-diner-screens/diner.spec.ts`
+- [x] Flow 1: Browse menu → add item → cart badge updates
+- [x] Flow 2: View cart → place order → success banner → orders appear in My Orders
+- [x] Flow 3: Duplicate placement_key → idempotency message
+- [x] Flow 4: My Orders shows Pending → Preparing → Completed status changes
+- [x] Flow 5: TABLE_CLOSED event → takeover overlay shown, cart cleared
+- [x] Flow 6: Keyboard-only navigation through tab bar and place order
 
 **Step 17** — Playwright mockup-match spec
-- [ ] `e2e/u2-diner-screens/mockup-match.spec.ts`
-- [ ] Set up diner table session with menu items loaded
-- [ ] Check MenuScreen: category pills, item cards, `+ Add` buttons, sticky pill bar
-- [ ] Check CartScreen: cart lines, Place order button, ConfirmModal
-- [ ] Check MyOrdersScreen: order cards, status pills
-- [ ] Save screenshots to `test-results/mockup-match/u2-diner-screens/`
-- [ ] Bill screen (U4 scope) left out; listed in spec comment
+- [x] `e2e/u2-diner-screens/mockup-match.spec.ts`
+- [x] Set up diner table session with menu items loaded
+- [x] Check MenuScreen: category pills, item cards, `+ Add` buttons, sticky pill bar
+- [x] Check CartScreen: cart lines, Place order button, ConfirmModal
+- [x] Check MyOrdersScreen: order cards, status pills
+- [x] Save screenshots to `test-results/mockup-match/u2-diner-screens/`
+- [x] Bill screen (U4 scope) left out; listed in spec comment
 
 **Step 18** — `source-manifest.json` and `traceability.json`
-- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u2-diner-screens/code-generation/source-manifest.json` listing every file created/modified
-- [ ] Run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u2-diner-screens/code-generation/traceability.json --write-upstream` and fill in OK targets
+- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u2-diner-screens/code-generation/source-manifest.json` listing every file created/modified
+- [x] Run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u2-diner-screens/code-generation/traceability.json --write-upstream` and fill in OK targets

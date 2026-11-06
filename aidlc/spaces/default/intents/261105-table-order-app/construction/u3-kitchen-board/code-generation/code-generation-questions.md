@@ -14,8 +14,8 @@ Approve these 2 code plans?
 Full plan: aidlc/spaces/default/intents/261105-table-order-app/construction/u3-kitchen-board/code-generation/code-generation-plan.md
 Test instructions: aidlc/spaces/default/intents/261105-table-order-app/construction/u3-kitchen-board/code-generation/unit-test-instructions.md
 
-[Approval Fingerprint]: sha256:v3:56f60054eabe6b85e15c835e378bd8ce4ed0bf63823f4abfc6489bd6fcc6d9e9
-[Planned Source]: fce9f91d39410eb3993eae8b1fb9d13fb5c13d9b8f35a792b207ea26f74de748
+[Approval Fingerprint]: sha256:v3:b6622fdd77037afbc5e799db9ed689b71ee638d0befe822aac275b29a445d76f
+[Planned Source]: f696cc4c4867989198b2982adbb630c8be50b47f08a4b6cb0a189e611a970aea
 
 - A. Approve all
 - B. Request Changes

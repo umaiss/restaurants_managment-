@@ -77,123 +77,141 @@
 
 ## Steps
 
+**Step 0** — First step: fixes for the four Minor findings of the walking skeleton's review (replayed after Build and Test's loop-back; the team's rule is that review findings are fixed before the work moves on) — `src/server/sse.ts`, `src/server/routes/orders.ts`, `src/server/routes/sse.ts`, `src/server/__tests__/sse.test.ts`, `src/server/__tests__/api.test.ts`
+- [ ] Keep-alive: the live stream writes a comment line (`: keep-alive` followed by a blank line) to every subscriber about every 20 seconds so an idle connection is not dropped silently; the timer is stopped when the last subscriber leaves and never keeps the process or the tests alive
+- [ ] Event ids across a restart: the id counter starts from the server's start time (milliseconds) instead of 0, so ids keep rising after a restart and a client reconnecting with an old `Last-Event-ID` is never told to skip newer events; `_resetForTest()` still resets it to 0 so the existing tests keep their ids
+- [ ] Table id: a table id in a URL must be only digits; `5abc` and similar answer 404 `UNKNOWN_TABLE` in the error envelope on the order routes and the stream route, instead of being read as table 5
+- [ ] Tests: a keep-alive test (fake timers), an id-after-restart test, and a table-id test (`5abc`, `0`, `-1`, `1e1`); include one named "regression: a table id with trailing text is refused, not read as the number in front of it"; confirm the existing SSE and API tests are green
+- [ ] Bookkeeping, not code: the walking skeleton's plan prose still says the transition body field is `status` while the code and contract use `to`, and four of its steps are unticked although their work exists and its browser specs pass. The skeleton's plan is not edited (it is approved); this Unit's `code-summary.md` records both so the record is straight
+
 **Step 1** — Verify walking skeleton foundations [US5.1, US6.1]
-- [ ] Confirm U1 provides: `GET /api/orders` (all tables), `PATCH /api/orders/:id/status`, `GET /api/menu`, `PATCH /api/menu/:id/availability`, `/sse/staff`, `StaffView` shell
-- [ ] Note any missing U1 endpoints and add minimal stubs if needed without modifying U1 source
+- [x] Confirm U1 provides: `GET /api/orders` (all tables), `PATCH /api/orders/:id/status`, `GET /api/menu`, `PATCH /api/menu/:id/availability`, `/sse/staff`, `StaffView` shell
+- [x] Note any missing U1 endpoints and add minimal stubs if needed without modifying U1 source
 
 **Step 2** — Bootstrap unit-scoped test runner
-- [ ] Confirm vitest is configured; verify unit-scoped command runs: `vitest run --reporter=json --outputFile=test-results/unit.json src/client/screens/staff src/client/hooks/useBoardOrders.ts src/client/hooks/useMenuAvailability.ts src/client/components/staff`
-- [ ] Record exact command in `unit-test-instructions.md`
+- [x] Confirm vitest is configured; verify unit-scoped command runs: `vitest run --reporter=json --outputFile=test-results/unit.json src/client/screens/staff src/client/hooks/useBoardOrders.ts src/client/hooks/useMenuAvailability.ts src/client/components/staff`
+- [x] Record exact command in `unit-test-instructions.md`
 
 **Step 3** — Implement `useBoardOrders` hook [US5.1, US5.2, FR2.1, FR2.2, FR2.4] — `src/client/hooks/useBoardOrders.ts`
-- [ ] On mount: fetch orders for each known table (up to 10 tables via `GET /api/orders?tableId=<n>`) in parallel; build `Map<tableId, Order[]>`
-- [ ] Subscribe to `/sse/staff` EventSource
-- [ ] On `ORDER_PLACED`: add new order to map; mark status `Pending` (highlighted as "★ New")
-- [ ] On `ORDER_STATUS_CHANGED`: update order status in map; clear new-highlight when transitioning Pending → Preparing
-- [ ] On `TABLE_CLOSED`: remove all orders for that table from map
-- [ ] Returns `{ ordersByTable: Map<number, Order[]>, loading: boolean }`
+- [x] On mount: fetch orders for each known table (up to 10 tables via `GET /api/orders?tableId=<n>`) in parallel; build `Map<tableId, Order[]>`
+- [x] Subscribe to `/sse/staff` EventSource
+- [x] On `ORDER_PLACED`: add new order to map; mark status `Pending` (highlighted as "★ New")
+- [x] On `ORDER_STATUS_CHANGED`: update order status in map; clear new-highlight when transitioning Pending → Preparing
+- [x] On `TABLE_CLOSED`: remove all orders for that table from map
+- [x] Returns `{ ordersByTable: Map<number, Order[]>, loading: boolean }`
 
 **Step 4** — Test `useBoardOrders` (5–8 tests)
-- [ ] `src/client/hooks/__tests__/useBoardOrders.test.ts`
-- [ ] On mount: fetches orders for tables and populates map
-- [ ] `ORDER_PLACED` SSE adds order to correct table slot
-- [ ] `ORDER_STATUS_CHANGED` updates status; Pending→Preparing clears new-highlight
-- [ ] `TABLE_CLOSED` removes all orders for that tableId
-- [ ] Loading is true before fetches resolve, false after
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/hooks/__tests__/useBoardOrders.test.ts`
+- [x] On mount: fetches orders for tables and populates map
+- [x] `ORDER_PLACED` SSE adds order to correct table slot
+- [x] `ORDER_STATUS_CHANGED` updates status; Pending→Preparing clears new-highlight
+- [x] `TABLE_CLOSED` removes all orders for that tableId
+- [x] Loading is true before fetches resolve, false after
+- [x] Run vitest scoped; confirm green
 
 **Step 5** — Implement `useMenuAvailability` hook [US6.1, US6.2, US6.3, FR2.6, FR2.7] — `src/client/hooks/useMenuAvailability.ts`
-- [ ] `GET /api/menu` on mount for current availability state
-- [ ] `toggleAvailability(menuItemId)`: sends `PATCH /api/menu/:id/availability`; optimistic update, rolls back on error
-- [ ] On `MENU_AVAILABILITY_CHANGED` SSE: sync state from event payload
-- [ ] Returns `{ items: MenuItem[], toggleAvailability, loading }`
+- [x] `GET /api/menu` on mount for current availability state
+- [x] `toggleAvailability(menuItemId)`: sends `PATCH /api/menu/:id/availability`; optimistic update, rolls back on error
+- [x] On `MENU_AVAILABILITY_CHANGED` SSE: sync state from event payload
+- [x] Returns `{ items: MenuItem[], toggleAvailability, loading }`
 
 **Step 6** — Test `useMenuAvailability` (5–8 tests)
-- [ ] `src/client/hooks/__tests__/useMenuAvailability.test.ts`
-- [ ] Loads items from API on mount
-- [ ] `toggleAvailability` sends PATCH and updates local state
-- [ ] Rolls back on PATCH error
-- [ ] `MENU_AVAILABILITY_CHANGED` SSE syncs state
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/hooks/__tests__/useMenuAvailability.test.ts`
+- [x] Loads items from API on mount
+- [x] `toggleAvailability` sends PATCH and updates local state
+- [x] Rolls back on PATCH error
+- [x] `MENU_AVAILABILITY_CHANGED` SSE syncs state
+- [x] Run vitest scoped; confirm green
 
 **Step 7** — Implement `NewHighlight` component [FR2.4] — `src/client/components/staff/NewHighlight.tsx`
-- [ ] Wraps content with accent ring + glow when `active` prop is `true`
-- [ ] Shows "★ New" label; ring/glow fades with `150 ms ease-out` on `active → false`
-- [ ] No animation when `prefers-reduced-motion: reduce`
-- [ ] `data-testid="new-highlight"`
+- [x] Wraps content with accent ring + glow when `active` prop is `true`
+- [x] Shows "★ New" label; ring/glow fades with `150 ms ease-out` on `active → false`
+- [x] No animation when `prefers-reduced-motion: reduce`
+- [x] `data-testid="new-highlight"`
 
 **Step 8** — Test `NewHighlight` (5 tests)
-- [ ] `src/client/components/staff/__tests__/NewHighlight.test.tsx`
-- [ ] Renders "★ New" label when `active=true`
-- [ ] Does not render highlight when `active=false`
-- [ ] Applies correct CSS class for animation
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/components/staff/__tests__/NewHighlight.test.tsx`
+- [x] Renders "★ New" label when `active=true`
+- [x] Does not render highlight when `active=false`
+- [x] Applies correct CSS class for animation
+- [x] Run vitest scoped; confirm green
 
 **Step 9** — Implement `OrderCard` component [US5.1, US5.2, US5.3, FR2.1, FR2.2, FR2.3] — `src/client/components/staff/OrderCard.tsx`
-- [ ] Shows order number `#N`, status pill (icon + word per NFR5), placed timestamp
-- [ ] Lists line items (emoji, name, quantity)
-- [ ] Wraps in `NewHighlight` when order status is `Pending`
-- [ ] Action buttons: "Start preparing" (Pending → Preparing), "Mark complete" (Preparing → Completed); calls `PATCH /api/orders/:id/status`; button disabled while request in flight
-- [ ] `data-testid="order-card-<id>"`, `data-testid="btn-preparing-<id>"`, `data-testid="btn-complete-<id>"`
+- [x] Shows order number `#N`, status pill (icon + word per NFR5), placed timestamp
+- [x] Lists line items (emoji, name, quantity)
+- [x] Wraps in `NewHighlight` when order status is `Pending`
+- [x] Action buttons: "Start preparing" (Pending → Preparing), "Mark complete" (Preparing → Completed); calls `PATCH /api/orders/:id/status`; button disabled while request in flight
+- [x] `data-testid="order-card-<id>"`, `data-testid="btn-preparing-<id>"`, `data-testid="btn-complete-<id>"`
 
 **Step 10** — Test `OrderCard` (5–8 tests)
-- [ ] `src/client/components/staff/__tests__/OrderCard.test.tsx`
-- [ ] Renders order number, status pill, line items
-- [ ] "Start preparing" button present for Pending orders; not for Preparing/Completed
-- [ ] "Mark complete" button present for Preparing orders
-- [ ] Button click sends PATCH and disables button while in flight
-- [ ] `NewHighlight` active for Pending, inactive for others
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/components/staff/__tests__/OrderCard.test.tsx`
+- [x] Renders order number, status pill, line items
+- [x] "Start preparing" button present for Pending orders; not for Preparing/Completed
+- [x] "Mark complete" button present for Preparing orders
+- [x] Button click sends PATCH and disables button while in flight
+- [x] `NewHighlight` active for Pending, inactive for others
+- [x] Run vitest scoped; confirm green
 
 **Step 11** — Implement `MenuAvailabilityPanel` [US6.1–US6.3, FR2.6, FR2.7] — `src/client/components/staff/MenuAvailabilityPanel.tsx`
-- [ ] Lists all menu items with availability toggle (checkbox or toggle switch)
-- [ ] Calls `useMenuAvailability`'s `toggleAvailability` on change
-- [ ] Shows optimistic update immediately; reverts on error with error message
-- [ ] `data-testid="availability-toggle-<id>"`
+- [x] Lists all menu items with availability toggle (checkbox or toggle switch)
+- [x] Calls `useMenuAvailability`'s `toggleAvailability` on change
+- [x] Shows optimistic update immediately; reverts on error with error message
+- [x] `data-testid="availability-toggle-<id>"`
 
 **Step 12** — Test `MenuAvailabilityPanel` (5–8 tests)
-- [ ] `src/client/components/staff/__tests__/MenuAvailabilityPanel.test.tsx`
-- [ ] Renders items with correct availability state
-- [ ] Toggle calls `toggleAvailability`
-- [ ] Error state shown on failed toggle
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/components/staff/__tests__/MenuAvailabilityPanel.test.tsx`
+- [x] Renders items with correct availability state
+- [x] Toggle calls `toggleAvailability`
+- [x] Error state shown on failed toggle
+- [x] Run vitest scoped; confirm green
 
 **Step 13** — Implement `KitchenBoardScreen` [US5.1–US6.3, FR2.1–FR2.7] — `src/client/screens/staff/KitchenBoardScreen.tsx`
-- [ ] Uses `useBoardOrders` and `useMenuAvailability`
-- [ ] Renders table sections: each table with its orders as `OrderCard` components in placement order
-- [ ] "Table N →" link in each table card header navigating to `/staff/tables/:id` (U4 scope; link only)
-- [ ] `MenuAvailabilityPanel` in a side panel or collapsible section
-- [ ] Loading shimmer while `useBoardOrders` loads; empty state "No active orders"
-- [ ] `data-testid="kitchen-board"`, `data-testid="table-section-<id>"`
+- [x] Uses `useBoardOrders` and `useMenuAvailability`
+- [x] Renders table sections: each table with its orders as `OrderCard` components in placement order
+- [x] "Table N →" link in each table card header navigating to `/staff/tables/:id` (U4 scope; link only)
+- [x] `MenuAvailabilityPanel` in a side panel or collapsible section
+- [x] Loading shimmer while `useBoardOrders` loads; empty state "No active orders"
+- [x] `data-testid="kitchen-board"`, `data-testid="table-section-<id>"`
 
 **Step 14** — Test `KitchenBoardScreen` (5–8 tests)
-- [ ] `src/client/screens/staff/__tests__/KitchenBoardScreen.test.tsx`
-- [ ] Renders table sections with order cards
-- [ ] Shows loading state
-- [ ] Shows empty state when no orders
-- [ ] "Table N →" links rendered correctly
-- [ ] Run vitest scoped; confirm green
+- [x] `src/client/screens/staff/__tests__/KitchenBoardScreen.test.tsx`
+- [x] Renders table sections with order cards
+- [x] Shows loading state
+- [x] Shows empty state when no orders
+- [x] "Table N →" links rendered correctly
+- [x] Run vitest scoped; confirm green
 
 **Step 15** — Wire staff routing in `StaffView.tsx`
-- [ ] Update `src/client/views/StaffView.tsx` to render `KitchenBoardScreen` at `/staff`
-- [ ] Add route `/staff/tables/:id` as a placeholder (empty shell; U4 builds `TableBillScreen`)
+- [x] Update `src/client/views/StaffView.tsx` to render `KitchenBoardScreen` at `/staff`
+- [x] Add route `/staff/tables/:id` as a placeholder (empty shell; U4 builds `TableBillScreen`)
 
 **Step 16** — Playwright E2E tests [US5.1–US6.3]
-- [ ] `e2e/u3-kitchen-board/kitchen-board.spec.ts`
-- [ ] Flow 1: Board loads with active orders; each order card shows correct status
-- [ ] Flow 2: "Start preparing" click transitions order to Preparing; button changes to "Mark complete"
-- [ ] Flow 3: "Mark complete" transitions to Completed; card no longer shows action buttons
-- [ ] Flow 4: New order SSE arrives → "★ New" highlight visible; transitions to Preparing → highlight clears
-- [ ] Flow 5: Toggle menu item availability; item shows unavailable state
+- [x] `e2e/u3-kitchen-board/kitchen-board.spec.ts`
+- [x] Flow 1: Board loads with active orders; each order card shows correct status
+- [x] Flow 2: "Start preparing" click transitions order to Preparing; button changes to "Mark complete"
+- [x] Flow 3: "Mark complete" transitions to Completed; card no longer shows action buttons
+- [x] Flow 4: New order SSE arrives → "★ New" highlight visible; transitions to Preparing → highlight clears
+- [x] Flow 5: Toggle menu item availability; item shows unavailable state
 
 **Step 17** — Playwright mockup-match spec
-- [ ] `e2e/u3-kitchen-board/mockup-match.spec.ts`
-- [ ] Seed board with one Pending and one Preparing order
-- [ ] Check: "★ New" highlight on Pending, action buttons present and labelled correctly, status pills correct
-- [ ] Check: `MenuAvailabilityPanel` renders all items with toggle controls
-- [ ] Save screenshots to `test-results/mockup-match/u3-kitchen-board/`
-- [ ] Table Bill link (U4 scope) noted in spec comment as outside this unit's comparison
+- [x] `e2e/u3-kitchen-board/mockup-match.spec.ts`
+- [x] Seed board with one Pending and one Preparing order
+- [x] Check: "★ New" highlight on Pending, action buttons present and labelled correctly, status pills correct
+- [x] Check: `MenuAvailabilityPanel` renders all items with toggle controls
+- [x] Save screenshots to `test-results/mockup-match/u3-kitchen-board/`
+- [x] Table Bill link (U4 scope) noted in spec comment as outside this unit's comparison
+
+**Step 17a** — Fix found by Build and Test (Loop-back 1): a table stays on the board until it is closed [FR2.2, FR3.1, FR3.3, FR3.5, NFR6] — `src/client/screens/staff/KitchenBoardScreen.tsx`, `src/client/hooks/useBoardOrders.ts`
+- [ ] What went wrong: the board keeps a table only while one of its orders is Pending or Preparing. When the last open order is completed the table's card, and with it the "Table N →" link to the bill, leaves the board, so staff cannot open the bill to close the table from the screens
+- [ ] New rule: a table is on the board while its current visit has any order (any status) and leaves it only when the table is closed (`TABLE_CLOSED`) or all its orders are gone. A table with no Pending or Preparing order shows its finished orders as they are (Completed, Cancelled), keeps the "Table N →" link, and shows a short line "No open orders. Open the bill to close this table." with `data-testid="table-ready-to-close-<id>"`
+- [ ] The empty state "No open orders right now." stays for a board with no table at all
+- [ ] Keep every other behaviour: new-order highlight only on Pending, buttons only on Pending and Preparing, loading shimmer, reconnect banner
+- [ ] Note in `code-summary.md` that this reads FR2.2 ("a card per table with its open orders") as "a card per table with an open visit", and why
+- [ ] Update `src/client/screens/staff/__tests__/KitchenBoardScreen.test.tsx` and `src/client/hooks/__tests__/useBoardOrders.test.ts` for the new rule, and add a unit test named "regression: a table with only completed orders stays on the board with its bill link until it is closed" that fails on the old filter
+- [ ] Update `e2e/u3-kitchen-board/kitchen-board.spec.ts` Flow 3 so it expects the card to stay marked Completed; update `e2e/u3-kitchen-board/mockup-match.spec.ts` only if a checked word changed
+- [ ] The two browser specs found by Build and Test, `e2e/build-and-test/board-bill-link.spec.ts` and the first test of `e2e/build-and-test/keyboard-journey.spec.ts`, are marked expected-to-fail with a `test.fail(true, …)` line until this fix lands (so the walking skeleton's and the other Units' checkpoints can run). In this step, remove those two `test.fail` lines and confirm both specs now pass in Chromium (they are Build and Test's regression tests for this fix)
+- [ ] Run vitest scoped (the U3 command in `unit-test-instructions.md`) and `E2E_PORT=5100 npx playwright test e2e/u3-kitchen-board/ e2e/build-and-test/`; confirm green
 
 **Step 18** — `source-manifest.json` and `traceability.json`
-- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u3-kitchen-board/code-generation/source-manifest.json` listing every file created/modified
-- [ ] Run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u3-kitchen-board/code-generation/traceability.json --write-upstream` and fill in OK targets
+- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u3-kitchen-board/code-generation/source-manifest.json` listing every file created/modified
+- [x] Run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u3-kitchen-board/code-generation/traceability.json --write-upstream` and fill in OK targets
