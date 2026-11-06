@@ -24,6 +24,7 @@ export interface PlaceOrderResult {
   dropped_lines: DroppedLine[];
   visit_id: string;
   table_id: number;
+  isDuplicate?: boolean;
 }
 
 export interface OrderWithItems {
@@ -61,7 +62,7 @@ export function placeOrder(
   ).get(tableId, visitId, placementKey) as { id: number; order_number: number; status: string; placed_at: string } | undefined;
 
   if (existing) {
-    // Return the existing order
+    // Duplicate placement_key — signal to the route handler to return 409
     const existingLines = db.prepare(
       `SELECT oi.item_id as menu_item_id, i.name, oi.quantity, oi.unit_price_cents as price_cents_each
        FROM order_items oi JOIN items i ON i.id = oi.item_id
@@ -79,6 +80,7 @@ export function placeOrder(
         subtotal_cents: l.quantity * l.price_cents_each,
       })),
       dropped_lines: [],
+      isDuplicate: true,
     };
   }
 

@@ -1,0 +1,460 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useCart } from '../../hooks/useCart.js';
+
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price_cents: number;
+  category_id: string;
+  // Legacy test-compat alias
+  category?: string;
+  image?: string;
+  image_url?: string;
+  available: boolean;
+}
+
+interface MenuCategory {
+  id: string;
+  name: string;
+  order?: number;
+  display_order?: number;
+}
+
+// Default fallback category config in case API doesn't return them
+const DEFAULT_CATEGORIES: MenuCategory[] = [
+  { id: 'c-01', name: 'Starters' },
+  { id: 'c-02', name: 'Mains' },
+  { id: 'c-03', name: 'Desserts' },
+  { id: 'c-04', name: 'Drinks' },
+];
+
+function formatPrice(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+interface MenuScreenProps {
+  tableId: string;
+}
+
+export default function MenuScreen({ tableId }: MenuScreenProps) {
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<MenuCategory[]>(DEFAULT_CATEGORIES);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>(DEFAULT_CATEGORIES[0].id);
+  const { addItem, items: cartItems } = useCart(tableId);
+
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const fetchMenu = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/menu');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { items: MenuItem[]; categories: MenuCategory[] };
+      setItems(data.items);
+      if (data.categories && data.categories.length > 0) {
+        setCategories(data.categories);
+        setActiveCategory(data.categories[0].id);
+      }
+    } catch (err) {
+      setError('Failed to load menu. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMenu();
+  }, [fetchMenu]);
+
+  // IntersectionObserver to highlight the active category pill
+  useEffect(() => {
+    if (loading || items.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the topmost intersecting section
+        const intersecting = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (intersecting.length > 0) {
+          setActiveCategory(
+            intersecting[0].target.getAttribute('data-category') ?? (categories[0]?.id ?? '')
+          );
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    observerRef.current = observer;
+
+    for (const cat of categories) {
+      const el = sectionRefs.current[cat.id];
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [loading, items, categories]);
+
+  function scrollToCategory(categoryId: string) {
+    const el = sectionRefs.current[categoryId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setActiveCategory(categoryId);
+  }
+
+  function getCartQuantity(itemId: string): number {
+    return cartItems.find((i) => i.menuItemId === itemId)?.quantity ?? 0;
+  }
+
+  if (loading) {
+    return (
+      <div data-testid="menu-loading" style={{ padding: '1rem' }}>
+        {/* Loading shimmer */}
+        {[1, 2, 3, 4].map((n) => (
+          <div
+            key={n}
+            style={{
+              height: '5rem',
+              borderRadius: '0.75rem',
+              background: 'linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-muted, #2a2a3e) 50%, var(--bg-secondary) 75%)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.5s infinite',
+              marginBottom: '0.75rem',
+            }}
+          />
+        ))}
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        data-testid="menu-error"
+        style={{
+          padding: '2rem 1rem',
+          textAlign: 'center',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        <p style={{ marginBottom: '1rem' }}>{error}</p>
+        <button
+          data-testid="menu-retry"
+          onClick={fetchMenu}
+          style={{
+            padding: '0.65rem 1.5rem',
+            borderRadius: '0.5rem',
+            background: 'var(--accent, #6366f1)',
+            color: '#fff',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const itemsByCategory = categories.reduce<Record<string, MenuItem[]>>((acc, cat) => {
+    acc[cat.id] = items.filter(
+      (i) => i.category_id === cat.id || i.category === cat.name
+    );
+    return acc;
+  }, {});
+
+  return (
+    <div data-testid="menu-screen" style={{ position: 'relative' }}>
+      {/* Sticky category pill bar */}
+      <div
+        data-testid="category-pill-bar"
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          display: 'flex',
+          gap: '0.5rem',
+          padding: '0.75rem 1rem',
+          overflowX: 'auto',
+          background: 'var(--bg-tab-bar, rgba(18, 18, 30, 0.85))',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          scrollbarWidth: 'none',
+        }}
+      >
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              data-testid={`category-pill-${cat.name.toLowerCase()}`}
+              onClick={() => scrollToCategory(cat.id)}
+              style={{
+                flexShrink: 0,
+                padding: '0.3rem 0.9rem',
+                borderRadius: '999px',
+                border: isActive
+                  ? '1.5px solid var(--accent, #6366f1)'
+                  : '1.5px solid rgba(255,255,255,0.15)',
+                background: isActive ? 'var(--accent, #6366f1)' : 'transparent',
+                color: isActive ? '#fff' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: isActive ? 600 : 400,
+                transition: 'all 150ms ease-out',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {cat.name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Menu sections */}
+      <div style={{ padding: '0.75rem 1rem 1rem' }}>
+        {categories.map((cat) => (
+          <section
+            key={cat.id}
+            data-category={cat.id}
+            ref={(el) => { sectionRefs.current[cat.id] = el; }}
+            style={{ marginBottom: '1.5rem' }}
+          >
+            <h2
+              style={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+                marginBottom: '0.75rem',
+                color: 'var(--text-primary)',
+              }}
+            >
+              {cat.name}
+            </h2>
+            {(itemsByCategory[cat.id] ?? []).length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                No items available
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {(itemsByCategory[cat.id] ?? []).map((item) => (
+                  <MenuItemCard
+                    key={item.id}
+                    item={item}
+                    cartQuantity={getCartQuantity(item.id)}
+                    onAdd={() => addItem(item.id, item.name, item.price_cents)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          * { transition: none !important; animation: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+interface MenuItemCardProps {
+  item: MenuItem;
+  cartQuantity: number;
+  onAdd: () => void;
+}
+
+function MenuItemCard({ item, cartQuantity, onAdd }: MenuItemCardProps) {
+  const soldOut = !item.available;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: '0.75rem',
+        padding: '0.75rem',
+        borderRadius: '0.75rem',
+        background: 'var(--bg-secondary)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+        opacity: soldOut ? 0.6 : 1,
+        transition: 'transform 150ms ease-out, box-shadow 150ms ease-out',
+      }}
+    >
+      {/* Item image */}
+      {(item.image_url || item.image) ? (
+        <img
+          src={item.image_url ?? item.image}
+          alt={item.name}
+          style={{
+            width: '4.5rem',
+            height: '4.5rem',
+            objectFit: 'cover',
+            borderRadius: '0.5rem',
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: '4.5rem',
+            height: '4.5rem',
+            borderRadius: '0.5rem',
+            background: 'var(--bg-muted, #2a2a3e)',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+          }}
+          aria-hidden="true"
+        >
+          🍽️
+        </div>
+      )}
+
+      {/* Item details */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontWeight: 600,
+            fontSize: '0.95rem',
+            marginBottom: '0.2rem',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {item.name}
+        </div>
+        {item.description && (
+          <div
+            style={{
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)',
+              marginBottom: '0.4rem',
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
+            {item.description}
+          </div>
+        )}
+
+        {/* Price row + Add button */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '0.25rem',
+          }}
+        >
+          <span
+            style={{
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              color: 'var(--accent, #6366f1)',
+            }}
+          >
+            {formatPrice(item.price_cents)}
+          </span>
+
+          {soldOut ? (
+            <span
+              style={{
+                padding: '0.15rem 0.6rem',
+                borderRadius: '999px',
+                background: 'rgba(255,255,255,0.1)',
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+              }}
+            >
+              Sold out
+            </span>
+          ) : (
+            <button
+              data-testid={`add-item-${item.id}`}
+              onClick={cartQuantity >= 20 ? undefined : onAdd}
+              disabled={cartQuantity >= 20}
+              aria-label={cartQuantity >= 20 ? `Maximum quantity reached for ${item.name}` : `Add ${item.name} to cart`}
+              style={{
+                // 32px visual, 44px touch area
+                height: '32px',
+                minWidth: '44px',
+                padding: '0 0.75rem',
+                borderRadius: '999px',
+                background: cartQuantity >= 20
+                  ? 'rgba(255,255,255,0.08)'
+                  : cartQuantity > 0 ? 'var(--accent, #6366f1)' : 'rgba(99,102,241,0.15)',
+                color: cartQuantity >= 20
+                  ? 'var(--text-muted)'
+                  : cartQuantity > 0 ? '#fff' : 'var(--accent, #6366f1)',
+                border: cartQuantity >= 20
+                  ? '1.5px solid rgba(255,255,255,0.1)'
+                  : '1.5px solid var(--accent, #6366f1)',
+                cursor: cartQuantity >= 20 ? 'not-allowed' : 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                transition: 'all 150ms ease-out',
+                // Expand touch area beyond visual area
+                position: 'relative',
+              }}
+            >
+              {cartQuantity >= 20 ? (
+                'Max'
+              ) : (
+                <>
+                  {cartQuantity > 0 && (
+                    <span
+                      style={{
+                        background: '#fff',
+                        color: 'var(--accent, #6366f1)',
+                        borderRadius: '50%',
+                        width: '1.1rem',
+                        height: '1.1rem',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {cartQuantity}
+                    </span>
+                  )}
+                  + Add
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

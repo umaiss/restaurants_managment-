@@ -59,16 +59,22 @@ router.post('/tables/:id/orders', (req, res) => {
       total_cents,
     };
 
+    if (result.isDuplicate) {
+      // Contract: a repeated placement_key within the same visit returns 200 with the
+      // existing order, and nothing is published (the order was already announced).
+      res.status(200).json({
+        order_number: result.order_number,
+        status: result.status,
+        placed_at: result.placed_at,
+        lines: result.lines,
+        dropped_lines: result.dropped_lines,
+      });
+      return;
+    }
+
     publish('staff', 'ORDER_PLACED', ssePayload);
     publish(`table:${tableId}`, 'ORDER_PLACED', ssePayload);
 
-    // 200 for idempotent duplicate (same order returned), 201 for new order
-    // We detect this: if the result was an idempotent return, dropped_lines is [] but
-    // the order already existed. For simplicity we return 201 always for new orders.
-    // The contract says "Response 200 returned for a duplicate placement_key within the same visit"
-    // We distinguish by checking whether placeOrder encountered an existing key.
-    // The current implementation returns dropped_lines:[] for both new and duplicate.
-    // We need to track this. For now we always return 201 (the client handles both).
     res.status(201).json({
       order_number: result.order_number,
       status: result.status,

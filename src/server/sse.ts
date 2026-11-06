@@ -49,9 +49,10 @@ export function subscribe(channel: string, res: Response): void {
   res.write('retry: 2000\n\n');
 
   // Replay missed events from Last-Event-ID
-  const lastIdHeader = (res.req as { headers?: { 'last-event-id'?: string } }).headers?.['last-event-id'];
-  if (lastIdHeader) {
-    const lastId = parseInt(lastIdHeader, 10);
+  const reqAny = res.req as { headers?: { 'last-event-id'?: string }; query?: Record<string, string> };
+  const lastIdStr = reqAny.headers?.['last-event-id'] ?? reqAny.query?.['lastEventId'];
+  if (lastIdStr) {
+    const lastId = parseInt(lastIdStr, 10);
     if (!isNaN(lastId)) {
       const buffer = getOrCreateBuffer(channel);
       const missed = buffer.filter((e) => e.id > lastId);

@@ -1,13 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-
-type Tab = 'menu' | 'cart' | 'orders';
+import { useTableSSE } from '../hooks/useTableSSE.js';
+import { useCart } from '../hooks/useCart.js';
+import DinerTabBar, { type DinerTab } from '../components/diner/DinerTabBar.js';
+import TableClosedTakeover from '../components/diner/TableClosedTakeover.js';
+import MenuScreen from '../screens/diner/MenuScreen.js';
+import CartScreen, { type PlacedOrder } from '../screens/diner/CartScreen.js';
+import MyOrdersScreen from '../screens/diner/MyOrdersScreen.js';
 
 export default function TableView() {
-  const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<Tab>('menu');
-  // Cart item count — will be managed by U2
-  const cartCount = 0;
+  const { id: tableId } = useParams<{ id: string }>();
+  const [activeTab, setActiveTab] = useState<DinerTab>('menu');
+  const [tableClosed, setTableClosed] = useState(false);
+  const [showReconnectBanner, setShowReconnectBanner] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+
+  // After an order is placed the diner lands on My orders; the confirmation stays for 3 seconds.
+  useEffect(() => {
+    if (!placedOrder) return;
+    const timer = setTimeout(() => setPlacedOrder(null), 3000);
+    return () => clearTimeout(timer);
+  }, [placedOrder]);
+
+  // SSE connection for live events
+  const { lastEvent, connected } = useTableSSE(tableId);
+
+  // Cart state: now synced via cart-updated CustomEvent from useCart.
+  const { items, clearCart } = useCart(tableId ?? '');
+
+  // Derive a stable visitId from the session. The server uses the current open
+  // visit for a table; we pass it through so screens can pass it in API calls.
+  const [visitId] = useState<string>(() => {
+    // Use sessionStorage so it persists for the tab session but resets on close.
+    const key = `visit-id:table:${tableId}`;
+    const existing = sessionStorage.getItem(key);
+    if (existing) return existing;
+    const newId = `visit-${Date.now()}`;
+    sessionStorage.setItem(key, newId);
+    return newId;
+  });
+
+  // Handle TABLE_CLOSED event: show takeover, clear cart
+  useEffect(() => {
+    if (lastEvent?.type === 'TABLE_CLOSED') {
+      setTableClosed(true);
+      clearCart();
+    }
+  }, [lastEvent, clearCart]);
+
+  // Show reconnect banner after 3 s of SSE disconnection
+  useEffect(() => {
+    if (connected) {
+      setShowReconnectBanner(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowReconnectBanner(true), 3000);
+    return () => clearTimeout(timer);
+  }, [connected]);
+
+  const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  if (!tableId) {
+    return (
+      <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>
+        Invalid table URL
+      </div>
+    );
+  }
 
   return (
     <div
@@ -18,6 +77,7 @@ export default function TableView() {
         background: 'var(--bg-primary)',
         color: 'var(--text-primary)',
         position: 'relative',
+        overflowX: 'hidden',
       }}
     >
       {/* Header */}
@@ -26,17 +86,33 @@ export default function TableView() {
           padding: '1.25rem 1rem 0.75rem',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           background: 'var(--bg-secondary)',
+          flexShrink: 0,
         }}
       >
-        <h1
-          style={{
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          Table {id}
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <h1
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              letterSpacing: '-0.01em',
+              margin: 0,
+              flex: 1,
+            }}
+          >
+            Table {tableId}
+          </h1>
+          {/* SSE connection indicator */}
+          <span
+            title={connected ? 'Live' : 'Reconnecting…'}
+            style={{
+              width: '0.5rem',
+              height: '0.5rem',
+              borderRadius: '50%',
+              background: connected ? '#22c55e' : '#ef4444',
+              flexShrink: 0,
+            }}
+          />
+        </div>
       </header>
 
       {/* Content area — grows to fill space above tab bar */}
@@ -44,125 +120,100 @@ export default function TableView() {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '1rem',
-          paddingBottom: '5rem', // space for tab bar
+          paddingBottom: '56px', // space for fixed tab bar
         }}
       >
-        {activeTab === 'menu' && (
-          <p style={{ color: 'var(--text-secondary)' }}>Menu — coming in U2</p>
+        {/* SSE reconnect banner */}
+        {showReconnectBanner && (
+          <div
+            data-testid="reconnect-banner"
+            role="status"
+            style={{
+              margin: '0.5rem 1rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              background: 'rgba(234, 179, 8, 0.12)',
+              border: '1px solid rgba(234, 179, 8, 0.25)',
+              color: '#eab308',
+              fontSize: '0.8rem',
+              textAlign: 'center',
+            }}
+          >
+            Reconnecting… Updates will resume shortly.
+          </div>
+        )}
+        {activeTab === 'menu' && <MenuScreen tableId={tableId} />}
+        {placedOrder && placedOrder.droppedLines.length === 0 && (
+          <div
+            data-testid="order-success-banner"
+            role="status"
+            style={{
+              margin: '0.5rem 1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '0.75rem',
+              background: 'rgba(34, 197, 94, 0.15)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              color: '#22c55e',
+              fontWeight: 600,
+              textAlign: 'center',
+            }}
+          >
+            Order #{placedOrder.orderNumber} placed
+          </div>
+        )}
+        {placedOrder && placedOrder.droppedLines.length > 0 && (
+          <div
+            data-testid="order-partial-banner"
+            role="status"
+            style={{
+              margin: '0.5rem 1rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '0.75rem',
+              background: 'rgba(234, 179, 8, 0.15)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              color: '#eab308',
+            }}
+          >
+            <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>
+              Order #{placedOrder.orderNumber} placed. The rest of your order went through.
+            </p>
+            <ul style={{ fontSize: '0.85rem', margin: 0, paddingLeft: '1.2rem' }}>
+              {placedOrder.droppedLines.map((l) => (
+                <li key={l.menu_item_id}>
+                  {l.quantity}× {l.name} sold out and was removed
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {activeTab === 'cart' && (
-          <p style={{ color: 'var(--text-secondary)' }}>Cart — coming in U2</p>
+          <CartScreen
+            tableId={tableId}
+            visitId={visitId}
+            onOrderPlaced={(placed) => {
+              setPlacedOrder(placed);
+              setActiveTab('orders');
+            }}
+          />
         )}
         {activeTab === 'orders' && (
-          <p style={{ color: 'var(--text-secondary)' }}>My orders — coming in U2</p>
+          <MyOrdersScreen
+            tableId={tableId}
+            visitId={visitId}
+            lastSSEEvent={lastEvent}
+          />
         )}
       </main>
 
       {/* Fixed bottom tab bar */}
-      <nav
-        data-testid="tab-bar"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          alignItems: 'stretch',
-          background: 'var(--bg-tab-bar)',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: 'var(--shadow-tab-bar)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          zIndex: 100,
-        }}
-      >
-        <TabButton
-          label="Menu"
-          icon="🍽️"
-          testId="tab-menu"
-          active={activeTab === 'menu'}
-          onClick={() => setActiveTab('menu')}
-        />
-        <TabButton
-          label="Cart"
-          icon="🛒"
-          testId="tab-cart"
-          active={activeTab === 'cart'}
-          badge={cartCount > 0 ? cartCount : undefined}
-          onClick={() => setActiveTab('cart')}
-        />
-        <TabButton
-          label="My orders"
-          icon="📋"
-          testId="tab-orders"
-          active={activeTab === 'orders'}
-          onClick={() => setActiveTab('orders')}
-        />
-      </nav>
+      <DinerTabBar
+        activeTab={activeTab}
+        cartCount={cartCount}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Table closed overlay */}
+      <TableClosedTakeover visible={tableClosed} />
     </div>
-  );
-}
-
-interface TabButtonProps {
-  label: string;
-  icon: string;
-  testId: string;
-  active: boolean;
-  badge?: number;
-  onClick: () => void;
-}
-
-function TabButton({ label, icon, testId, active, badge, onClick }: TabButtonProps) {
-  return (
-    <button
-      data-testid={testId}
-      onClick={onClick}
-      aria-pressed={active}
-      aria-label={label}
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '2px',
-        padding: '0.6rem 0.5rem',
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        color: active ? 'var(--tab-active)' : 'var(--tab-inactive)',
-        fontSize: '0.7rem',
-        fontWeight: active ? 700 : 400,
-        transition: 'color var(--transition-fast)',
-        position: 'relative',
-        minHeight: '44px', // 44px touch target
-      }}
-    >
-      <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{icon}</span>
-      <span>{label}</span>
-      {badge !== undefined && badge > 0 && (
-        <span
-          style={{
-            position: 'absolute',
-            top: '0.3rem',
-            right: 'calc(50% - 1rem)',
-            background: 'var(--accent)',
-            color: '#fff',
-            borderRadius: '50%',
-            width: '1.1rem',
-            height: '1.1rem',
-            fontSize: '0.65rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          aria-label={`${badge} items in cart`}
-        >
-          {badge}
-        </span>
-      )}
-    </button>
   );
 }

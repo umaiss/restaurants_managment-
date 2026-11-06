@@ -37,7 +37,7 @@ describe('API endpoints', () => {
     expect(res.body.lines).toHaveLength(1);
   });
 
-  it('POST /api/tables/1/orders with same placement_key same table returns same order_number', async () => {
+  it('regression: duplicate placement_key returns 200 with the existing order, not 409', async () => {
     const res1 = await request(app)
       .post('/api/tables/1/orders')
       .send({ placement_key: 'key-idem-api', lines: [{ menu_item_id: 'i-01', quantity: 1 }] });
@@ -46,7 +46,9 @@ describe('API endpoints', () => {
     const res2 = await request(app)
       .post('/api/tables/1/orders')
       .send({ placement_key: 'key-idem-api', lines: [{ menu_item_id: 'i-01', quantity: 1 }] });
+    expect(res2.status).toBe(200);
     expect(res2.body.order_number).toBe(res1.body.order_number);
+    expect(res2.body.lines).toHaveLength(1);
   });
 
   it('POST /api/tables/2/orders with same placement_key but different table returns different order_number', async () => {
