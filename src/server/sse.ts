@@ -15,10 +15,47 @@ interface SSESubscriber {
 const ringBuffers = new Map<string, SSEEvent[]>();
 // Per-channel subscriber sets
 const subscribers = new Map<string, Set<SSESubscriber>>();
-// Global monotonic counter
-let eventCounter = 0;
+// Global monotonic counter. It starts from the server's start time in milliseconds, not 0, so event ids
+// keep rising across a restart: a client reconnecting with an id from before the restart is never told
+// to skip events that are newer than it.
+let eventCounter = Date.now();
 
 const RING_BUFFER_SIZE = 60;
+
+/** How often an idle stream gets a comment line, so a proxy or the browser does not drop it silently. */
+export const KEEP_ALIVE_INTERVAL_MS = 20_000;
+let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
+
+function subscriberCount(): number {
+  let n = 0;
+  for (const set of subscribers.values()) n += set.size;
+  return n;
+}
+
+function startKeepAlive(): void {
+  if (keepAliveTimer !== null) return;
+  keepAliveTimer = setInterval(() => {
+    for (const set of subscribers.values()) {
+      for (const sub of [...set]) {
+        try {
+          sub.res.write(': keep-alive\n\n');
+        } catch {
+          set.delete(sub);
+        }
+      }
+    }
+    if (subscriberCount() === 0) stopKeepAlive();
+  }, KEEP_ALIVE_INTERVAL_MS);
+  // Never keep the process (or a test run) alive just for the timer.
+  keepAliveTimer.unref?.();
+}
+
+function stopKeepAlive(): void {
+  if (keepAliveTimer !== null) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+}
 
 function getOrCreateBuffer(channel: string): SSEEvent[] {
   if (!ringBuffers.has(channel)) {
@@ -36,6 +73,19 @@ function getOrCreateSubscribers(channel: string): Set<SSESubscriber> {
 
 function formatSSEEvent(event: SSEEvent): string {
   return `id: ${event.id}\nevent: ${event.eventType}\ndata: ${JSON.stringify(event.data)}\n\n`;
+}
+
+/**
+ * Sends one event to a single connection only. It has no id and is not kept in the replay buffer,
+ * so it never reaches the channel's other subscribers and never moves a client's Last-Event-ID.
+ * Used for the HELLO a connection gets when it opens.
+ */
+export function sendEvent(res: Response, eventType: string, data: unknown): void {
+  try {
+    res.write(`event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`);
+  } catch {
+    // The connection is already gone; its close handler removes the subscriber.
+  }
 }
 
 export function subscribe(channel: string, res: Response): void {
@@ -64,12 +114,15 @@ export function subscribe(channel: string, res: Response): void {
 
   const subscriber: SSESubscriber = { res, channel };
   getOrCreateSubscribers(channel).add(subscriber);
+  startKeepAlive();
 
   res.on('close', () => {
     const channelSubs = subscribers.get(channel);
     if (channelSubs) {
       channelSubs.delete(subscriber);
     }
+    // The last subscriber has left: the timer has nobody to write to.
+    if (subscriberCount() === 0) stopKeepAlive();
   });
 }
 
@@ -114,4 +167,5 @@ export function _resetForTest(): void {
   ringBuffers.clear();
   subscribers.clear();
   eventCounter = 0;
+  stopKeepAlive();
 }

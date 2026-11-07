@@ -126,4 +126,84 @@ describe('API endpoints', () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_ACTOR');
   });
+
+  describe('order numbers in URLs', () => {
+    const BAD_NUMBERS = ['12abc', '0', '-1', '1e1', '1.0', '007x'];
+
+    it.each(BAD_NUMBERS)('POST /api/orders/%s/transition answers 404 UNKNOWN_ORDER', async (n) => {
+      const res = await request(app).post(`/api/orders/${n}/transition`).send({ to: 'Preparing', by: 'staff' });
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('UNKNOWN_ORDER');
+    });
+
+    it('regression: an order number with trailing text is refused, not read as the number in front of it', async () => {
+      const placed = await request(app)
+        .post('/api/tables/1/orders')
+        .send({ placement_key: 'on-1', lines: [{ menu_item_id: 'i-01', quantity: 1 }] });
+      const n = placed.body.order_number as number;
+
+      const res = await request(app).post(`/api/orders/${n}abc/transition`).send({ to: 'Preparing', by: 'staff' });
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('UNKNOWN_ORDER');
+      // The order was not touched
+      const list = await request(app).get('/api/tables/1/orders?visit=current');
+      expect(list.body.orders.find((o: { order_number: number }) => o.order_number === n).status).toBe('Pending');
+    });
+
+    it('a plain number still works, and an unknown plain number is still 404 UNKNOWN_ORDER', async () => {
+      const placed = await request(app)
+        .post('/api/tables/1/orders')
+        .send({ placement_key: 'on-2', lines: [{ menu_item_id: 'i-01', quantity: 1 }] });
+      const ok = await request(app).post(`/api/orders/${placed.body.order_number}/transition`).send({ to: 'Preparing', by: 'staff' });
+      expect(ok.status).toBe(200);
+      const missing = await request(app).post('/api/orders/99999/transition').send({ to: 'Preparing', by: 'staff' });
+      expect(missing.status).toBe(404);
+      expect(missing.body.error.code).toBe('UNKNOWN_ORDER');
+    });
+  });
+
+  describe('table ids in URLs', () => {
+    const BAD_IDS = ['5abc', '0', '-1', '1e1', '5.0', '05x'];
+    const validBody = { placement_key: 'tid-1', lines: [{ menu_item_id: 'i-01', quantity: 1 }] };
+
+    it('regression: a table id with trailing text is refused, not read as the number in front of it', async () => {
+      const post = await request(app).post('/api/tables/5abc/orders').send(validBody);
+      expect(post.status).toBe(404);
+      expect(post.body.error.code).toBe('UNKNOWN_TABLE');
+      // Nothing was placed at table 5
+      const list = await request(app).get('/api/tables/5/orders?visit=current');
+      expect(list.body.orders).toEqual([]);
+    });
+
+    it.each(BAD_IDS)('POST /api/tables/%s/orders answers 404 UNKNOWN_TABLE', async (id) => {
+      const res = await request(app).post(`/api/tables/${id}/orders`).send(validBody);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('UNKNOWN_TABLE');
+    });
+
+    it.each(BAD_IDS)('GET /api/tables/%s/orders answers 404 UNKNOWN_TABLE', async (id) => {
+      const res = await request(app).get(`/api/tables/${id}/orders?visit=current`);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('UNKNOWN_TABLE');
+    });
+
+    it.each(BAD_IDS)('GET /api/tables/%s answers 404 UNKNOWN_TABLE', async (id) => {
+      const res = await request(app).get(`/api/tables/${id}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('UNKNOWN_TABLE');
+    });
+
+    it.each(BAD_IDS)('GET /sse/tables/%s is refused with 404 UNKNOWN_TABLE and opens no stream', async (id) => {
+      const res = await request(app).get(`/sse/tables/${id}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error.code).toBe('UNKNOWN_TABLE');
+    });
+
+    it('plain table numbers still work on the same routes', async () => {
+      const post = await request(app).post('/api/tables/5/orders').send(validBody);
+      expect(post.status).toBe(201);
+      expect((await request(app).get('/api/tables/5/orders?visit=current')).body.orders).toHaveLength(1);
+      expect((await request(app).get('/api/tables/5')).status).toBe(200);
+    });
+  });
 });

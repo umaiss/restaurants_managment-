@@ -61,6 +61,7 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
       aria-label="Menu availability"
       aria-modal="true"
       tabIndex={-1}
+      className="panel-slide"
       style={{
         position: 'fixed',
         top: 0,
@@ -172,7 +173,10 @@ function AvailabilityRow({ item, onToggle }: AvailabilityRowProps) {
         borderBottom: '1px solid rgba(255,255,255,0.05)',
       }}
     >
-      <span style={{ fontSize: '0.9rem' }}>{item.name}</span>
+      <span style={{ fontSize: '0.9rem', color: isSoldOut ? 'var(--text-secondary, #94a3b8)' : undefined }}>
+        <span aria-hidden="true" style={{ marginRight: '0.5rem' }}>{item.image}</span>
+        {item.name}
+      </span>
       <button
         role="switch"
         aria-checked={item.available}
@@ -192,7 +196,31 @@ function AvailabilityRow({ item, onToggle }: AvailabilityRowProps) {
           color: isSoldOut ? '#ef4444' : 'var(--text-secondary, #94a3b8)',
         }}
       >
-        {isSoldOut ? 'Sold out' : 'Available'}
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'relative',
+            width: '2.25rem',
+            height: '1.25rem',
+            borderRadius: '999px',
+            background: isSoldOut ? 'rgba(255,255,255,0.12)' : 'var(--accent, #ffb04a)',
+            transition: 'background 150ms ease',
+          }}
+        >
+          <span
+            style={{
+              position: 'absolute',
+              top: '0.125rem',
+              left: isSoldOut ? '0.125rem' : '1.125rem',
+              width: '1rem',
+              height: '1rem',
+              borderRadius: '50%',
+              background: '#0f1218',
+              transition: 'left 150ms ease',
+            }}
+          />
+        </span>
+        {isSoldOut ? 'Sold out' : 'On'}
       </button>
     </div>
   );

@@ -86,147 +86,154 @@
 
 ## Steps
 
+**Step 0** — First step: fixes for the five Minor findings of the kitchen board's review (replayed after Build and Test's loop-back; the team's rule is that review findings are fixed before the work moves on, here in the next Unit's plan) — `src/client/hooks/useBoardOrders.ts`, `src/server/routes/billing.ts`, `src/server/routes/orders.ts`, `src/server/routes/sse.ts`, `src/server/sse.ts`, and their tests
+- [x] (1) The board relies on events alone to remove a closed table: a missed `TABLE_CLOSED` (a stream gap longer than the 60-event buffer, or a server restart) leaves a stale card until reload, and a `TABLE_CLOSED` that arrives before the first fetch resolves is lost because the fetched result adds the table back. In `useBoardOrders.ts`: fetch the board again when the staff stream reconnects, and remember tables closed while the first fetch is in flight so the fetched data does not bring them back. Tests for both, one named "regression: a table closed while the board is still loading does not come back when the first fetch resolves"
+- [x] (2) `billing.ts` keeps its own copy of the 404 table-id helper: use the shared `src/server/routes/tableId.ts` instead and delete the copy; the bill and close behaviour stays as it is
+- [x] (3) The order transition route reads `12abc` as order 12: order numbers must be only digits (a positive whole number); anything else answers 404 `UNKNOWN_ORDER` in the error envelope. Test it, including `0`, `-1`, `1e1`, `12abc`
+- [x] (4) In `src/server/routes/sse.ts` remove the dead `_lastEventId` variable and the stale TODO; send the connection's HELLO event only to the connection that just opened, not to every existing subscriber on that channel (`src/server/sse.ts` if the send is there). Test that an existing subscriber receives no HELLO when another client connects
+- [x] (5) Record the reading of FR2.2 ("a card per table with its open orders" read as "a card per table with an open visit", added in the kitchen board's Build and Test fix) as one line under the assumptions in `aidlc/spaces/default/intents/261105-table-order-app/inception/requirements-analysis/requirements.md`, so it does not live only in a code summary
+
 **Step 1** — Verify walking skeleton foundations [US7.1, US7.2]
-- [x] Confirm U1/U2/U3 provide what U4 reads: `getOrdersByVisit(visitId)` in `orderRepo.ts`, `getCurrentVisit` in `db.ts`, `getTableStatus` in `tableRepo.ts`, `publish` in `sse.ts`, the `/sse/staff` stream, `useStaffSSE`, `ConfirmModal`, the "Table N →" link in `KitchenBoardScreen`, and the `tables/:id` placeholder route in `StaffView`
-- [x] Note any missing piece and add the smallest stub without changing U1/U2/U3 behaviour
+- [ ] Confirm U1/U2/U3 provide what U4 reads: `getOrdersByVisit(visitId)` in `orderRepo.ts`, `getCurrentVisit` in `db.ts`, `getTableStatus` in `tableRepo.ts`, `publish` in `sse.ts`, the `/sse/staff` stream, `useStaffSSE`, `ConfirmModal`, the "Table N →" link in `KitchenBoardScreen`, and the `tables/:id` placeholder route in `StaffView`
+- [ ] Note any missing piece and add the smallest stub without changing U1/U2/U3 behaviour
 
 **Step 2** — Bootstrap unit-scoped test runner
-- [x] Confirm vitest and Playwright are configured; run the unit-scoped command from `unit-test-instructions.md` once on the (still empty) U4 paths to confirm it is runnable
-- [x] Record the exact commands in `unit-test-instructions.md`
+- [ ] Confirm vitest and Playwright are configured; run the unit-scoped command from `unit-test-instructions.md` once on the (still empty) U4 paths to confirm it is runnable
+- [ ] Record the exact commands in `unit-test-instructions.md`
 
 **Step 3** — Data model / database behaviour: close a visit [FR3.5, BR3.1] — `src/server/repositories/tableRepo.ts`
-- [x] Add `closeCurrentVisit(tableId): string | null`: marks the table's open visit closed (`closed_at`) and returns its id; returns `null` when no visit is open
-- [x] Add `hasClosedVisit(tableId): boolean` (the table has at least one archived visit), used to tell "already closed" from "never used"
-- [x] Leave the existing `closeVisit(visitId, tableId)` as it is
-- [x] After a close, `getTableStatus` reports the table as `closed` with `visit_id: null`, and the next `getOrOpenVisit` opens a new visit
+- [ ] Add `closeCurrentVisit(tableId): string | null`: marks the table's open visit closed (`closed_at`) and returns its id; returns `null` when no visit is open
+- [ ] Add `hasClosedVisit(tableId): boolean` (the table has at least one archived visit), used to tell "already closed" from "never used"
+- [ ] Leave the existing `closeVisit(visitId, tableId)` as it is
+- [ ] After a close, `getTableStatus` reports the table as `closed` with `visit_id: null`, and the next `getOrOpenVisit` opens a new visit
 
 **Step 4** — Test the visit close (5–8 tests)
-- [x] `src/server/__tests__/tableClose.test.ts`
-- [x] `closeCurrentVisit` returns the open visit id and sets `closed_at`
-- [x] Returns `null` when no visit is open
-- [x] `hasClosedVisit` is false for a never-used table and true after a close
-- [x] After a close, a new order opens a different visit and the old visit's orders are not in it
-- [x] Orders of the archived visit stay in the database
-- [x] Run vitest scoped; confirm green
+- [ ] `src/server/__tests__/tableClose.test.ts`
+- [ ] `closeCurrentVisit` returns the open visit id and sets `closed_at`
+- [ ] Returns `null` when no visit is open
+- [ ] `hasClosedVisit` is false for a never-used table and true after a close
+- [ ] After a close, a new order opens a different visit and the old visit's orders are not in it
+- [ ] Orders of the archived visit stay in the database
+- [ ] Run vitest scoped; confirm green
 
 **Step 5** — Business logic: build the bill and decide the close [FR3.1–FR3.5, BR1.1–BR1.4, BR2.1–BR2.4, BR4.1, BR4.2] — `src/server/repositories/billingRepo.ts`
-- [x] `buildBill(tableId)`: throws `UNKNOWN_TABLE` for an unknown table; with no open visit returns an empty bill; otherwise reads `getOrdersByVisit(visitId)` (read only; never writes to Ordering), drops Cancelled orders, keeps placement order, and uses each line's stored `price_cents_each` (never the current menu price)
-- [x] Each order `subtotal_cents` is the sum of its lines; `combined_total_cents` is the sum of the included orders, computed at read time and never stored
-- [x] `close_available` is true only when the visit has at least one order (Cancelled orders count here, so a visit where everything was cancelled can still be closed) and none is Pending or Preparing; `blocking_orders` lists the Pending and Preparing order numbers (empty when closing is available)
-- [x] `closeTable(tableId)`: throws `UNKNOWN_TABLE`, `TABLE_ALREADY_CLOSED`, `TABLE_EMPTY` or `CLOSE_BLOCKED` (with `blocking_orders`) as the choices above set out; on success calls `closeCurrentVisit` and returns `{ closed: true, archived_visit_id }`
-- [x] The check and the close run in one transaction so a status change cannot slip between them
+- [ ] `buildBill(tableId)`: throws `UNKNOWN_TABLE` for an unknown table; with no open visit returns an empty bill; otherwise reads `getOrdersByVisit(visitId)` (read only; never writes to Ordering), drops Cancelled orders, keeps placement order, and uses each line's stored `price_cents_each` (never the current menu price)
+- [ ] Each order `subtotal_cents` is the sum of its lines; `combined_total_cents` is the sum of the included orders, computed at read time and never stored
+- [ ] `close_available` is true only when the visit has at least one order (Cancelled orders count here, so a visit where everything was cancelled can still be closed) and none is Pending or Preparing; `blocking_orders` lists the Pending and Preparing order numbers (empty when closing is available)
+- [ ] `closeTable(tableId)`: throws `UNKNOWN_TABLE`, `TABLE_ALREADY_CLOSED`, `TABLE_EMPTY` or `CLOSE_BLOCKED` (with `blocking_orders`) as the choices above set out; on success calls `closeCurrentVisit` and returns `{ closed: true, archived_visit_id }`
+- [ ] The check and the close run in one transaction so a status change cannot slip between them
 
 **Step 6** — Test the bill and close rules (5–8 tests per function)
-- [x] `src/server/__tests__/billing.test.ts`
-- [x] Bill lists orders in placement order with line and order subtotals and one combined total
-- [x] Cancelled orders are left out of `orders[]`, subtotals and the combined total
-- [x] Prices come from the stored order line: change the menu price after ordering and the bill is unchanged
-- [x] `close_available` false with a Pending order, false with a Preparing order (both listed in `blocking_orders`), true when all are Completed or Cancelled with at least one included order
-- [x] A visit whose only orders are Cancelled still counts as having orders: the bill is empty (total $0.00) and `close_available` is true, so the table can always be closed (checked here with its own test)
-- [x] `closeTable` refusals: `CLOSE_BLOCKED` with the open order numbers, `TABLE_EMPTY`, `TABLE_ALREADY_CLOSED`, `UNKNOWN_TABLE`
-- [x] `closeTable` success archives the visit and returns its id
-- [x] Run vitest scoped; confirm green
+- [ ] `src/server/__tests__/billing.test.ts`
+- [ ] Bill lists orders in placement order with line and order subtotals and one combined total
+- [ ] Cancelled orders are left out of `orders[]`, subtotals and the combined total
+- [ ] Prices come from the stored order line: change the menu price after ordering and the bill is unchanged
+- [ ] `close_available` false with a Pending order, false with a Preparing order (both listed in `blocking_orders`), true when all are Completed or Cancelled with at least one included order
+- [ ] A visit whose only orders are Cancelled still counts as having orders: the bill is empty (total $0.00) and `close_available` is true, so the table can always be closed (checked here with its own test)
+- [ ] `closeTable` refusals: `CLOSE_BLOCKED` with the open order numbers, `TABLE_EMPTY`, `TABLE_ALREADY_CLOSED`, `UNKNOWN_TABLE`
+- [ ] `closeTable` success archives the visit and returns its id
+- [ ] Run vitest scoped; confirm green
 
 **Step 7** — API / endpoint [FR3.1–FR3.6, BR3.2, BR3.3] — `src/server/routes/billing.ts`, `src/server/index.ts`, `src/server/routes/orders.ts`
-- [x] `GET /api/tables/:id/bill` returns the bill; `UNKNOWN_TABLE` answers 404 in the contract's error envelope; a non-numeric id answers 404 the same way
-- [x] `POST /api/tables/:id/close` returns 200 `{ closed: true, archived_visit_id }`; `CLOSE_BLOCKED` and `TABLE_EMPTY` answer 422 (`details.blocking_orders` on the first), `TABLE_ALREADY_CLOSED` answers 409, `UNKNOWN_TABLE` answers 404; anything unexpected answers 500 `INTERNAL_ERROR` and is logged
-- [x] On success publish `TABLE_CLOSED` `{ table_id, archived_visit_id }` to the `staff` channel and the `table:<tableId>` channel
-- [x] Register the router in `src/server/index.ts` under `/api`
-- [x] Rewrite the `TODO(U4)` comment in `src/server/routes/orders.ts` to say a closed table starts a new visit on its next order (no behaviour change)
+- [ ] `GET /api/tables/:id/bill` returns the bill; `UNKNOWN_TABLE` answers 404 in the contract's error envelope; a non-numeric id answers 404 the same way
+- [ ] `POST /api/tables/:id/close` returns 200 `{ closed: true, archived_visit_id }`; `CLOSE_BLOCKED` and `TABLE_EMPTY` answer 422 (`details.blocking_orders` on the first), `TABLE_ALREADY_CLOSED` answers 409, `UNKNOWN_TABLE` answers 404; anything unexpected answers 500 `INTERNAL_ERROR` and is logged
+- [ ] On success publish `TABLE_CLOSED` `{ table_id, archived_visit_id }` to the `staff` channel and the `table:<tableId>` channel
+- [ ] Register the router in `src/server/index.ts` under `/api`
+- [ ] Rewrite the `TODO(U4)` comment in `src/server/routes/orders.ts` to say a closed table starts a new visit on its next order (no behaviour change)
 
 **Step 8** — Test the endpoints (5–8 tests)
-- [x] `src/server/__tests__/billing-api.test.ts` (supertest against `app`, in-memory database)
-- [x] `GET /bill` returns the contract's shape for a table with two orders
-- [x] `GET /bill` for an unknown table is 404 `UNKNOWN_TABLE`; for an unused table it is 200 with an empty bill and `close_available: false`
-- [x] `POST /close` is 422 `CLOSE_BLOCKED` while an order is Pending, then 200 once it is Completed
-- [x] `POST /close` on a table with no orders is 422 `TABLE_EMPTY`; closing twice is 409 `TABLE_ALREADY_CLOSED`
-- [x] A successful close publishes `TABLE_CLOSED` to both channels (read from the SSE ring buffer through a subscribed test response)
-- [x] regression-style check: placing an order after a close opens a new visit and the new bill does not include the old orders
-- [x] Run vitest scoped; confirm green
+- [ ] `src/server/__tests__/billing-api.test.ts` (supertest against `app`, in-memory database)
+- [ ] `GET /bill` returns the contract's shape for a table with two orders
+- [ ] `GET /bill` for an unknown table is 404 `UNKNOWN_TABLE`; for an unused table it is 200 with an empty bill and `close_available: false`
+- [ ] `POST /close` is 422 `CLOSE_BLOCKED` while an order is Pending, then 200 once it is Completed
+- [ ] `POST /close` on a table with no orders is 422 `TABLE_EMPTY`; closing twice is 409 `TABLE_ALREADY_CLOSED`
+- [ ] A successful close publishes `TABLE_CLOSED` to both channels (read from the SSE ring buffer through a subscribed test response)
+- [ ] regression-style check: placing an order after a close opens a new visit and the new bill does not include the old orders
+- [ ] Run vitest scoped; confirm green
 
 **Step 9** — Frontend behaviour: shared modal [NFR6] — `src/client/components/ConfirmModal.tsx`
-- [x] Add `Escape` to close (calls `onCancel`), move focus to the first button when it opens, keep Tab inside it, and give focus back to the element that opened it when it closes
-- [x] Keep every existing prop, test id and behaviour
+- [ ] Add `Escape` to close (calls `onCancel`), move focus to the first button when it opens, keep Tab inside it, and give focus back to the element that opened it when it closes
+- [ ] Keep every existing prop, test id and behaviour
 
 **Step 10** — Test the modal change (4–5 tests)
-- [x] Extend `src/client/components/__tests__/ConfirmModal.test.tsx` (new file if none exists)
-- [x] `Escape` calls `onCancel`; focus starts inside the modal; Tab from the last button wraps to the first; closed modal renders nothing; existing confirm and cancel clicks still work
-- [x] Run vitest scoped; confirm green
+- [ ] Extend `src/client/components/__tests__/ConfirmModal.test.tsx` (new file if none exists)
+- [ ] `Escape` calls `onCancel`; focus starts inside the modal; Tab from the last button wraps to the first; closed modal renders nothing; existing confirm and cancel clicks still work
+- [ ] Run vitest scoped; confirm green
 
 **Step 11** — Frontend behaviour: `useBill` hook [US7.1, FR3.1, FR3.6] — `src/client/hooks/useBill.ts`
-- [x] Fetches `GET /api/tables/:id/bill` on mount; returns `{ bill, loading, error, reload }`
-- [x] Reads `useStaffSSE` events; on `ORDER_STATUS_CHANGED` or `ORDER_PLACED` for this table fetches the bill again; ignores other tables' events and events it has already handled (by `seq`)
-- [x] On `TABLE_CLOSED` for this table returns `closed: true` so the screen can leave
-- [x] A failed fetch sets `error` and keeps the last good bill
+- [ ] Fetches `GET /api/tables/:id/bill` on mount; returns `{ bill, loading, error, reload }`
+- [ ] Reads `useStaffSSE` events; on `ORDER_STATUS_CHANGED` or `ORDER_PLACED` for this table fetches the bill again; ignores other tables' events and events it has already handled (by `seq`)
+- [ ] On `TABLE_CLOSED` for this table returns `closed: true` so the screen can leave
+- [ ] A failed fetch sets `error` and keeps the last good bill
 
 **Step 11a** — Test `useBill` (5–8 tests)
-- [x] `src/client/hooks/__tests__/useBill.test.ts`
-- [x] Loads the bill on mount; `loading` true then false
-- [x] Status-change event for this table re-fetches; for another table does not
-- [x] `TABLE_CLOSED` for this table sets `closed`
-- [x] Fetch failure sets `error` and `reload` retries
-- [x] Run vitest scoped; confirm green
+- [ ] `src/client/hooks/__tests__/useBill.test.ts`
+- [ ] Loads the bill on mount; `loading` true then false
+- [ ] Status-change event for this table re-fetches; for another table does not
+- [ ] `TABLE_CLOSED` for this table sets `closed`
+- [ ] Fetch failure sets `error` and `reload` retries
+- [ ] Run vitest scoped; confirm green
 
 **Step 12** — Frontend behaviour: bill parts [US7.1, US7.2, FR3.1–FR3.4, NFR5, NFR6] — `src/client/components/staff/`
-- [x] `BillOrderCard.tsx`: order number `#N`, status pill with icon and word, placed time, line rows (emoji or name, `× quantity`, `$X.XX each`, line subtotal) and the order subtotal; `data-testid="bill-order-<n>"`
-- [x] `BillTotal.tsx`: "Combined total" with `$X.XX`; `data-testid="bill-combined-total"`
-- [x] `CloseTableSection.tsx`: **Close table** button (`disabled`, not `aria-disabled`, when close is not available) and the note: "One or more orders still open: #N, #M" or "This table has no orders to close."; `data-testid="btn-close-table"` and `data-testid="open-orders-note"`
-- [x] Money formatting `$X.XX` from cents in one shared helper next to the bill parts
-- [x] Visible 2 px accent focus ring on the Back link and the Close table button; no animation on bill rows
+- [ ] `BillOrderCard.tsx`: order number `#N`, status pill with icon and word, placed time, line rows (emoji or name, `× quantity`, `$X.XX each`, line subtotal) and the order subtotal; `data-testid="bill-order-<n>"`
+- [ ] `BillTotal.tsx`: "Combined total" with `$X.XX`; `data-testid="bill-combined-total"`
+- [ ] `CloseTableSection.tsx`: **Close table** button (`disabled`, not `aria-disabled`, when close is not available) and the note: "One or more orders still open: #N, #M" or "This table has no orders to close."; `data-testid="btn-close-table"` and `data-testid="open-orders-note"`
+- [ ] Money formatting `$X.XX` from cents in one shared helper next to the bill parts
+- [ ] Visible 2 px accent focus ring on the Back link and the Close table button; no animation on bill rows
 
 **Step 13** — Test the bill parts (5–8 tests per component)
-- [x] `src/client/components/staff/__tests__/BillOrderCard.test.tsx`, `BillTotal.test.tsx`, `CloseTableSection.test.tsx`
-- [x] Order card shows number, status pill (icon + word), lines, subtotal
-- [x] Money formats from cents as `$10.50`, `$0.00` and `$35.00`
-- [x] Close button disabled with the open-orders note listing `#N, #M`; disabled with the "no orders" note; enabled with no blocking note
-- [x] Run vitest scoped; confirm green
+- [ ] `src/client/components/staff/__tests__/BillOrderCard.test.tsx`, `BillTotal.test.tsx`, `CloseTableSection.test.tsx`
+- [ ] Order card shows number, status pill (icon + word), lines, subtotal
+- [ ] Money formats from cents as `$10.50`, `$0.00` and `$35.00`
+- [ ] Close button disabled with the open-orders note listing `#N, #M`; disabled with the "no orders" note; enabled with no blocking note
+- [ ] Run vitest scoped; confirm green
 
 **Step 14** — Frontend behaviour: `TableBillScreen` and routing [US7.1, US7.2, FR3.1–FR3.6] — `src/client/screens/staff/TableBillScreen.tsx`, `src/client/views/StaffView.tsx`
-- [x] Header "Table N — Bill" and **← Board** link to `/staff`; the order list, the combined total and the close section from Step 12
-- [x] Loading shimmer for 2–3 order rows; fetch error "We cannot load the bill right now." with **Retry**; no orders shows an empty bill with Close table disabled
-- [x] Tapping **Close table** opens the confirmation "Close Table N?" with "Combined total: $X.XX" and buttons **Close table** and **Cancel**; confirming sends `POST /api/tables/:id/close`
-- [x] On success go to `/staff`; on `CLOSE_BLOCKED` show "Close table is not available until every order is completed or cancelled." and re-enable the button; on `TABLE_EMPTY` show "This table has no orders to close."; on `TABLE_ALREADY_CLOSED` go to `/staff`; any other failure shows a retryable error
-- [x] A `TABLE_CLOSED` event for this table from `useBill` goes to `/staff` at once
-- [x] The Close table button is disabled while the close request is in flight
-- [x] Replace the `TableBillPlaceholder` route in `StaffView.tsx` with `TableBillScreen`
-- [x] Test ids: `table-bill-screen`, `bill-back-link`, `bill-loading`, `bill-error`, `bill-retry`, `close-error-banner`
+- [ ] Header "Table N — Bill" and **← Board** link to `/staff`; the order list, the combined total and the close section from Step 12
+- [ ] Loading shimmer for 2–3 order rows; fetch error "We cannot load the bill right now." with **Retry**; no orders shows an empty bill with Close table disabled
+- [ ] Tapping **Close table** opens the confirmation "Close Table N?" with "Combined total: $X.XX" and buttons **Close table** and **Cancel**; confirming sends `POST /api/tables/:id/close`
+- [ ] On success go to `/staff`; on `CLOSE_BLOCKED` show "Close table is not available until every order is completed or cancelled." and re-enable the button; on `TABLE_EMPTY` show "This table has no orders to close."; on `TABLE_ALREADY_CLOSED` go to `/staff`; any other failure shows a retryable error
+- [ ] A `TABLE_CLOSED` event for this table from `useBill` goes to `/staff` at once
+- [ ] The Close table button is disabled while the close request is in flight
+- [ ] Replace the `TableBillPlaceholder` route in `StaffView.tsx` with `TableBillScreen`
+- [ ] Test ids: `table-bill-screen`, `bill-back-link`, `bill-loading`, `bill-error`, `bill-retry`, `close-error-banner`
 
 **Step 15** — Test `TableBillScreen` (5–8 tests)
-- [x] `src/client/screens/staff/__tests__/TableBillScreen.test.tsx`
-- [x] Renders orders, subtotals and the combined total from a mocked bill
-- [x] Shows the loading and the fetch-error states; Retry fetches again
-- [x] Close table confirm flow sends the POST and navigates to `/staff`
-- [x] `CLOSE_BLOCKED` and `TABLE_EMPTY` responses show their banners and keep the screen
-- [x] `TABLE_ALREADY_CLOSED` navigates to `/staff`
-- [x] A live status event re-fetches the bill; a `TABLE_CLOSED` event navigates to `/staff`
-- [x] Run vitest scoped; confirm green
+- [ ] `src/client/screens/staff/__tests__/TableBillScreen.test.tsx`
+- [ ] Renders orders, subtotals and the combined total from a mocked bill
+- [ ] Shows the loading and the fetch-error states; Retry fetches again
+- [ ] Close table confirm flow sends the POST and navigates to `/staff`
+- [ ] `CLOSE_BLOCKED` and `TABLE_EMPTY` responses show their banners and keep the screen
+- [ ] `TABLE_ALREADY_CLOSED` navigates to `/staff`
+- [ ] A live status event re-fetches the bill; a `TABLE_CLOSED` event navigates to `/staff`
+- [ ] Run vitest scoped; confirm green
 
 **Step 16** — Playwright E2E tests [US7.1, US7.2, FR3.1–FR3.6] — `e2e/u4-bill-and-close/bill-and-close.spec.ts`
-- [x] Each flow places its own orders through the API on tables 7 to 10
-- [x] Flow 1: the bill lists every order with items, quantities, prices, subtotals and the combined total; a Cancelled order is not shown
-- [x] Flow 2: Close table is disabled with a Pending order and the note lists it; completing the order on the board makes the bill enable Close table within 2 seconds without a reload
-- [x] Flow 3: a table with no orders shows the empty bill and a disabled Close table with the "no orders" message
-- [x] Flow 4: closing the table with a diner screen open for it shows the "This table was closed" takeover within 2 seconds, the bill leaves for `/staff`, and the table is gone from the Kitchen Board
-- [x] Flow 5: closing a table that was already closed from another session sends the staff member back to `/staff`; the Back link returns to the board from the bill
+- [ ] Each flow places its own orders through the API on tables 7 to 10
+- [ ] Flow 1: the bill lists every order with items, quantities, prices, subtotals and the combined total; a Cancelled order is not shown
+- [ ] Flow 2: Close table is disabled with a Pending order and the note lists it; completing the order on the board makes the bill enable Close table within 2 seconds without a reload
+- [ ] Flow 3: a table with no orders shows the empty bill and a disabled Close table with the "no orders" message
+- [ ] Flow 4: closing the table with a diner screen open for it shows the "This table was closed" takeover within 2 seconds, the bill leaves for `/staff`, and the table is gone from the Kitchen Board
+- [ ] Flow 5: closing a table that was already closed from another session sends the staff member back to `/staff`; the Back link returns to the board from the bill
 
 **Step 17** — Playwright mockup-match spec — `e2e/u4-bill-and-close/mockup-match.spec.ts`
-- [x] Seed table 10 with two Completed orders (as in the S2 mockup) and open its bill
-- [x] Check the S2 mockup's headings, labels and words: "Table 10 — Bill", "← Board", "Combined total", "Subtotal", "Close table", status word "Completed", `each` prices, `$` totals
-- [x] Check the loading, empty ("This table has no orders to close.") and error ("We cannot load the bill right now.") states the mockup lists
-- [x] Save the mockup and app screenshots side by side in `test-results/mockup-match/u4-bill-and-close/`
-- [x] Parts that belong to other Units (the board's table card header link, the diner takeover content) are named in a spec comment as outside this Unit's comparison
+- [ ] Seed table 10 with two Completed orders (as in the S2 mockup) and open its bill
+- [ ] Check the S2 mockup's headings, labels and words: "Table 10 — Bill", "← Board", "Combined total", "Subtotal", "Close table", status word "Completed", `each` prices, `$` totals
+- [ ] Check the loading, empty ("This table has no orders to close.") and error ("We cannot load the bill right now.") states the mockup lists
+- [ ] Save the mockup and app screenshots side by side in `test-results/mockup-match/u4-bill-and-close/`
+- [ ] Parts that belong to other Units (the board's table card header link, the diner takeover content) are named in a spec comment as outside this Unit's comparison
 
 **Step 18** — Environment/build configuration
-- [x] No new dependencies. Confirm `npm run build` still succeeds and the server route is picked up by `tsx src/server/index.ts`
-- [x] Confirm every port and the database file in the new specs come from `E2E_PORT` and `DB_FILE`
+- [ ] No new dependencies. Confirm `npm run build` still succeeds and the server route is picked up by `tsx src/server/index.ts`
+- [ ] Confirm every port and the database file in the new specs come from `E2E_PORT` and `DB_FILE`
 
 **Step 19** — Documentation, `source-manifest.json` and `traceability.json`
-- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/code-summary.md` (files, decisions, tests, anything not run, deviations)
-- [x] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/source-manifest.json` listing every file created or changed
-- [x] Run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/traceability.json --write-upstream` and fill in OK targets
+- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/code-summary.md` (files, decisions, tests, anything not run, deviations)
+- [ ] Write `aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/source-manifest.json` listing every file created or changed
+- [ ] Run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/traceability.json --write-upstream` and fill in OK targets
 
 **Step 20** — Fix found by Build and Test (Loop-back 1): the Unit's traceability record covers its stories and requirements [US7.1, US7.2, FR3.1–FR3.5, NFR4]
-- [ ] What went wrong: `traceability.json` lists only BR1.1 to BR4.2, so Build and Test's cross-unit check finds FR3.1 to FR3.5 and NFR4 "not built" although the code and tests exist
-- [ ] Re-run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/traceability.json --write-upstream` and add a row with status `OK` for each of US7.1, US7.2, FR3.1, FR3.2, FR3.3, FR3.4, FR3.5 and NFR4 (NFR4 target: `src/server/repositories/billingRepo.ts`, whose bill has no tax or service line), each pointing at one existing implementation or test file; keep every BR row
-- [ ] Confirm `aidlc engine sensor-traceability --stage build-and-test` reports FR3.1 to FR3.5 and NFR4 as covered
-- [ ] Note in `code-summary.md` that the Unit's record now lists its stories and requirements. No application code changes in this step
+- [x] What went wrong: `traceability.json` lists only BR1.1 to BR4.2, so Build and Test's cross-unit check finds FR3.1 to FR3.5 and NFR4 "not built" although the code and tests exist
+- [x] Re-run `aidlc engine sensor-traceability --stage code-generation --output-path aidlc/spaces/default/intents/261105-table-order-app/construction/u4-bill-and-close/code-generation/traceability.json --write-upstream` and add a row with status `OK` for each of US7.1, US7.2, FR3.1, FR3.2, FR3.3, FR3.4, FR3.5 and NFR4 (NFR4 target: `src/server/repositories/billingRepo.ts`, whose bill has no tax or service line), each pointing at one existing implementation or test file; keep every BR row
+- [x] Confirm `aidlc engine sensor-traceability --stage build-and-test` reports FR3.1 to FR3.5 and NFR4 as covered
+- [x] Note in `code-summary.md` that the Unit's record now lists its stories and requirements. No application code changes in this step

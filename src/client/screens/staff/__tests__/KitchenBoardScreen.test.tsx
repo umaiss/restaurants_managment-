@@ -151,7 +151,28 @@ describe('KitchenBoardScreen', () => {
     expect(grid.contains(screen.getByTestId('table-section-2'))).toBe(true);
   });
 
-  it('a table with only Completed or Cancelled orders shows no card', async () => {
+  it('regression: a table with only completed orders stays on the board with its bill link until it is closed', async () => {
+    setupFetchMock({
+      tableOrders: {
+        6: [
+          makeOrder({ order_number: 30, table_id: 6, status: 'Completed', placed_at: '2026-01-01T12:00:00Z' }),
+          makeOrder({ order_number: 31, table_id: 6, status: 'Completed', placed_at: '2026-01-01T12:10:00Z' }),
+        ],
+      },
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('table-section-6')).toBeTruthy());
+
+    // The card is there, with the link to the bill and the finished orders as they are
+    expect(screen.getByText('Table 6 →').getAttribute('href')).toBe('/staff/tables/6');
+    expect(screen.getByTestId('order-card-30')).toHaveTextContent('Completed');
+    expect(screen.getByTestId('order-card-31')).toHaveTextContent('Completed');
+    expect(screen.getByTestId('table-ready-to-close-6')).toHaveTextContent('No open orders. Open the bill to close this table.');
+    // A board with a table on it is not empty
+    expect(screen.queryByTestId('board-empty')).toBeNull();
+  });
+
+  it('a table with only Completed and Cancelled orders shows both as they are, with the bill link', async () => {
     setupFetchMock({
       tableOrders: {
         6: [
@@ -161,8 +182,35 @@ describe('KitchenBoardScreen', () => {
       },
     });
     renderScreen();
+    await waitFor(() => expect(screen.getByTestId('table-section-6')).toBeTruthy());
+    expect(screen.getByTestId('order-card-30')).toHaveTextContent('Completed');
+    expect(screen.getByTestId('order-card-31')).toHaveTextContent('Cancelled');
+    expect(screen.getByText('Table 6 →')).toBeTruthy();
+    // Finished orders offer no action buttons
+    expect(screen.queryByTestId('btn-preparing-30')).toBeNull();
+    expect(screen.queryByTestId('btn-complete-30')).toBeNull();
+    expect(screen.queryByTestId('btn-cancel-31')).toBeNull();
+  });
+
+  it('a table with an open order shows no "ready to close" line', async () => {
+    setupFetchMock({
+      tableOrders: {
+        2: [
+          makeOrder({ order_number: 50, table_id: 2, status: 'Completed' }),
+          makeOrder({ order_number: 51, table_id: 2, status: 'Preparing' }),
+        ],
+      },
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('table-section-2')).toBeTruthy());
+    expect(screen.queryByTestId('table-ready-to-close-2')).toBeNull();
+  });
+
+  it('the empty state stays for a board with no table at all', async () => {
+    setupFetchMock({});
+    renderScreen();
     await waitFor(() => expect(screen.getByTestId('board-empty')).toBeTruthy());
-    expect(screen.queryByTestId('table-section-6')).toBeNull();
+    expect(screen.getByText(/No open orders right now\./)).toBeTruthy();
   });
 
   it('"Table N →" links rendered correctly', async () => {

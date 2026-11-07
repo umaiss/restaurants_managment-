@@ -17,7 +17,7 @@
     { "id": "US6.2", "status": "OK", "target": "src/client/hooks/useMenuAvailability.ts" },
     { "id": "US6.3", "status": "OK", "target": "src/client/components/staff/MenuAvailabilityPanel.tsx" },
     { "id": "FR2.1", "status": "OK", "target": "src/client/screens/staff/KitchenBoardScreen.tsx" },
-    { "id": "FR2.2", "status": "OK", "target": "src/client/components/staff/OrderCard.tsx" },
+    { "id": "FR2.2", "status": "OK", "target": "src/client/screens/staff/KitchenBoardScreen.tsx" },
     { "id": "FR2.3", "status": "OK", "target": "src/client/components/staff/OrderCard.tsx" },
     { "id": "FR2.4", "status": "OK", "target": "src/client/components/staff/NewHighlight.tsx" },
     { "id": "FR2.5", "status": "OK", "target": "src/client/hooks/useBoardOrders.ts" },

@@ -51,7 +51,7 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>(DEFAULT_CATEGORIES[0].id);
-  const { addItem, items: cartItems } = useCart(tableId);
+  const { addItem, items: cartItems, refreshPrices } = useCart(tableId);
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -64,6 +64,9 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { items: MenuItem[]; categories: MenuCategory[] };
       setItems(data.items);
+      // Keep the cart's copied prices in line with the menu just loaded.
+      // (An empty menu means "not ready", not "everything was removed", so it leaves the cart alone.)
+      if (data.items.length > 0) refreshPrices(data.items);
       if (data.categories && data.categories.length > 0) {
         setCategories(data.categories);
         setActiveCategory(data.categories[0].id);
@@ -73,7 +76,7 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshPrices]);
 
   useEffect(() => {
     fetchMenu();
@@ -146,12 +149,10 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
         {[1, 2, 3, 4].map((n) => (
           <div
             key={n}
+            className="skeleton"
             style={{
               height: '5rem',
               borderRadius: '0.75rem',
-              background: 'linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-muted, #2a2a3e) 50%, var(--bg-secondary) 75%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s infinite',
               marginBottom: '0.75rem',
             }}
           />
@@ -246,7 +247,8 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: isActive ? 600 : 400,
-                transition: 'all 150ms ease-out',
+                boxShadow: isActive ? 'var(--accent-glow)' : 'none',
+                transition: 'all 200ms ease-out',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -282,9 +284,10 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {(itemsByCategory[cat.id] ?? []).map((item) => (
+                {(itemsByCategory[cat.id] ?? []).map((item, index) => (
                   <MenuItemCard
                     key={item.id}
+                    index={index}
                     item={item}
                     cartQuantity={getCartQuantity(item.id)}
                     onAdd={() => addItem(item.id, item.name, item.price_cents)}
@@ -307,25 +310,28 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
 
 interface MenuItemCardProps {
   item: MenuItem;
+  index: number;
   cartQuantity: number;
   onAdd: () => void;
 }
 
-function MenuItemCard({ item, cartQuantity, onAdd }: MenuItemCardProps) {
+function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
   const soldOut = !item.available;
 
   return (
     <div
+      className="hover-lift stagger"
       style={{
+        '--i': index,
         display: 'flex',
         gap: '0.75rem',
         padding: '0.75rem',
         borderRadius: '0.75rem',
         background: 'var(--bg-secondary)',
+        border: '1px solid rgba(255,255,255,0.05)',
         boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
         opacity: soldOut ? 0.6 : 1,
-        transition: 'transform 150ms ease-out, box-shadow 150ms ease-out',
-      }}
+      } as React.CSSProperties}
     >
       {/* Item image */}
       {isImageAddress(item.image_url ?? item.image) ? (
@@ -461,6 +467,8 @@ function MenuItemCard({ item, cartQuantity, onAdd }: MenuItemCardProps) {
                 <>
                   {cartQuantity > 0 && (
                     <span
+                      key={cartQuantity}
+                      className="bump"
                       style={{
                         background: '#fff',
                         color: 'var(--accent, #6366f1)',

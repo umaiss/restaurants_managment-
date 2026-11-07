@@ -11,11 +11,10 @@ function BoardShimmer() {
       {[1, 2, 3].map((i) => (
         <div
           key={i}
+          className="skeleton"
           style={{
             height: '120px',
             borderRadius: '0.5rem',
-            background: 'rgba(255,255,255,0.05)',
-            animation: 'pulse 1.5s ease-in-out infinite',
           }}
         />
       ))}
@@ -27,6 +26,7 @@ function BoardEmptyState() {
   return (
     <div
       data-testid="board-empty"
+      className="pop-in"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -37,7 +37,7 @@ function BoardEmptyState() {
         color: 'var(--text-muted, #64748b)',
       }}
     >
-      <span style={{ fontSize: '2.5rem' }}>⚪</span>
+      <span className="float" style={{ fontSize: '2.5rem' }}>⚪</span>
       <p style={{ fontSize: '0.95rem', textAlign: 'center', maxWidth: '24rem', margin: 0 }}>
         No open orders right now. Orders will appear here within 2 seconds of placement.
       </p>
@@ -64,10 +64,11 @@ export default function KitchenBoardScreen() {
 
   const closePanel = useCallback(() => setPanelOpen(false), []);
 
-  // Collect tables with open orders (Pending or Preparing), sorted by table number
-  // Use ordersByTable directly as the single source of truth (SSE-driven)
+  // A table is on the board while its current visit has any order, whatever its status, and leaves it
+  // when the table is closed. (A table whose orders are all finished stays, so staff can open its bill.)
+  // Use ordersByTable directly as the single source of truth (SSE-driven).
   const activeTables = Array.from(ordersByTable.entries())
-    .filter(([, orders]) => orders.some((o) => o.status === 'Pending' || o.status === 'Preparing'))
+    .filter(([, orders]) => orders.length > 0)
     .sort(([a], [b]) => a - b);
 
   return (
@@ -76,6 +77,7 @@ export default function KitchenBoardScreen() {
       {showReconnectBanner && (
         <div
           data-testid="reconnect-banner"
+          className="fade-in"
           style={{
             padding: '0.5rem 1rem',
             marginBottom: '1rem',
@@ -102,7 +104,19 @@ export default function KitchenBoardScreen() {
       >
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Kitchen Board</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)' }}>Updated live</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span
+              aria-hidden="true"
+              className={connected ? 'live-dot' : undefined}
+              style={{
+                width: '0.45rem',
+                height: '0.45rem',
+                borderRadius: '50%',
+                background: connected ? '#22c55e' : '#ef4444',
+              }}
+            />
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)' }}>Updated live</span>
+          </span>
           <button
             onClick={() => setPanelOpen(true)}
             style={{
@@ -133,9 +147,10 @@ export default function KitchenBoardScreen() {
             alignItems: 'start',
           }}
         >
-          {activeTables.map(([tableId, orders]) => (
+          {activeTables.map(([tableId, orders], index) => (
             <TableSection
               key={tableId}
+              index={index}
               tableId={tableId}
               orders={orders}
             />
@@ -150,36 +165,39 @@ export default function KitchenBoardScreen() {
 }
 
 interface TableSectionProps {
+  index: number;
   tableId: number;
   orders: Order[];
 }
 
-function TableSection({ tableId, orders }: TableSectionProps) {
-  // A table gets a card only while it has an open order (Pending or Preparing).
+function TableSection({ index, tableId, orders }: TableSectionProps) {
   const hasOpenOrder = orders.some((o) => o.status === 'Pending' || o.status === 'Preparing');
 
-  if (!hasOpenOrder) return null;
-
-  // The card lists the table's orders newest first by placed_at; cancelled orders are not shown.
-  const visibleOrders = orders
-    .filter((o) => o.status !== 'Cancelled')
+  // The card lists the table's orders newest first by placed_at. While the table has an open order,
+  // cancelled orders are left off the card; once nothing is open, every order shows as it is.
+  const visibleOrders = [...orders]
+    .filter((o) => !hasOpenOrder || o.status !== 'Cancelled')
     .sort((a, b) => b.placed_at.localeCompare(a.placed_at) || b.order_number - a.order_number);
 
   return (
     <section
       data-testid={`table-section-${tableId}`}
+      className="stagger"
       style={{
+        '--i': index,
         background: 'var(--bg-secondary, #1e1e2e)',
         borderRadius: '0.75rem',
         padding: '0.875rem',
         border: '1px solid rgba(255,255,255,0.08)',
-      }}
+        boxShadow: 'var(--shadow-card)',
+      } as React.CSSProperties}
     >
       {/* Table card header */}
       <div style={{ marginBottom: '0.75rem' }}>
         <Link
           to={`/staff/tables/${tableId}`}
           aria-label={`Open bill for Table ${tableId}`}
+          className="table-link"
           style={{
             fontSize: '1rem',
             fontWeight: 700,
@@ -190,6 +208,14 @@ function TableSection({ tableId, orders }: TableSectionProps) {
           Table {tableId} →
         </Link>
       </div>
+      {!hasOpenOrder && (
+        <p
+          data-testid={`table-ready-to-close-${tableId}`}
+          style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary, #94a3b8)' }}
+        >
+          No open orders. Open the bill to close this table.
+        </p>
+      )}
       {visibleOrders.map((order) => (
         <OrderCard
           key={order.order_number}

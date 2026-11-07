@@ -22,6 +22,42 @@ async function addFirstMenuItem(page: Page) {
 }
 
 // ---------------------------------------------------------------------------
+// Flow 8 (FR3.6): a table closed while the diner's page was shut resets the device on return
+// Uses table 6 only (tables 1-4 belong to U3's specs, 7-10 to U4's).
+// ---------------------------------------------------------------------------
+
+test('Flow 8: a cart saved before the table was closed is gone when the page is opened again', async ({ page, request, baseURL }) => {
+  await goToTable(page, '6');
+  await addFirstMenuItem(page);
+  await expect(page.getByTestId('cart-badge')).toHaveText('1');
+
+  // The diner closes the tab (or goes offline); staff finish an order and close the table meanwhile.
+  await page.goto('about:blank');
+  const placed = await request.post(`${baseURL}/api/tables/6/orders`, {
+    data: { placement_key: `f8-${Date.now()}`, lines: [{ menu_item_id: 'i-10', quantity: 1 }] },
+  });
+  expect(placed.status()).toBe(201);
+  const orderNumber = ((await placed.json()) as { order_number: number }).order_number;
+  for (const to of ['Preparing', 'Completed']) {
+    expect((await request.post(`${baseURL}/api/orders/${orderNumber}/transition`, { data: { to, by: 'staff' } })).ok()).toBe(true);
+  }
+  expect((await request.post(`${baseURL}/api/tables/6/close`, { data: {} })).status()).toBe(200);
+
+  // The next party opens the page: closed message, empty cart, nothing to place.
+  await page.goto('/table/6');
+  await expect(page.getByTestId('table-closed-takeover')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByTestId('table-closed-takeover')).toContainText('This table was closed');
+  const savedCart = await page.evaluate(() => localStorage.getItem('cart:table:6'));
+  expect(JSON.parse(savedCart ?? '[]')).toHaveLength(0);
+
+  // Reloading is quiet: the device now knows about this close, and the cart starts empty.
+  await page.reload();
+  await expect(page.getByTestId('tab-bar')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByTestId('table-closed-takeover')).toHaveCount(0);
+  await expect(page.getByTestId('cart-badge')).not.toBeVisible();
+});
+
+// ---------------------------------------------------------------------------
 // Flow 1: Browse menu → add item → cart badge updates
 // ---------------------------------------------------------------------------
 

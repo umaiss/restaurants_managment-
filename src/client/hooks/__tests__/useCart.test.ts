@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useCart } from '../useCart.js';
+import { useCart, readClosedMarker, writeClosedMarker, hasStoredCart } from '../useCart.js';
 
 const TABLE_ID = 'table-42';
 const ITEM_A = { menuItemId: 'i-01', name: 'Burger', priceCents: 1050 };
@@ -146,5 +146,102 @@ describe('useCart', () => {
     expect(result.current.items).toHaveLength(1);
     expect(result.current.items[0].quantity).toBe(2);
     expect(result.current.totalCents).toBe(2100);
+  });
+
+  describe('removeLines', () => {
+    it('removes only the named lines from the cart as it is now, and keeps a line added since', () => {
+      localStorage.setItem(
+        `cart:table:${TABLE_ID}`,
+        JSON.stringify([
+          { menuItemId: 'i-01', name: 'Burger', priceCents: 1050, quantity: 2 },
+          { menuItemId: 'i-02', name: 'Fries', priceCents: 450, quantity: 1 },
+        ])
+      );
+      const { result } = renderHook(() => useCart(TABLE_ID));
+      act(() => result.current.removeLines(['i-01']));
+      expect(result.current.items.map((i) => i.menuItemId)).toEqual(['i-02']);
+      expect(JSON.parse(localStorage.getItem(`cart:table:${TABLE_ID}`)!)).toHaveLength(1);
+    });
+
+    it('an emptied cart starts over with no placement key; an unknown id changes nothing', () => {
+      localStorage.setItem(`cart:table:${TABLE_ID}`, JSON.stringify([{ menuItemId: 'i-01', name: 'Burger', priceCents: 1050, quantity: 1 }]));
+      sessionStorage.setItem(`cart-placement-key:${TABLE_ID}`, 'pk-old');
+      const { result } = renderHook(() => useCart(TABLE_ID));
+      act(() => result.current.removeLines(['i-99']));
+      expect(result.current.items).toHaveLength(1);
+      expect(sessionStorage.getItem(`cart-placement-key:${TABLE_ID}`)).toBe('pk-old');
+      act(() => result.current.removeLines(['i-01']));
+      expect(result.current.items).toHaveLength(0);
+      expect(sessionStorage.getItem(`cart-placement-key:${TABLE_ID}`)).toBeNull();
+    });
+  });
+
+  describe('refreshPrices', () => {
+    function seed() {
+      localStorage.setItem(
+        `cart:table:${TABLE_ID}`,
+        JSON.stringify([
+          { menuItemId: 'i-01', name: 'Burger', priceCents: 1050, quantity: 2 },
+          { menuItemId: 'i-02', name: 'Fries', priceCents: 450, quantity: 1 },
+        ])
+      );
+    }
+
+    it('updates a changed price, recomputes the total and saves it', () => {
+      seed();
+      const { result } = renderHook(() => useCart(TABLE_ID));
+      let outcome: ReturnType<typeof result.current.refreshPrices> | undefined;
+      act(() => {
+        outcome = result.current.refreshPrices([
+          { id: 'i-01', price_cents: 1100 },
+          { id: 'i-02', price_cents: 450 },
+        ]);
+      });
+      expect(outcome).toEqual({ removed: [], repriced: true });
+      expect(result.current.totalCents).toBe(2 * 1100 + 450);
+      expect(JSON.parse(localStorage.getItem(`cart:table:${TABLE_ID}`)!)[0].priceCents).toBe(1100);
+    });
+
+    it('drops a line whose item is no longer on the menu and reports its name', () => {
+      seed();
+      const { result } = renderHook(() => useCart(TABLE_ID));
+      let outcome: ReturnType<typeof result.current.refreshPrices> | undefined;
+      act(() => {
+        outcome = result.current.refreshPrices([{ id: 'i-01', price_cents: 1050 }]);
+      });
+      expect(outcome).toEqual({ removed: ['Fries'], repriced: false });
+      expect(result.current.items.map((i) => i.menuItemId)).toEqual(['i-01']);
+    });
+
+    it('changes nothing, and writes nothing, when the menu matches the cart', () => {
+      seed();
+      const before = localStorage.getItem(`cart:table:${TABLE_ID}`);
+      const { result } = renderHook(() => useCart(TABLE_ID));
+      act(() => {
+        result.current.refreshPrices([
+          { id: 'i-01', price_cents: 1050 },
+          { id: 'i-02', price_cents: 450 },
+        ]);
+      });
+      expect(localStorage.getItem(`cart:table:${TABLE_ID}`)).toBe(before);
+    });
+  });
+});
+
+describe('closed-table marker helpers', () => {
+  it('reads undefined before anything was recorded, then returns what was written, null included', () => {
+    expect(readClosedMarker('5')).toBeUndefined();
+    writeClosedMarker('5', 'visit-1');
+    expect(readClosedMarker('5')).toBe('visit-1');
+    writeClosedMarker('5', null);
+    expect(readClosedMarker('5')).toBeNull();
+  });
+
+  it('hasStoredCart is true only for a non-empty saved cart', () => {
+    expect(hasStoredCart('5')).toBe(false);
+    localStorage.setItem('cart:table:5', '[]');
+    expect(hasStoredCart('5')).toBe(false);
+    localStorage.setItem('cart:table:5', JSON.stringify([{ menuItemId: 'i-01', name: 'x', priceCents: 1, quantity: 1 }]));
+    expect(hasStoredCart('5')).toBe(true);
   });
 });

@@ -4,58 +4,69 @@
 
 - [desc] Initial description: "Build the Table Order web app based on ideas/table-order/IDEA.md"
 - [scope] Workflow-selected scope: `dpl-workshop`
-- Run on the merged app in the main folder, 2026-11-06, after Bolt 4 (U4 `u4-bill-and-close`) was merged. Port 3000 was stopped before the build. [team: project.md > Mandated]
+- Second run, on the merged app in the main folder, 2026-11-07, after Loop-back 1 replayed Code Generation for all four Units. Port 3000 was stopped before the build. [team: project.md > Mandated]
+- The first run (2026-11-06) failed: see "First run" below and the Loop-Back Log.
 
 ## Build
 
 | Command | Result |
 |---|---|
-| `npm run build` | Success: 57 modules, `dist/index.html`, CSS 1.41 kB, JS 221.32 kB |
-| `npx tsc --noEmit -p .` | Success after one fix in this stage: 0 errors (see Fixed in this stage) |
+| `npm run build` | Success: 57 modules, `dist/index.html`, CSS 6.07 kB, JS 225.71 kB (after the 2026-11-07 UI refresh below) |
+| `npx tsc --noEmit -p .` | Success: 0 errors |
 
 ## Unit, component and server tests
 
-Command: `npm test` (vitest with coverage). Environment: Node and jsdom, not a real browser.
+Command: `npm test` (vitest with coverage), exit code 0. Environment: Node and jsdom, not a real browser.
 
 | Total | Passed | Failed | Skipped | Test files |
 |---|---|---|---|---|
-| 228 | 228 | 0 | 0 | 28 |
+| 322 | 322 | 0 | 0 | 31 |
 
-Coverage (full suite, the one project-wide run): 87.36% of lines, 85.46% of branches, 84.87% of functions. No coverage floor applies in the `dpl-workshop` scope, and none was set or lowered.
+Coverage (full suite, the one project-wide run): 92.9% of lines, 86.25% of branches, 84.55% of functions. No coverage floor applies in the `dpl-workshop` scope, and none was set or lowered.
 
-Each Unit's own scoped command was not run again one by one: all 228 tests above include them, and a command that is a subset of an identical full-suite run is run once. [stage rule: deduplicate]
+Each Unit's own scoped command was not run again one by one: all 322 tests above include them, and a command that is a subset of an identical full-suite run is run once. [stage rule: deduplicate]
 
 ## Browser tests (real browser engines)
 
 | Browser | Command | Total | Passed | Failed |
 |---|---|---|---|---|
-| Chromium (Playwright) | `npx playwright test` | 46 | 44 | 2 |
-| Google Chrome (installed) | `npx playwright test --config playwright.cross-browser.config.ts --project=chrome` | 24 | 22 | 2 |
-| WebKit (Safari's engine) | `npx playwright test --config playwright.cross-browser.config.ts --project=webkit` | 24 | 22 | 2 |
+| Chromium (Playwright) | `npm run test:e2e` | 50 | 50 | 0 |
+| Google Chrome (installed) | `npx playwright test --config playwright.cross-browser.config.ts --project=chrome` | 29 | 29 | 0 |
+| WebKit (Safari's engine) | `npx playwright test --config playwright.cross-browser.config.ts --project=webkit` | 29 | 29 | 0 |
 
-The Chrome and WebKit runs leave out the six mockup-match specs; the Chromium run includes them and saved the screenshot pairs in `test-results/mockup-match/<unit>/`. Firefox is not installed or tested. [team: project.md > Testing Posture]
+The Chrome and WebKit runs leave out the six mockup-match specs; the Chromium run includes them and saved the screenshot pairs in `test-results/mockup-match/<unit>/`. The Chrome and WebKit runs are made one after the other, never together, because they share one database. Firefox is not installed or tested. [team: project.md > Testing Posture]
 
-### Failures (the same two tests in every browser)
-
-1. `e2e/build-and-test/board-bill-link.spec.ts` — "regression: a table whose orders are all completed stays on the board until it is closed, so staff can open its bill". Expected `table-section-4` on the Kitchen Board after its only order was completed; the element does not exist.
-2. `e2e/build-and-test/keyboard-journey.spec.ts` — "a diner orders, the kitchen prepares and completes it, and staff close the table, all by keyboard". Everything up to "Mark completed" works by keyboard in all three browsers (WebKit with Option+Tab); then the table's card, and with it the link to the bill, is gone, so the table cannot be closed.
-
-Failure detail: `src/client/screens/staff/KitchenBoardScreen.tsx` lines 68–71 keep a table on the board only while it has a Pending or Preparing order. The only link to a table's bill is that card's "Table N →" header. When the last open order is completed, the table leaves the board, so FR3.3 (close once every order is completed) can be reached only by typing `/staff/tables/<n>` by hand. FR3.1, FR3.3 and FR3.5 cannot be done from the screens.
+The keyboard-only journey (NFR6) and the board-to-bill regression pass in all three browsers.
 
 ### Timing (real browser, Chromium)
 
 `e2e/build-and-test/live-update-timing.spec.ts`, 10-order burst, measured from the server's answer to the change on screen:
 
-- NFR1, order on the Kitchen Board: 7, 7, 4, 4, 3, 2, 4, 6, 3, 2 ms; p95 7 ms (limit 2000 ms).
-- NFR2, status change in My orders: 4, 56, 55, 55, 55, 57, 55, 55, 57, 4 ms; p95 57 ms (limit 2000 ms).
+- NFR1, order on the Kitchen Board: 8, 10, 4, 3, 3, 4, 4, 4, 4, 3 ms; p95 10 ms (limit 2000 ms).
+- NFR2, status change in My orders: 58, 55, 56, 3, 55, 55, 56, 57, 56, 55 ms; p95 58 ms (limit 2000 ms).
 
-## Fixed in this stage (test configuration)
+## Mockup match
 
-- The type check reported 142 errors, all in test files: TypeScript did not know the jest-dom matchers (`toBeInTheDocument` and others) that `src/test-setup.ts` adds at run time, and two filters in `src/server/__tests__/sse.test.ts` were typed too narrowly. Fix: `src/test-types.d.ts` (types only) and two parameter types in `sse.test.ts`. The 4 SSE tests and the full suite still pass; no source code or threshold changed.
+All 23 screenshots in `test-results/mockup-match/` were looked at after this run. The Kitchen Board (pending, preparing, completed, empty, cancel confirm, reconnecting), the bill (completed, open order, empty, error, loading) and the diner screens match their refined mockups. One difference was found in U3's Menu availability panel (plain "Available" text instead of the mockup's switch with "On" / "Sold out", and no item picture); it was fixed in `src/client/components/staff/MenuAvailabilityPanel.tsx`, with the regression test "regression: each row shows the item picture and "On" or "Sold out" beside its switch, as the mockup does" (checked to fail with the old label), and every check above was run again afterwards.
+
+## UI refresh (2026-11-07, at the person's request)
+
+After the sign-off the person asked for a more modern look with animations. Changed: `src/client/index.css` (shared motion, button press and hover, focus rings, amber gradient on main buttons, phone-width column for the diner screens), and small class and animation additions in the diner screens, tab bar, Kitchen Board, order card, bill, confirm dialog, availability panel and closed-table screen. No wording, test id or behaviour changed. All motion stops when the device asks for reduced motion.
+
+Checks run again after the change: type check 0 errors; 322 of 322 unit tests; Chromium 50 of 50, Chrome 29 of 29, WebKit 29 of 29; timing p95 10 ms and 58 ms. New checks in `e2e/build-and-test/motion.spec.ts` (3 tests): menu cards cascade in, the cart badge bumps and the tab indicator slides, the diner column is centred with its tab bar on a wide screen, and nothing animates longer than a blink under reduced motion. The mockup-match specs now ask for reduced motion so their screenshots show finished screens; in the diner spec the dialog picture also waits for the dialog to finish appearing (it had been captured before the dialog showed).
+
+## Fixed in this stage
+
+- Test configuration: the type check had reported 142 errors, all in test files (jest-dom matcher types and two narrow filter types in `sse.test.ts`). Fix: `src/test-types.d.ts` and two parameter types. No source code or threshold changed.
+- Mockup match: the Menu availability panel difference above.
 
 ## Other findings
 
-- Cross-unit traceability: FR3.1, FR3.2, FR3.3, FR3.4, FR3.5 and NFR4 show as not built because U4's `code-generation/traceability.json` lists only its business rules (BR1.1 to BR4.2) and has no rows for the stories US7.1 and US7.2 that the Unit builds. The code exists and is tested (see `cross-unit-traceability.md`); the record is incomplete.
+- Cross-unit traceability now passes: 31 of 31 IDs covered (see `cross-unit-traceability.md`). The six that were uncovered in the first run have rows in U4's `traceability.json`.
+
+## First run (2026-11-06) — failed, kept for the record
+
+Chromium 44 of 46, Chrome 22 of 24, WebKit 22 of 24, unit suite 228 of 228. The same two tests failed in every browser: `board-bill-link.spec.ts` and `keyboard-journey.spec.ts`. Cause: `KitchenBoardScreen.tsx` kept a table on the board only while it had a Pending or Preparing order, so after the last order was completed there was no link to the table's bill and the table could not be closed from the screens. U4's `traceability.json` also lacked rows for US7.1, US7.2, FR3.1 to FR3.5 and NFR4. Both were fixed through Loop-back 1.
 
 ## Loop-Back Log
 

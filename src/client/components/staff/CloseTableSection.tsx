@@ -25,7 +25,7 @@ export default function CloseTableSection({ closeAvailable, blockingOrders, empt
       <button
         type="button"
         data-testid="btn-close-table"
-        className="bill-focusable"
+        className="bill-focusable btn-primary"
         disabled={disabled}
         onClick={onClose}
         style={{

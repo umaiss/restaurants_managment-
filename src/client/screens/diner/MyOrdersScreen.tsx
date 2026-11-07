@@ -20,7 +20,6 @@ interface Order {
 
 interface MyOrdersScreenProps {
   tableId: string;
-  visitId: string;
   lastSSEEvent: SSEEvent | null;
 }
 
@@ -47,7 +46,7 @@ function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEvent }: MyOrdersScreenProps) {
+export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreenProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +54,8 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
   const [confirmCancelOrderNum, setConfirmCancelOrderNum] = useState<number | null>(null);
   const [cancellingOrderNum, setCancellingOrderNum] = useState<number | null>(null);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
+  // A cancel that never reached the server: shown in that order's own card.
+  const [cancelErrors, setCancelErrors] = useState<Record<number, string>>({});
 
   const fetchOrders = useCallback(async () => {
     setError(null);
@@ -86,6 +87,10 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
     setCancellingOrderNum(orderNumber);
     setConfirmCancelOrderNum(null);
     setCancelNotice(null);
+    setCancelErrors((prev) => {
+      const { [orderNumber]: _gone, ...rest } = prev;
+      return rest;
+    });
     try {
       const res = await fetch(`/api/orders/${orderNumber}/transition`, {
         method: 'POST',
@@ -101,8 +106,13 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
       // Re-fetch orders to show updated status
       await fetchOrders();
     } catch {
-      // Silently re-fetch — the order may already be cancelled
-      await fetchOrders();
+      // The request never reached the server (or its answer never came back): say so in the order's
+      // card. The orders are not re-fetched here, because the connection is the likely problem and a
+      // failed re-fetch would replace the whole list with a load error and hide this message.
+      setCancelErrors((prev) => ({
+        ...prev,
+        [orderNumber]: "We couldn't cancel this order. Check your connection and try again.",
+      }));
     } finally {
       setCancellingOrderNum(null);
     }
@@ -114,13 +124,10 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
         {[1, 2].map((n) => (
           <div
             key={n}
+            className="skeleton"
             style={{
               height: '5rem',
               borderRadius: '0.75rem',
-              background:
-                'linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-muted, #2a2a3e) 50%, var(--bg-secondary) 75%)',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s infinite',
               marginBottom: '0.75rem',
             }}
           />
@@ -152,13 +159,14 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
     return (
       <div
         data-testid="orders-empty"
+        className="pop-in"
         style={{
           textAlign: 'center',
           color: 'var(--text-secondary)',
           padding: '3rem 1rem',
         }}
       >
-        <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>
+        <span className="float" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>
           📋
         </span>
         <p style={{ fontWeight: 500 }}>No orders yet</p>
@@ -188,7 +196,7 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {orders.map((order) => {
+        {orders.map((order, index) => {
           const style = STATUS_COLOURS[order.status];
           const icon = STATUS_ICONS[order.status];
           const isCancelling = cancellingOrderNum === order.order_number;
@@ -198,12 +206,15 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
             <div
               key={order.order_number}
               data-testid={`order-card-${order.order_number}`}
+              className="stagger hover-lift"
               style={{
+                '--i': index,
                 borderRadius: '0.75rem',
                 background: 'var(--bg-secondary)',
+                border: '1px solid rgba(255,255,255,0.05)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                 overflow: 'hidden',
-              }}
+              } as React.CSSProperties}
             >
               {/* Header row */}
               <div
@@ -218,6 +229,8 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
                 <span style={{ fontWeight: 700 }}>Order #{order.order_number}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span
+                    key={order.status}
+                    className="status-flash"
                     data-testid={`order-status-${order.order_number}`}
                     style={{
                       padding: '0.2rem 0.65rem',
@@ -265,6 +278,22 @@ export default function MyOrdersScreen({ tableId, visitId: _visitId, lastSSEEven
               {/* Cancel button — only for Pending orders */}
               {order.status === 'Pending' && (
                 <div style={{ padding: '0 0.75rem 0.75rem' }}>
+                  {cancelErrors[order.order_number] && (
+                    <p
+                      data-testid={`cancel-error-${order.order_number}`}
+                      role="alert"
+                      style={{
+                        margin: '0 0 0.5rem',
+                        padding: '0.5rem 0.7rem',
+                        borderRadius: '0.5rem',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: '#ef4444',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      {cancelErrors[order.order_number]}
+                    </p>
+                  )}
                   {showCancelConfirm ? (
                     /* Inline confirm dialog */
                     <div

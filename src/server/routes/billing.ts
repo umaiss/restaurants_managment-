@@ -1,17 +1,9 @@
-import { Router, type Response } from 'express';
+import { Router } from 'express';
 import { buildBill, closeTable, BillingError } from '../repositories/billingRepo.js';
 import { publish } from '../sse.js';
+import { parseTableId, unknownTable } from './tableId.js';
 
 const router = Router();
-
-/** Parses the :id path value; null when it is not a whole number. */
-function parseTableId(raw: string): number | null {
-  return /^\d+$/.test(raw) ? parseInt(raw, 10) : null;
-}
-
-function unknownTable(res: Response, raw: string): void {
-  res.status(404).json({ error: { code: 'UNKNOWN_TABLE', message: `Table ${raw} not found` } });
-}
 
 // GET /api/tables/:id/bill
 router.get('/tables/:id/bill', (req, res) => {

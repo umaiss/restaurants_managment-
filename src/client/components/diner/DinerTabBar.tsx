@@ -30,6 +30,7 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
     <nav
       data-testid="tab-bar"
       aria-label="Diner navigation"
+      className="diner-fixed"
       style={{
         position: 'fixed',
         bottom: 0,
@@ -45,6 +46,11 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
         zIndex: 100,
       }}
     >
+      <span
+        aria-hidden="true"
+        className="tab-indicator"
+        style={{ transform: `translateX(${TABS.findIndex((t) => t.id === activeTab) * 100}%)` }}
+      />
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         const showBadge = tab.id === 'cart' && cartCount > 0;
@@ -75,6 +81,8 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
             }}
           >
             <span
+              key={isActive ? 'on' : 'off'}
+              className={isActive ? 'icon-hop' : undefined}
               style={{
                 fontSize: '1.25rem',
                 lineHeight: 1,
@@ -87,6 +95,8 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
             <span>{tab.label}</span>
             {showBadge && (
               <span
+                key={cartCount}
+                className="bump"
                 data-testid="cart-badge"
                 aria-label={`${cartCount} items in cart`}
                 style={{

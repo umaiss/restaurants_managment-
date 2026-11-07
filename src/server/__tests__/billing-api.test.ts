@@ -68,6 +68,20 @@ describe('billing API', () => {
     expect(res.body.blocking_orders).toEqual([a, b]);
   });
 
+  it('GET /bill carries no tax or service charge: the total is the sum of the line subtotals (NFR4)', async () => {
+    await place(1, 'a', 'i-04', 2);
+    await place(1, 'b', 'i-10', 1);
+    const res = await request(app).get('/api/tables/1/bill');
+    expect(res.status).toBe(200);
+    expect(Object.keys(res.body).sort()).toEqual(['blocking_orders', 'close_available', 'combined_total_cents', 'orders', 'table_id']);
+    const lineSum = res.body.orders.reduce(
+      (sum: number, o: { lines: Array<{ subtotal_cents: number }> }) => sum + o.lines.reduce((s, l) => s + l.subtotal_cents, 0),
+      0,
+    );
+    expect(res.body.combined_total_cents).toBe(lineSum);
+    expect(JSON.stringify(res.body)).not.toMatch(/tax|service_charge|tip/i);
+  });
+
   it('GET /bill for an unknown table is 404 UNKNOWN_TABLE, also for a non-numeric id', async () => {
     const r1 = await request(app).get('/api/tables/99/bill');
     expect(r1.status).toBe(404);

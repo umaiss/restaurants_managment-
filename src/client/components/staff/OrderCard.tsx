@@ -64,6 +64,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
     <NewHighlight active={isPending}>
       <div
         data-testid={`order-card-${order.order_number}`}
+        className="pop-in hover-lift"
         style={{
           background: 'var(--bg-secondary, #1e1e2e)',
           borderRadius: '0.5rem',
@@ -76,6 +77,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <span style={{ fontWeight: 700, fontSize: '1rem' }}>#{order.order_number}</span>
           <span
+            key={order.status}
+            className="status-flash"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -88,11 +91,15 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 ? 'var(--status-pending-soft)'
                 : isPreparing
                 ? 'var(--status-preparing-soft)'
+                : order.status === 'Cancelled'
+                ? 'var(--status-cancelled-soft)'
                 : 'var(--status-completed-soft)',
               color: isPending
                 ? 'var(--status-pending)'
                 : isPreparing
                 ? 'var(--status-preparing)'
+                : order.status === 'Cancelled'
+                ? 'var(--status-cancelled)'
                 : 'var(--status-completed)',
             }}
           >
@@ -124,6 +131,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         {cancelConfirming && (
           <div
             data-testid={`cancel-confirm-${order.order_number}`}
+            className="pop-in"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -174,6 +182,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
           {isPending && (
             <button
               data-testid={`btn-preparing-${order.order_number}`}
+              className="btn-primary"
               disabled={inFlight}
               onClick={() => handleTransition('Preparing')}
               style={{
@@ -194,6 +203,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
           {isPreparing && (
             <button
               data-testid={`btn-complete-${order.order_number}`}
+              className="btn-primary"
               disabled={inFlight}
               onClick={() => handleTransition('Completed')}
               style={{

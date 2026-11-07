@@ -96,6 +96,7 @@ export default function ConfirmModal({
       }}
     >
       <div
+        className="pop-in"
         style={{
           background: 'var(--bg-secondary, #1e1e2e)',
           borderRadius: '1rem',
@@ -144,6 +145,7 @@ export default function ConfirmModal({
           </button>
           <button
             data-testid="confirm-modal-confirm"
+            className="btn-primary"
             onClick={onConfirm}
             style={{
               flex: 1,

@@ -92,12 +92,12 @@ test.describe('Kitchen Board E2E', () => {
       )
       .toBe('Completed');
 
-    // On the board the card has no action buttons. If table 3 has no other open order the whole
-    // card goes away; if it has one, this order stays on the card marked Completed.
+    // On the board the order stays on its table's card, marked Completed, with no action buttons: a
+    // table stays on the board until it is closed, so staff can open its bill.
     const card = page.getByTestId(`order-card-${order_number}`);
-    await expect(async () => {
-      if ((await card.count()) > 0) await expect(card).toContainText('Completed');
-    }).toPass({ timeout: 5000 });
+    await expect(card).toBeVisible({ timeout: 5000 });
+    await expect(card).toContainText('Completed');
+    await expect(page.getByText('Table 3 →')).toBeVisible();
     await expect(page.getByTestId(`btn-complete-${order_number}`)).toHaveCount(0);
     await expect(page.getByTestId(`btn-preparing-${order_number}`)).toHaveCount(0);
     await expect(page.getByTestId(`btn-cancel-${order_number}`)).toHaveCount(0);

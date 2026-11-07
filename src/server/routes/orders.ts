@@ -3,12 +3,17 @@ import { placeOrder, transitionOrder, getOrdersByVisit, getOrOpenVisit, type Ord
 import { getTableStatus } from '../repositories/tableRepo.js';
 import { getCurrentVisit } from '../db.js';
 import { publish } from '../sse.js';
+import { parseTableId, unknownTable, parseOrderNumber, unknownOrder } from './tableId.js';
 
 const router = Router();
 
 // POST /api/tables/:id/orders
 router.post('/tables/:id/orders', (req, res) => {
-  const tableId = parseInt(req.params.id, 10);
+  const tableId = parseTableId(req.params.id);
+  if (tableId === null) {
+    unknownTable(res, req.params.id);
+    return;
+  }
   const body = (req.body ?? {}) as { placement_key?: unknown; lines?: unknown };
 
   if (typeof body.placement_key !== 'string' || body.placement_key.trim() === '') {
@@ -112,7 +117,11 @@ router.post('/tables/:id/orders', (req, res) => {
 
 // GET /api/tables/:id/orders?visit=current
 router.get('/tables/:id/orders', (req, res) => {
-  const tableId = parseInt(req.params.id, 10);
+  const tableId = parseTableId(req.params.id);
+  if (tableId === null) {
+    unknownTable(res, req.params.id);
+    return;
+  }
   const { visit } = req.query as { visit?: string };
 
   try {
@@ -139,7 +148,12 @@ router.get('/tables/:id/orders', (req, res) => {
 // Body: { to: <target status>, by: "diner"|"staff" }
 // Note: the request body field is `to`, not `status` (despite plan prose wording).
 router.post('/orders/:order_number/transition', (req, res) => {
-  const orderNumber = parseInt(req.params.order_number, 10);
+  // Only a plain order number counts: "12abc" is refused, not read as order 12.
+  const orderNumber = parseOrderNumber(req.params.order_number);
+  if (orderNumber === null) {
+    unknownOrder(res, req.params.order_number);
+    return;
+  }
   const { to, by } = req.body as { to: string; by: string };
 
   if (!by) {
@@ -183,7 +197,11 @@ router.post('/orders/:order_number/transition', (req, res) => {
 
 // GET /api/tables/:id — table status
 router.get('/tables/:id', (req, res) => {
-  const tableId = parseInt(req.params.id, 10);
+  const tableId = parseTableId(req.params.id);
+  if (tableId === null) {
+    unknownTable(res, req.params.id);
+    return;
+  }
   try {
     const status = getTableStatus(tableId);
     res.json(status);

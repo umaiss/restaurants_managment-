@@ -50,6 +50,25 @@ afterEach(() => {
 });
 
 describe('MenuAvailabilityPanel', () => {
+  it('regression: each row shows the item picture and "On" or "Sold out" beside its switch, as the mockup does', async () => {
+    seedItems[0].image = '🍔';
+    seedItems[1].image = '🍟';
+    try {
+      setupFetchMock();
+      render(<MenuAvailabilityPanel onClose={() => {}} />);
+      await waitFor(() => expect(screen.getByText('Burger')).toBeTruthy());
+
+      expect(screen.getByTestId('availability-toggle-i-01').textContent).toBe('On');
+      expect(screen.getByTestId('availability-toggle-i-02').textContent).toBe('Sold out');
+      expect(screen.queryByText('Available')).toBeNull();
+      expect(document.body.textContent).toContain('🍔');
+      expect(document.body.textContent).toContain('🍟');
+    } finally {
+      seedItems[0].image = '';
+      seedItems[1].image = '';
+    }
+  });
+
   it('renders items with correct availability state using role="switch"', async () => {
     setupFetchMock();
     render(<MenuAvailabilityPanel onClose={() => {}} />);

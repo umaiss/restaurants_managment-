@@ -17,6 +17,9 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 
 const screenshotDir = path.join('test-results', 'mockup-match', 'u4-bill-and-close');
+
+// Screens ease in; ask for reduced motion so every screenshot shows the finished screen, never a half-faded one.
+test.use({ reducedMotion: 'reduce' });
 const mockupPreview = path.resolve(
   'aidlc/spaces/default/intents/261105-table-order-app/inception/refined-mockups/preview.html'
 );

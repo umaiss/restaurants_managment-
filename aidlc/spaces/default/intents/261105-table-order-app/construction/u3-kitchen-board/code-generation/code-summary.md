@@ -73,6 +73,16 @@ All 13 pass (18 across the whole worktree, with the walking skeleton's 5). The a
 - **Fix location:** `src/client/components/staff/OrderCard.tsx` (the two button labels).
 - **Regression test:** `OrderCard.test.tsx` — '"Mark completed" button present for Preparing orders' (checks the label text), and the browser mockup-match tests check both labels. These checks were added with the fix; the label test was seen failing on the old label while the browser tests ran against the old build.
 
+### Bug 4 — a table left the board when its last open order was completed, so it could not be closed (found by Build and Test)
+- **What went wrong:** the board kept a table only while it had a Pending or Preparing order. The only link to a table's bill is that card's "Table N →" header, so once the last order was completed the link was gone and staff could not open the bill or close the table from the screens (FR3.1, FR3.3, FR3.5 and the keyboard journey, NFR6).
+- **Fix location:** `src/client/screens/staff/KitchenBoardScreen.tsx` lines 67–72 (a table stays while its current visit has any order and leaves only when it is closed) and lines 163–164 (`TableSection` lists every order, hiding Cancelled ones only while the table still has an open order); `src/client/hooks/useBoardOrders.ts` (the table is removed on the table-closed event, and a board read that started before the close cannot bring it back).
+- **Regression tests:** `src/client/screens/staff/__tests__/KitchenBoardScreen.test.tsx` — "regression: a table with only completed orders stays on the board with its bill link until it is closed"; `src/client/hooks/__tests__/useBoardOrders.test.ts` — the same-named regression; in the browser `e2e/build-and-test/board-bill-link.spec.ts` — "regression: a table whose orders are all completed stays on the board until it is closed, so staff can open its bill" and `e2e/build-and-test/keyboard-journey.spec.ts`. The first two were checked to fail on the old filter; the browser specs failed in Chromium, Chrome and WebKit before the fix and pass after it.
+
+### Bug 5 — the Menu availability panel did not look like the mockup (found by the mockup match in Build and Test)
+- **What went wrong:** each row showed plain "Available" text with no switch and no item picture; the mockup shows a switch labelled "On" or "Sold out" and the item's picture.
+- **Fix location:** `src/client/components/staff/MenuAvailabilityPanel.tsx`, `AvailabilityRow` — a switch track and knob, the label "On" / "Sold out", and the item picture.
+- **Regression test:** `src/client/components/staff/__tests__/MenuAvailabilityPanel.test.tsx` — "regression: each row shows the item picture and "On" or "Sold out" beside its switch, as the mockup does". Checked to fail with the old "Available" label and to pass with the fix. The look itself is also in the screenshot pair `test-results/mockup-match/u3-kitchen-board/menu-availability-panel.png`, looked at by hand.
+
 ### Test-code problems fixed along the way (not product bugs)
 
 - **`placeOrder` helper returning `undefined` order_number**: The E2E helper used destructuring against a `Promise<number>` return type. Fixed by returning the number directly and updating all call sites from `const { order_number } = await placeOrder(...)` to `const order_number = await placeOrder(...)`.
@@ -88,3 +98,39 @@ All 13 pass (18 across the whole worktree, with the walking skeleton's 5). The a
 ## Files outside this Unit's own folders
 
 This Unit also edits `src/client/App.tsx` (route `/staff/*`), `src/client/views/StaffView.tsx` (nested routes) and the walking skeleton's browser test `e2e/u1-walking-skeleton/mockup-match.spec.ts` (the placeholder text it checked is gone). The other parallel Bolt edits other files, so the merge of the two Bolts should be checked against these.
+
+## Review findings fixed (replay)
+
+Step 0 and Step 17a were added after Build and Test's loop-back and two reviews. They were built in the main folder.
+
+### Step 0: the walking skeleton's four Minor review findings
+
+- **Keep-alive.** `src/server/sse.ts` writes a comment line (`: keep-alive`, then a blank line) to every subscriber of every channel every 20 seconds (`KEEP_ALIVE_INTERVAL_MS`). One shared timer, started with the first subscriber and stopped when the last one leaves. It is `unref`'d, so it never keeps the process or a test run alive. A subscriber whose write fails is dropped without breaking the others.
+- **Event ids across a restart.** The id counter starts from the server's start time in milliseconds. `_resetForTest()` still resets it to 0, so the existing tests keep their ids (1, 2, ...).
+- **Table ids.** New helper `src/server/routes/tableId.ts`: a table id in a URL must match `^[1-9]\d*$`. `5abc`, `0`, `-1`, `1e1` and `5.0` answer 404 `UNKNOWN_TABLE` in the error envelope on `POST /api/tables/:id/orders`, `GET /api/tables/:id/orders`, `GET /api/tables/:id` and `GET /sse/tables/:id` (the stream is refused and never opened). The check comes before the body check. The billing routes already refused non-numeric ids and were not touched.
+- **Tests.** `sse.test.ts` has 12 tests (was 4): 5 for keep-alive (fake timers), 3 for ids across a restart (a faked restart a minute later, a client reconnecting with an id from before it, `_resetForTest` still starting at 1). `api.test.ts` has 44 (was 18): includes "regression: a table id with trailing text is refused, not read as the number in front of it" (it fails on the old `parseInt`) and the six bad ids on all four routes.
+
+### Step 0: the diner screens' three Minor findings
+
+- **(a) Decide after the answer.** The first-visit "quiet clear" used a yes-or-no taken before the server answered. `TableView` now notes which cart lines exist when the check starts and, once the answer is in, removes only those lines from the cart as it is then (`removeLines` in `useCart.ts`). A line added while the request is in flight stays. Tests: "a line added while the first answer is on its way is kept; only the lines that were there before go" (fails on the old code) and "an item added to an empty cart while the first answer is on its way is not dropped".
+- **(b) A stale answer is ignored.** Each check of the table's last-closed value takes a sequence number, and a live `TABLE_CLOSED` takes one too. Only the newest check may act on its answer, so an older answer can no longer overwrite the newer marker. Test: "regression: an older server answer that arrives after a live TABLE_CLOSED cannot overwrite the newer marker" (checked to fail with the guard switched off).
+- **(c) Deploy trade-off, recorded.** A saved cart that has no stored `cart-closed-marker:<table>` is cleared quietly on the first visit (no message). That is the rule for a cart whose origin cannot be trusted, and it also empties the cart of a diner who is mid-meal at the moment this version is deployed (their device has no marker yet). The cost is a one-time empty cart for people already ordering at the switch-over; the benefit is that an old cart can never reach the next party. The team accepted this by approving the plan.
+- `useCart.test.ts` has 17 tests (2 new for `removeLines`); `TableView.test.tsx` has 12 (3 new for the races).
+
+### Step 0: bookkeeping about the walking skeleton's plan (the plan itself is not edited, it is approved)
+
+- Its prose says the transition request body field is `status`. The code and the contract use `to` (`POST /api/orders/:order_number/transition` with `{ "to": ..., "by": ... }`).
+- Four of its steps are left unticked although their work exists and its browser specs (`e2e/u1-walking-skeleton/`) pass.
+
+### Step 17a: a table stays on the board until it is closed
+
+- **Reading of FR2.2.** FR2.2 says "a card per table with its open orders". This Unit now reads it as "a card per table with an open visit". The reason: staff close a table from its bill, and the only way to the bill is the "Table N →" link on the card. When the last open order was completed the old rule removed the card, so staff could not reach the bill from the screens (FR3.1, FR3.3, FR3.5, NFR6). A card therefore stays while the current visit has any order, whatever its status, and leaves on `TABLE_CLOSED`.
+- **Behaviour.** `useBoardOrders.ts` no longer removes a table when its orders are all Completed or Cancelled. `KitchenBoardScreen.tsx` shows every table that has any order. A card with no Pending or Preparing order shows its orders as they are, keeps the bill link, and shows "No open orders. Open the bill to close this table." (`table-ready-to-close-<id>`). While a card has an open order, cancelled orders stay off it as before. "No open orders right now." still shows for a board with no table. The new-order highlight, the buttons (Pending and Preparing only), the loading shimmer and the reconnect banner are unchanged. `OrderCard.tsx` gives the Cancelled pill its own colours (it used the Completed green).
+- **Tests.** `KitchenBoardScreen.test.tsx` has 13 tests (was 10), including "regression: a table with only completed orders stays on the board with its bill link until it is closed" (fails on the old filter). `useBoardOrders.test.ts` has 11 (was 9), with the same-named regression. In the browser, Flow 3 in `kitchen-board.spec.ts` now expects the card to stay, marked Completed, with the bill link. `mockup-match.spec.ts` needed no change (no checked word changed).
+- **The two Build and Test specs.** The two `test.fail(...)` lines (and their comments) are removed from `e2e/build-and-test/board-bill-link.spec.ts` and `e2e/build-and-test/keyboard-journey.spec.ts`. Both now pass in Chromium.
+
+### Test results
+
+- Unit tests: 30 files, 298 tests, all passed (U3's scoped command: 80 tests in 9 files, all passed).
+- Browser tests (Chromium, `E2E_PORT=3100`): 47 passed in the whole suite, with U4's and the diner specs unchanged and green.
+- `npx tsc --noEmit -p .`: no errors.

@@ -14,7 +14,15 @@
     "BR3.2",
     "BR3.3",
     "BR4.1",
-    "BR4.2"
+    "BR4.2",
+    "US7.1",
+    "US7.2",
+    "FR3.1",
+    "FR3.2",
+    "FR3.3",
+    "FR3.4",
+    "FR3.5",
+    "NFR4"
   ],
   "coverage": [
     { "id": "BR1.1", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
@@ -29,6 +37,14 @@
     { "id": "BR3.2", "status": "OK", "target": "src/server/__tests__/billing-api.test.ts" },
     { "id": "BR3.3", "status": "OK", "target": "e2e/u4-bill-and-close/bill-and-close.spec.ts" },
     { "id": "BR4.1", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
-    { "id": "BR4.2", "status": "OK", "target": "src/server/repositories/billingRepo.ts" }
+    { "id": "BR4.2", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "US7.1", "status": "OK", "target": "src/client/screens/staff/TableBillScreen.tsx" },
+    { "id": "US7.2", "status": "OK", "target": "src/client/components/staff/CloseTableSection.tsx" },
+    { "id": "FR3.1", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "FR3.2", "status": "OK", "target": "src/server/__tests__/billing.test.ts" },
+    { "id": "FR3.3", "status": "OK", "target": "src/server/repositories/billingRepo.ts" },
+    { "id": "FR3.4", "status": "OK", "target": "src/server/__tests__/billing-api.test.ts" },
+    { "id": "FR3.5", "status": "OK", "target": "e2e/u4-bill-and-close/bill-and-close.spec.ts" },
+    { "id": "NFR4", "status": "OK", "target": "src/server/__tests__/billing-api.test.ts" }
   ]
 }

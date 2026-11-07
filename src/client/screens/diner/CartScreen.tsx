@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useCart } from '../../hooks/useCart.js';
+import React, { useEffect, useState } from 'react';
+import { useCart, type MenuPrice } from '../../hooks/useCart.js';
 import ConfirmModal from '../../components/ConfirmModal.js';
 
 export interface PlacedOrder {
@@ -9,7 +9,6 @@ export interface PlacedOrder {
 
 interface CartScreenProps {
   tableId: string;
-  visitId: string;
   onOrderPlaced?: (placed: PlacedOrder) => void;
   /** Called by the empty cart's "Back to menu" link. */
   onBackToMenu?: () => void;
@@ -19,19 +18,46 @@ function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-type OrderStatus = 'idle' | 'posting' | 'success' | 'partial' | 'error';
+// Once an order is placed this screen is replaced (TableView moves the diner to My orders and shows
+// the confirmation there), so only the states that stay on this screen are tracked here.
+type OrderStatus = 'idle' | 'posting' | 'error';
 
-export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMenu }: CartScreenProps) {
-  const { items, totalCents, addItem, removeItem, updateQuantity, clearCart, ensurePlacementKey } =
+export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: CartScreenProps) {
+  const { items, totalCents, removeItem, updateQuantity, clearCart, refreshPrices, ensurePlacementKey } =
     useCart(tableId);
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [orderStatus, setOrderStatus] = useState<OrderStatus>('idle');
-  const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [droppedLines, setDroppedLines] = useState<Array<{ menu_item_id: string; name: string; quantity: number }>>([]);
+  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
 
   const isEmpty = items.length === 0;
+
+  // Prices are copied into the cart when an item is added. Check them against the current menu when
+  // the cart opens, so the total shown is the total the server will charge. A failed check changes nothing.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/menu');
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: unknown };
+        // An empty menu means "not ready", not "everything was removed": leave the cart alone.
+        if (cancelled || !Array.isArray(data.items) || data.items.length === 0) return;
+        const result = refreshPrices(data.items as MenuPrice[]);
+        if (result.removed.length > 0) {
+          setRefreshNotice(`No longer on the menu and removed from your cart: ${result.removed.join(', ')}.`);
+        } else if (result.repriced) {
+          setRefreshNotice('Some prices changed on the menu. Your cart total has been updated.');
+        }
+      } catch {
+        // Offline or the menu is unreachable: keep the cart as it is.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshPrices]);
 
   async function handlePlaceOrder() {
     if (isEmpty) return;
@@ -57,13 +83,10 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
           order_number: number;
           dropped_lines?: Array<{ menu_item_id: string; reason?: string }>;
         };
-        setOrderNumber(data.order_number);
         const dropped = (data.dropped_lines ?? []).map((d) => {
           const line = items.find((i) => i.menuItemId === d.menu_item_id);
           return { menu_item_id: d.menu_item_id, name: line?.name ?? d.menu_item_id, quantity: line?.quantity ?? 1 };
         });
-        setDroppedLines(dropped);
-        setOrderStatus(dropped.length > 0 ? 'partial' : 'success');
         clearCart();
         onOrderPlaced?.({ orderNumber: data.order_number, droppedLines: dropped });
         return;
@@ -80,50 +103,21 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
 
   return (
     <div data-testid="cart-screen" style={{ padding: '1rem', paddingBottom: '8rem' }}>
-      {/* Success banner */}
-      {orderStatus === 'success' && orderNumber !== null && (
+      {/* Menu changed since items were added: say what happened to the cart */}
+      {refreshNotice && (
         <div
-          data-testid="order-success-banner"
+          data-testid="cart-refresh-notice"
           role="status"
           style={{
-            padding: '0.75rem 1rem',
-            borderRadius: '0.75rem',
-            background: 'rgba(34, 197, 94, 0.15)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            color: '#22c55e',
-            fontWeight: 600,
-            marginBottom: '1rem',
-            textAlign: 'center',
-          }}
-        >
-          Order placed! #{orderNumber}
-        </div>
-      )}
-
-      {/* Partial success banner — some items were unavailable */}
-      {orderStatus === 'partial' && orderNumber !== null && (
-        <div
-          data-testid="order-partial-banner"
-          role="status"
-          style={{
-            padding: '0.75rem 1rem',
-            borderRadius: '0.75rem',
-            background: 'rgba(234, 179, 8, 0.15)',
-            border: '1px solid rgba(234, 179, 8, 0.3)',
-            color: '#eab308',
+            padding: '0.6rem 0.9rem',
+            borderRadius: '0.6rem',
+            background: 'var(--status-pending-soft)',
+            color: 'var(--status-pending)',
+            fontSize: '0.9rem',
             marginBottom: '1rem',
           }}
         >
-          <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
-            Order #{orderNumber} placed — some items were unavailable
-          </p>
-          <ul style={{ fontSize: '0.85rem', margin: 0, paddingLeft: '1.2rem' }}>
-            {droppedLines.map((l) => (
-              <li key={l.menu_item_id}>
-                {l.quantity}× {l.name} — not available
-              </li>
-            ))}
-          </ul>
+          {refreshNotice}
         </div>
       )}
 
@@ -150,13 +144,14 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
       {isEmpty && (
         <div
           data-testid="cart-empty"
+          className="pop-in"
           style={{
             textAlign: 'center',
             color: 'var(--text-secondary)',
             padding: '3rem 1rem',
           }}
         >
-          <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>
+          <span className="float" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>
             🛒
           </span>
           <p style={{ fontWeight: 500 }}>Your cart is empty</p>
@@ -205,19 +200,22 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
               Clear all
             </button>
           </div>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
               key={item.menuItemId}
               data-testid={`cart-item-${item.menuItemId}`}
+              className="stagger hover-lift"
               style={{
+                '--i': index,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem',
                 borderRadius: '0.75rem',
                 background: 'var(--bg-secondary)',
+                border: '1px solid rgba(255,255,255,0.05)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              }}
+              } as React.CSSProperties}
             >
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.name}</div>
@@ -249,6 +247,8 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
                   −
                 </button>
                 <span
+                  key={item.quantity}
+                  className="bump"
                   data-testid={`cart-qty-${item.menuItemId}`}
                   style={{ minWidth: '1.5rem', textAlign: 'center', fontWeight: 600 }}
                 >
@@ -310,6 +310,7 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
       {/* Sticky bottom bar: Place order */}
       <div
         data-testid="cart-sticky-bar"
+        className="diner-fixed slide-up"
         style={{
           position: 'fixed',
           bottom: 'var(--tab-bar-height, 56px)',
@@ -325,6 +326,7 @@ export default function CartScreen({ tableId, visitId, onOrderPlaced, onBackToMe
       >
         <button
           data-testid="place-order-button"
+          className="btn-primary"
           disabled={isEmpty || orderStatus === 'posting'}
           onClick={() => setShowConfirm(true)}
           style={{

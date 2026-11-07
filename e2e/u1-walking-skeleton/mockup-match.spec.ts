@@ -4,6 +4,9 @@ import fs from 'fs';
 
 const screenshotDir = 'test-results/mockup-match/u1-walking-skeleton';
 
+// Screens ease in; ask for reduced motion so every screenshot shows the finished screen, never a half-faded one.
+test.use({ reducedMotion: 'reduce' });
+
 test.beforeAll(() => {
   fs.mkdirSync(screenshotDir, { recursive: true });
 });

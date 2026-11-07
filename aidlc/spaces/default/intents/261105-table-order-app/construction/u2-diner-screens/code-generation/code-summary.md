@@ -82,3 +82,18 @@ This Unit edited four files that belong to the walking skeleton. U3 is built in 
 | Unit (vitest), whole worktree | 11 | 78 | All passed |
 | E2E (Playwright), whole worktree | 3 | 15 (10 are this Unit's) | All passed |
 | Swarm convergence | — | — | `"converged": true` |
+
+## Review findings fixed (replay)
+
+The architecture review of the diner screens came back READY with 1 Major and 4 Minor findings. All five were fixed in the Unit.
+
+1. **Major: an old cart survived a table close.** A cart is kept in the device's storage; it was cleared only when a `TABLE_CLOSED` event reached an open tab, so a device that was shut or offline during the close showed the old cart to the next party (FR3.6).
+   - `GET /api/tables/:id` now also returns `last_closed_visit_id` (the table's newest closed visit, or `null`). Every existing field is unchanged (`tableRepo.ts`; the contract's Tables section has the extension bullet).
+   - The device keeps the value it last saw (`cart-closed-marker:<table>` in `useCart.ts`). `TableView` compares it when the page opens and when the live stream reconnects. If it changed, the cart is cleared and the "This table was closed" message shows, as the live event does. A live `TABLE_CLOSED` also records its `archived_visit_id`, so reopening the page afterwards is quiet. A saved cart with no recorded value is cleared quietly. A server that cannot be reached changes nothing.
+   - Tests: "regression: a cart saved before the table was closed is cleared when the page is opened again" (`TableView.test.tsx`, checked to fail without the fix: 8 of its 9 tests failed with the check switched off), 6 server tests for the new field (`tableStatus.test.ts`), marker tests in `useCart.test.ts`, and a browser test, Flow 8 in `e2e/u2-diner-screens/diner.spec.ts` (table 6).
+2. **Minor: cart prices went stale.** `useCart` has `refreshPrices(menu)`: it updates each line's price and name from the menu and drops lines whose item is gone. It runs when the cart screen opens and when the Menu loads (an empty menu is treated as "not ready" and leaves the cart alone). The cart shows a note saying what changed. Tests: 4 in `CartScreen.test.tsx` (one named "regression: a price that changed after the item was added is refreshed, so the total matches the server") and 3 in `useCart.test.ts`.
+3. **Minor: dead banners in `CartScreen`.** The success and partial-order banners (and their state) are removed; what the diner really sees is TableView's "Order #N placed" toast and sold-out banner. The two `CartScreen` tests that looked for the banners now check what the screen hands to its parent (`onOrderPlaced`) and that the banners are not on the screen. The browser flows already looked for TableView's banners and needed no change.
+4. **Minor: made-up visit id.** `TableView`'s `visit-<timestamp>` in session storage and its `visitId` props on `CartScreen` and `MyOrdersScreen` are removed. A test checks that nothing is written to `visit-id:table:<id>`.
+5. **Minor: silent failure when cancelling.** A network failure while cancelling an order now shows "We couldn't cancel this order. Check your connection and try again." inside that order's card (`cancel-error-<n>`), without re-reading the orders (that would replace the list with a load error). The message goes away on the next try. Tests: 2 in `MyOrdersScreen.test.tsx`, one named "regression: a network failure while cancelling shows a clear error in that order's card".
+
+Test counts after the fixes: unit tests 30 files, 254 tests, all passed (changed files: `tableStatus.test.ts` 6 new, `TableView.test.tsx` 9 new, `useCart.test.ts` 15, `CartScreen.test.tsx` 15, `MyOrdersScreen.test.tsx` 12). Browser tests: 47 passed across the whole suite (12 in this Unit's folder).

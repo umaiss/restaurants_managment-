@@ -26,6 +26,14 @@
     { "path": "src/client/screens/staff/__tests__/TableBillScreen.test.tsx" },
     { "path": "src/client/views/StaffView.tsx" },
     { "path": "e2e/u4-bill-and-close/bill-and-close.spec.ts" },
-    { "path": "e2e/u4-bill-and-close/mockup-match.spec.ts" }
+    { "path": "e2e/u4-bill-and-close/mockup-match.spec.ts" },
+    { "path": "src/client/hooks/useBoardOrders.ts" },
+    { "path": "src/client/hooks/__tests__/useBoardOrders.test.ts" },
+    { "path": "src/server/routes/tableId.ts" },
+    { "path": "src/server/routes/sse.ts" },
+    { "path": "src/server/sse.ts" },
+    { "path": "src/server/__tests__/sse.test.ts" },
+    { "path": "src/server/__tests__/sse-hello.test.ts" },
+    { "path": "src/server/__tests__/api.test.ts" }
   ]
 }

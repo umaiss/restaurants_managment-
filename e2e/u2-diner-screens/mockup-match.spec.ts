@@ -8,6 +8,9 @@ import fs from 'fs';
 
 const screenshotDir = 'test-results/mockup-match/u2-diner-screens';
 
+// Screens ease in; ask for reduced motion so every screenshot shows the finished screen, never a half-faded one.
+test.use({ reducedMotion: 'reduce' });
+
 test.beforeAll(() => {
   fs.mkdirSync(screenshotDir, { recursive: true });
 });
@@ -98,6 +101,16 @@ test('CartScreen — cart lines, Place order button, ConfirmModal', async ({ pag
   // Open ConfirmModal and screenshot it
   await placeBtn.click();
   await expect(page.getByTestId('confirm-modal')).toBeVisible({ timeout: 3000 });
+  // Let the dialog finish appearing before the picture is taken.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
+  await page.waitForTimeout(100);
   await page.screenshot({
     path: path.join(screenshotDir, 'cart-confirm-modal.png'),
     fullPage: false,

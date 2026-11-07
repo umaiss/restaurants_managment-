@@ -10,6 +10,7 @@ const styles = `
   border-radius: 0.5rem;
   box-shadow: 0 0 0 2px var(--accent, #f59e0b), 0 0 12px 2px rgba(245, 158, 11, 0.35);
   transition: box-shadow 150ms ease-out;
+  animation: newGlow 2.4s ease-in-out infinite;
 }
 
 .new-highlight-inactive {

@@ -9,6 +9,16 @@
     { "path": "src/client/hooks/" },
     { "path": "src/client/screens/" },
     { "path": "e2e/u1-walking-skeleton/mockup-match.spec.ts" },
-    { "path": "e2e/u3-kitchen-board/" }
+    { "path": "e2e/u3-kitchen-board/" },
+    { "path": "e2e/build-and-test/board-bill-link.spec.ts" },
+    { "path": "e2e/build-and-test/keyboard-journey.spec.ts" },
+    { "path": "src/server/sse.ts" },
+    { "path": "src/server/routes/orders.ts" },
+    { "path": "src/server/routes/sse.ts" },
+    { "path": "src/server/routes/tableId.ts" },
+    { "path": "src/server/__tests__/sse.test.ts" },
+    { "path": "src/server/__tests__/api.test.ts" },
+    { "path": "src/client/views/TableView.tsx" },
+    { "path": "src/client/views/__tests__/TableView.test.tsx" }
   ]
 }

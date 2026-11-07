@@ -34,7 +34,11 @@ export default function TableClosedTakeover({ visible }: TableClosedTakeoverProp
         padding: '2rem',
       }}
     >
-      <span style={{ fontSize: '3rem', display: 'block' }}>✓</span>
+      <span className="check-ring" aria-hidden="true">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--status-completed)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      </span>
       <h1
         style={{
           fontSize: '1.5rem',

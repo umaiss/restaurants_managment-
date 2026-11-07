@@ -128,7 +128,7 @@ Closes the table.
 
 ## Motion rules
 
-- Bill rows: no animation (static list).
+- Bill rows: each card eases in one after another (`380 ms`, staggered `45 ms`) and lifts slightly under the pointer. (Changed on 2026-11-07 at the person's request for a more modern, animated look; it was "no animation".)
 - Close confirmation modal: `150 ms ease-out` fade-in.
 - When `prefers-reduced-motion: reduce`: modal appears instantly.
 

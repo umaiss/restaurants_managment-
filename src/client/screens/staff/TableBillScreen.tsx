@@ -164,8 +164,8 @@ export default function TableBillScreen() {
               </button>
             </p>
           )}
-          {bill.orders.map((order) => (
-            <BillOrderCard key={order.order_number} order={order} />
+          {bill.orders.map((order, index) => (
+            <BillOrderCard key={order.order_number} order={order} index={index} />
           ))}
           <BillTotal totalCents={bill.combined_total_cents} />
           {closeError && (

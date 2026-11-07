@@ -4,9 +4,9 @@
 
 - [desc] Initial description: "Build the Table Order web app based on ideas/table-order/IDEA.md"
 - [scope] Workflow-selected scope: `dpl-workshop`
-- Output of `aidlc engine sensor-traceability --stage build-and-test`, 2026-11-06
+- Output of `aidlc engine sensor-traceability --stage build-and-test`, 2026-11-07 (second run, after Loop-back 1)
 
-## Verdict: FAIL (6 of 31 IDs uncovered)
+## Verdict: PASS (31 of 31 IDs covered, 0 uncovered)
 
 | ID | Built in | Covered |
 |---|---|---|
@@ -17,16 +17,16 @@
 | FR1.6, FR1.7, FR1.8 | U2 `src/client/screens/diner/MyOrdersScreen.tsx` | Yes |
 | FR1.9 | U2 `src/client/components/diner/TableClosedTakeover.tsx` | Yes |
 | FR2.1 | U3 `src/client/screens/staff/KitchenBoardScreen.tsx` | Yes |
-| FR2.2, FR2.3 | U3 `src/client/components/staff/OrderCard.tsx` | Yes |
+| FR2.2 | U3 `src/client/screens/staff/KitchenBoardScreen.tsx` | Yes |
+| FR2.3 | U3 `src/client/components/staff/OrderCard.tsx` | Yes |
 | FR2.4 | U3 `src/client/components/staff/NewHighlight.tsx` | Yes |
 | FR2.5 | U3 `src/client/hooks/useBoardOrders.ts` | Yes |
 | FR2.6 | U3 `src/client/hooks/useMenuAvailability.ts` | Yes |
 | FR2.7 | U3 `src/client/components/staff/MenuAvailabilityPanel.tsx` | Yes |
-| **FR3.1** | via US7.1 — not built in the record | **No** |
-| **FR3.2** | via US7.1 — not built in the record | **No** |
-| **FR3.3** | via US7.2 — not built in the record | **No** |
-| **FR3.4** | via US7.2 — not built in the record | **No** |
-| **FR3.5** | via US7.2 — not built in the record | **No** |
+| FR3.1, FR3.3 | U4 `src/server/repositories/billingRepo.ts` | Yes |
+| FR3.2 | U4 `src/server/__tests__/billing.test.ts` | Yes |
+| FR3.4 | U4 `src/server/__tests__/billing-api.test.ts` | Yes |
+| FR3.5 | U4 `e2e/u4-bill-and-close/bill-and-close.spec.ts` | Yes |
 | FR3.6 | U2 `src/client/views/TableView.tsx` | Yes |
 | FR4.1, FR4.2 | U1 `src/server/sse.ts`; U2 `src/client/hooks/useTableSSE.ts` | Yes |
 | FR5.1 | U1 `src/client/App.tsx` | Yes |
@@ -34,19 +34,19 @@
 | NFR1 | U3 `src/client/hooks/useBoardOrders.ts` | Yes |
 | NFR2 | U1 `src/server/repositories/orderRepo.ts` | Yes |
 | NFR3 | U1 `src/server/index.ts` | Yes |
-| **NFR4** | via US7.1 — not built in the record | **No** |
+| NFR4 | U4 `src/server/__tests__/billing-api.test.ts` | Yes |
 | NFR5 | U2 `MyOrdersScreen.tsx`; U3 `OrderCard.tsx` | Yes |
-| NFR6 | U2 `DinerTabBar.tsx`; U3 `KitchenBoardScreen.tsx` | Yes, but see below |
+| NFR6 | U2 `DinerTabBar.tsx`; U3 `KitchenBoardScreen.tsx` | Yes |
 
 ## Uncovered elements
 
-FR3.1, FR3.2, FR3.3, FR3.4, FR3.5 and NFR4 are owned by U4 `u4-bill-and-close` (stories US7.1 and US7.2). The code and tests exist: `src/server/repositories/billingRepo.ts`, `src/server/routes/billing.ts`, `src/client/screens/staff/TableBillScreen.tsx`, `e2e/u4-bill-and-close/bill-and-close.spec.ts`. The gap is U4's `code-generation/traceability.json`, which lists only BR1.1 to BR4.2 and has no rows for US7.1, US7.2, FR3.1 to FR3.5 or NFR4. Owner: code-generation, U4. Fix recorded in Loop-Back 1.
+None. The six IDs that were uncovered in the first run (FR3.1 to FR3.5 and NFR4) now have rows in U4's `code-generation/traceability.json`.
 
-## Coverage that holds on paper but fails in use
+## Coverage that holds in use
 
-- **FR3.1, FR3.3, FR3.5 and NFR6 from the screens.** A table leaves the Kitchen Board when its last open order is completed, so the link to its bill is gone (`keyboard-journey.spec.ts` and `board-bill-link.spec.ts` fail in Chromium, Chrome and WebKit). Owner: code-generation, U3 `src/client/screens/staff/KitchenBoardScreen.tsx`. Fix recorded in Loop-Back 1.
+- FR3.1, FR3.3, FR3.5 and NFR6 from the screens: the table stays on the Kitchen Board until it is closed, so staff can open its bill and close it. `board-bill-link.spec.ts` and `keyboard-journey.spec.ts` pass in Chromium, Chrome and WebKit.
 
 ## Where each check ran
 
-- Node and jsdom: unit, component and server tests (228).
-- Real browser engines: the browser flows of every Unit, the keyboard journey and the mockup match in Chromium; the same flows (without the mockup match) in installed Google Chrome and in WebKit; the timing check in Chromium.
+- Node and jsdom: unit, component and server tests (322).
+- Real browser engines: the browser flows of every Unit, the keyboard journey and the mockup match in Chromium (50 tests); the same flows (without the mockup match) in installed Google Chrome and in WebKit (29 tests each); the timing check in Chromium.

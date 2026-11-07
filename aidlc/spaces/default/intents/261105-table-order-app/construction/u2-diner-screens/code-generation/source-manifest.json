@@ -12,7 +12,10 @@
     { "path": "src/client/hooks/" },
     { "path": "src/client/screens/" },
     { "path": "src/server/__tests__/api.test.ts" },
+    { "path": "src/client/views/__tests__/TableView.test.tsx" },
     { "path": "src/server/repositories/orderRepo.ts" },
+    { "path": "src/server/repositories/tableRepo.ts" },
+    { "path": "src/server/__tests__/tableStatus.test.ts" },
     { "path": "src/server/routes/orders.ts" },
     { "path": "src/server/sse.ts" },
     { "path": "e2e/u2-diner-screens/" }

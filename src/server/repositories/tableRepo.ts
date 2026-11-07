@@ -6,6 +6,17 @@ export interface TableStatus {
   has_open_orders: boolean;
   has_any_orders: boolean;
   state: 'active' | 'closed';
+  /** Id of the table's most recently closed visit; null if the table was never closed. */
+  last_closed_visit_id: string | null;
+}
+
+function getLastClosedVisitId(tableId: number): string | null {
+  const row = getDb()
+    .prepare(
+      'SELECT id FROM visits WHERE table_id = ? AND closed_at IS NOT NULL ORDER BY closed_at DESC, rowid DESC LIMIT 1'
+    )
+    .get(tableId) as { id: string } | undefined;
+  return row?.id ?? null;
 }
 
 export function getTableStatus(tableId: number): TableStatus {
@@ -28,6 +39,7 @@ export function getTableStatus(tableId: number): TableStatus {
       has_open_orders: false,
       has_any_orders: false,
       state: 'closed',
+      last_closed_visit_id: getLastClosedVisitId(tableId),
     };
   }
 
@@ -49,6 +61,7 @@ export function getTableStatus(tableId: number): TableStatus {
     has_open_orders: hasOpenOrders,
     has_any_orders: hasAnyOrders,
     state: 'active',
+    last_closed_visit_id: getLastClosedVisitId(tableId),
   };
 }
 

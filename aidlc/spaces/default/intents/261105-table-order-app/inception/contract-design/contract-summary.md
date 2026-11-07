@@ -123,6 +123,8 @@ Publishes `MENU_AVAILABILITY_CHANGED` to the staff channel and every open diner 
 
 `state` is `active` or `closed`. For a closed table, `visit_id` is `null` and the flags are `false`.
 
+- Additive extension (added at U2 Code Generation replay review, AI decision under the team's review rule): the response also carries `last_closed_visit_id`, the id of the table's most recently closed visit, or `null` if the table was never closed. A diner device keeps the value it last saw and compares it on load and on reconnect: if it changed, the table was closed while the device was away, so the device clears its cart and shows the table-closed message (FR3.6). Every existing field is unchanged.
+
 ---
 
 ### Ordering (owned by `Ordering`)

@@ -16,20 +16,22 @@ const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   Cancelled: { bg: 'var(--status-cancelled-soft)', fg: 'var(--status-cancelled)' },
 };
 
-/** One order on the bill: number, status pill (icon + word), placed time, lines and subtotal. No animation. */
-export default function BillOrderCard({ order }: { order: BillOrder }) {
+/** One order on the bill: number, status pill (icon + word), placed time, lines and subtotal. Cards ease in one after another. */
+export default function BillOrderCard({ order, index = 0 }: { order: BillOrder; index?: number }) {
   const colors = STATUS_COLORS[order.status] ?? STATUS_COLORS.Completed;
   return (
     <section
       data-testid={`bill-order-${order.order_number}`}
       aria-label={`Order ${order.order_number}`}
+      className="stagger hover-lift"
       style={{
+        '--i': index,
         background: 'var(--bg-secondary, #171b22)',
         borderRadius: 'var(--radius-card, 12px)',
         padding: '1rem',
         marginBottom: '0.75rem',
         border: '1px solid var(--border, rgba(255,255,255,0.08))',
-      }}
+      } as React.CSSProperties}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.625rem' }}>
         <span style={{ fontWeight: 700, fontSize: '1rem' }}>Order #{order.order_number}</span>

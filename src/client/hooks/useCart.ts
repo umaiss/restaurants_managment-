@@ -15,6 +15,16 @@ export interface UseCartResult {
   removeItem: (menuItemId: string) => void;
   updateQuantity: (menuItemId: string, quantity: number) => void;
   clearCart: () => void;
+  /**
+   * Removes only the given lines from the cart as it is now (read from storage), leaving any other
+   * line, such as one added a moment ago, in place.
+   */
+  removeLines: (menuItemIds: string[]) => void;
+  /**
+   * Brings every cart line's price (and name) in line with the current menu and drops lines whose
+   * item is no longer on it, so the cart total matches what the server will charge.
+   */
+  refreshPrices: (menu: MenuPrice[]) => CartRefreshResult;
   /** Returns the placement key, creating and saving one if the cart has none (e.g. a cart restored in a new tab). */
   ensurePlacementKey: () => string;
 }
@@ -28,6 +38,59 @@ function cartStorageKey(tableId: string): string {
 
 function placementKeyStorageKey(tableId: string): string {
   return `cart-placement-key:${tableId}`;
+}
+
+function closedMarkerStorageKey(tableId: string): string {
+  return `cart-closed-marker:${tableId}`;
+}
+
+/** Stored in place of a visit id when the table had never been closed. */
+const NEVER_CLOSED = 'never-closed';
+
+/**
+ * The `last_closed_visit_id` this device last saw for the table (null = the table had never been
+ * closed), or undefined when the device has not recorded one yet. A cart saved before a table close
+ * is recognised by this value no longer matching the server's.
+ */
+export function readClosedMarker(tableId: string): string | null | undefined {
+  try {
+    const raw = localStorage.getItem(closedMarkerStorageKey(tableId));
+    if (raw === null) return undefined;
+    return raw === NEVER_CLOSED ? null : raw;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeClosedMarker(tableId: string, lastClosedVisitId: string | null): void {
+  try {
+    localStorage.setItem(closedMarkerStorageKey(tableId), lastClosedVisitId ?? NEVER_CLOSED);
+  } catch {
+    // Storage unavailable: the device simply cannot recognise an old cart.
+  }
+}
+
+/** True when a non-empty cart is saved for the table. */
+export function hasStoredCart(tableId: string): boolean {
+  return loadItems(tableId).length > 0;
+}
+
+/** The ids of the lines saved in the table's cart right now. */
+export function storedCartLineIds(tableId: string): string[] {
+  return loadItems(tableId).map((i) => i.menuItemId);
+}
+
+export interface MenuPrice {
+  id: string;
+  name?: string;
+  price_cents: number;
+}
+
+export interface CartRefreshResult {
+  /** Names of cart lines whose item is no longer on the menu (removed from the cart). */
+  removed: string[];
+  /** True when at least one line's price changed. */
+  repriced: boolean;
 }
 
 function generatePlacementKey(): string {
@@ -174,6 +237,54 @@ export function useCart(tableId: string): UseCartResult {
     }
   }, [tableId]);
 
+  const removeLines = useCallback(
+    (menuItemIds: string[]) => {
+      const drop = new Set(menuItemIds);
+      const current = loadItems(tableId);
+      const updated = current.filter((i) => !drop.has(i.menuItemId));
+      if (updated.length === current.length) return;
+      setItems(updated);
+      saveItems(tableId, updated);
+      // An emptied cart starts over with a fresh placement key, as clearCart does.
+      if (updated.length === 0) {
+        setPlacementKey(null);
+        try {
+          sessionStorage.removeItem(placementKeyStorageKey(tableId));
+        } catch {
+          // ignore
+        }
+      }
+    },
+    [tableId]
+  );
+
+  const refreshPrices = useCallback(
+    (menu: MenuPrice[]): CartRefreshResult => {
+      // Read the saved cart, not React state: the result must be right even when called right after another update.
+      const current = loadItems(tableId);
+      const byId = new Map(menu.map((m) => [m.id, m]));
+      const removed: string[] = [];
+      let repriced = false;
+      const updated: CartItem[] = [];
+      for (const line of current) {
+        const fresh = byId.get(line.menuItemId);
+        if (!fresh) {
+          removed.push(line.name);
+          continue;
+        }
+        if (fresh.price_cents !== line.priceCents) repriced = true;
+        updated.push({ ...line, name: fresh.name ?? line.name, priceCents: fresh.price_cents });
+      }
+      const changed = removed.length > 0 || repriced || updated.some((u, i) => u.name !== current[i].name);
+      if (changed) {
+        setItems(updated);
+        saveItems(tableId, updated);
+      }
+      return { removed, repriced };
+    },
+    [tableId]
+  );
+
   const ensurePlacementKey = useCallback((): string => {
     const stored = loadPlacementKey(tableId);
     if (stored) {
@@ -188,5 +299,16 @@ export function useCart(tableId: string): UseCartResult {
 
   const totalCents = items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0);
 
-  return { items, totalCents, placementKey, addItem, removeItem, updateQuantity, clearCart, ensurePlacementKey };
+  return {
+    items,
+    totalCents,
+    placementKey,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    removeLines,
+    refreshPrices,
+    ensurePlacementKey,
+  };
 }

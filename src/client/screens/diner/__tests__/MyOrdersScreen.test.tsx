@@ -52,7 +52,7 @@ function RenderWithSSE({ initialEvent = null }: { initialEvent?: SSEEvent | null
   const [event, setEvent] = useState<SSEEvent | null>(initialEvent);
   return (
     <>
-      <MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={event} />
+      <MyOrdersScreen tableId="5" lastSSEEvent={event} />
       <button
         data-testid="trigger-sse"
         onClick={() => setEvent({ type: 'ORDER_STATUS_CHANGED', data: { order_number: 1 } })}
@@ -66,13 +66,13 @@ function RenderWithSSE({ initialEvent = null }: { initialEvent?: SSEEvent | null
 describe('MyOrdersScreen', () => {
   it('shows loading shimmer while fetching orders', async () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
     expect(screen.getByTestId('orders-loading')).toBeInTheDocument();
   });
 
   it('regression: line prices use the contract fields and never show $NaN', async () => {
     mockFetchOrders([PREPARING_ORDER]);
-    const { container } = render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    const { container } = render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
     await waitFor(() => expect(screen.getByText(/2× Fries/)).toBeInTheDocument());
     expect(container.textContent).toContain('$9.00');
     expect(container.textContent).not.toContain('NaN');
@@ -80,7 +80,7 @@ describe('MyOrdersScreen', () => {
 
   it('renders orders from API', async () => {
     mockFetchOrders([PENDING_ORDER, PREPARING_ORDER]);
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('orders-screen')).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('MyOrdersScreen', () => {
 
   it('shows correct status pill for each order status', async () => {
     mockFetchOrders([PENDING_ORDER, PREPARING_ORDER]);
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('orders-screen')).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('MyOrdersScreen', () => {
 
   it('shows empty state when no orders', async () => {
     mockFetchOrders([]);
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('orders-empty')).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('MyOrdersScreen', () => {
   it('shows Cancelled pill for cancelled orders', async () => {
     const cancelledOrder = { ...PENDING_ORDER, order_number: 99, status: 'Cancelled' };
     mockFetchOrders([PENDING_ORDER, cancelledOrder]);
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('orders-screen')).toBeInTheDocument();
@@ -170,7 +170,7 @@ describe('MyOrdersScreen', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [preparing] }) } as Response);
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
     await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('btn-cancel-order-1'));
     await act(async () => {
@@ -179,6 +179,54 @@ describe('MyOrdersScreen', () => {
 
     await waitFor(() => expect(screen.getByTestId('cancel-notice')).toHaveTextContent('can no longer be cancelled'));
     expect(screen.getByTestId('order-status-1')).toHaveTextContent('Preparing');
+  });
+
+  it('regression: a network failure while cancelling shows a clear error in that order\'s card', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [PENDING_ORDER, PREPARING_ORDER] }) } as Response)
+      // The cancel request never reaches the server
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
+    await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('btn-cancel-order-1'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('btn-confirm-cancel-1'));
+    });
+
+    const message = await screen.findByTestId('cancel-error-1');
+    expect(message).toHaveTextContent("We couldn't cancel this order. Check your connection and try again.");
+    // It sits in the card of the order that failed, the list stays, and the diner can try again
+    expect(screen.getByTestId('order-card-1')).toContainElement(message);
+    expect(screen.queryByTestId('cancel-error-2')).toBeNull();
+    expect(screen.getByTestId('order-status-1')).toHaveTextContent('Pending');
+    expect(screen.getByTestId('btn-cancel-order-1')).toBeEnabled();
+  });
+
+  it('the cancel error goes away when the diner tries again', async () => {
+    const cancelled = { ...PENDING_ORDER, status: 'Cancelled' };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [PENDING_ORDER] }) } as Response)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ order_number: 1, status: 'Cancelled' }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [cancelled] }) } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
+    await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('btn-cancel-order-1'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('btn-confirm-cancel-1'));
+    });
+    await screen.findByTestId('cancel-error-1');
+
+    fireEvent.click(screen.getByTestId('btn-cancel-order-1'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('btn-confirm-cancel-1'));
+    });
+    await waitFor(() => expect(screen.getByTestId('order-status-1')).toHaveTextContent('Cancelled'));
+    expect(screen.queryByTestId('cancel-error-1')).toBeNull();
   });
 
   it('shows cancel button for Pending orders and completes cancel flow', async () => {
@@ -202,7 +250,7 @@ describe('MyOrdersScreen', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 
     // Wait for order to appear
     await waitFor(() => {
@@ -226,7 +274,7 @@ describe('MyOrdersScreen', () => {
 
   it('hides cancel confirm when Keep it is clicked', async () => {
     mockFetchOrders([PENDING_ORDER]);
-    render(<MyOrdersScreen tableId="5" visitId="visit-1" lastSSEEvent={null} />);
+    render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument();

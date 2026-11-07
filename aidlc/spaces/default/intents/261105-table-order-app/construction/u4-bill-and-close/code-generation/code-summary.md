@@ -75,6 +75,24 @@ Second review (3 Minor findings):
 - **`CLOSE_BLOCKED` test strengthened.** "CLOSE_BLOCKED shows its banner, fetches the bill again and shows the blocking order with Close table disabled" now makes the mocked bill gain a blocking order after the 422, and checks a second bill fetch, a disabled Close table button and the note "One or more orders still open: #20". The screen already refetched after `CLOSE_BLOCKED` (and `TABLE_EMPTY`), so `TableBillScreen.tsx` needed no fix for this point.
 - **Focus after a failed close.** The error banner (`close-error-banner`) has `tabIndex={-1}` and takes focus when a close fails, so keyboard users land on the message while the Close table button is still disabled. New test: three cases (`CLOSE_BLOCKED`, `TABLE_EMPTY`, an internal error). `ConfirmModal` now skips restoring focus to an opener that is disabled by the time it closes; new test in `ConfirmModal.test.tsx`. Its other callers behave as before.
 
+## Review findings fixed (replay)
+
+Step 0 fixes the five Minor findings of the kitchen board's review. It was built in the main folder.
+
+1. **Stale or lost board cards (`useBoardOrders.ts`).**
+   - The board now reads every table again each time the live stream (re)connects, so a table closed while the stream was down no longer stays as a stale card. This runs on the change from not connected to connected only, so it does not loop.
+   - Each read remembers what the stream reported while it was on its way: a `TABLE_CLOSED` (the table is not brought back by the read's older answer), and orders placed or changed by event (the event wins over the older read, and an order placed meanwhile keeps its "new" highlight).
+   - An older answer that arrives after a newer one is ignored, and a table that cannot be read keeps its card.
+   - Tests (`useBoardOrders.test.ts`, 19, was 11), including "regression: a table closed while the board is still loading does not come back when the first fetch resolves".
+2. **One table-id helper (`billing.ts`).** The bill routes use the shared `routes/tableId.ts` and their own copy is deleted. Bill and close behave as before (`billing.test.ts` 15 and `billing-api.test.ts` 9, unchanged and green).
+3. **Order numbers (`orders.ts`, `tableId.ts`).** `POST /api/orders/:order_number/transition` reads only plain digits, 1 or more. `12abc`, `0`, `-1`, `1e1`, `1.0` answer 404 `UNKNOWN_ORDER` in the error envelope and change nothing. Tests: 8 new in `api.test.ts` (52, was 44), including "regression: an order number with trailing text is refused, not read as the number in front of it".
+4. **HELLO only to the connection that opened (`sse.ts`, `routes/sse.ts`).** HELLO used to be published to the whole channel, so every existing subscriber got one each time another client connected, and it was stored for replay. A new `sendEvent(res, ...)` writes it to the new connection only, with no id, and it is never replayed. The dead `_lastEventId` variable and the stale TODO are removed (replay from Last-Event-ID is done by `subscribe`). Tests: 3 in `sse.test.ts` (15, was 12) and the new `sse-hello.test.ts` (3, over real connections), including "regression: an existing staff subscriber receives no HELLO when another client connects".
+5. **FR2.2 reading recorded.** One line under "Assumptions & Open Questions" in `inception/requirements-analysis/requirements.md`: a card per table with an open visit.
+
+## Step 20: the Unit's traceability record
+
+`traceability.json` now lists the Unit's stories and requirements besides its business rules: US7.1, US7.2, FR3.1 to FR3.5 and NFR4, each `OK` with an existing implementation or test file (NFR4: `billingRepo.ts`, whose bill has no tax or service line). `sensor-traceability --stage code-generation` lists only the BR ids as upstream, so the extra rows were added by hand to both `upstream_ids` and `coverage`, and the command leaves the file as it is. `sensor-traceability --stage build-and-test` now reports `"pass":true` with `"uncovered":[]`, and FR3.1 to FR3.5 and NFR4 as covered by this Unit. No application code changed in this step.
+
 ## Deviations from the plan
 
 - The plan asks for 5 Playwright flows; there are 6 (Flow 5 was split into a live "closed from another session" flow and a "409 already closed" flow).

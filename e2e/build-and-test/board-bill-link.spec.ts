@@ -12,11 +12,6 @@ test.afterEach(async ({ request, baseURL }) => {
 });
 
 test('regression: a table whose orders are all completed stays on the board until it is closed, so staff can open its bill', async ({ page, request, baseURL }) => {
-  // KNOWN DEFECT, fix planned in U3 `u3-kitchen-board` Step 17a (Build and Test Loop-back 1): until it lands this
-  // test is expected to fail, so the other Units' checks can run. Playwright reports a failure if it passes
-  // while this line is still here: remove the line when the fix is in.
-  test.fail(true, 'Known defect: a table with only completed orders leaves the board (U3 Step 17a)');
-
   const url = baseURL!;
   await request.post(`${url}/api/menu/items/i-01/availability`, { data: { available: true } });
 

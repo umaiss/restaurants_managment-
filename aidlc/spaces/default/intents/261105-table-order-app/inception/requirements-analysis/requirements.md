@@ -39,7 +39,7 @@
 | ID | Requirement | Pass/Fail Criterion | Source |
 |---|---|---|---|
 | FR2.1 | The staff view opens at `/staff` with no login or PIN. | Navigating to `/staff` loads the Kitchen Board directly. | [Q3] |
-| FR2.2 | The Kitchen Board shows a card per table with its open orders and status. | For each table with open orders, a card appears listing the orders. | [desc] |
+| FR2.2 | The Kitchen Board shows a card per table with its open orders and status. | For each table with an open visit (any order in its current visit, whatever its status), a card appears listing the orders, and it stays until the table is closed. | [desc] |
 | FR2.3 | A newly placed order appears on the Kitchen Board within 2 seconds of placement and is highlighted as new. | Placing an order triggers the card update within 2 seconds and the order is visibly highlighted. | [desc] |
 | FR2.4 | A new order stays highlighted until a staff member moves it to Preparing. | The highlight clears only on the Pending → Preparing transition. | [assumption] |
 | FR2.5 | Staff can move an order status forward: Pending → Preparing → Completed. | Each transition succeeds; backward transitions are refused. | [desc], [assumption] |
@@ -122,6 +122,7 @@ Toggled by staff only; does not affect existing orders. [Q4]
 - Prices use one currency, with no tax or service charge. [assumption]
 - Archived visits are stored but shown nowhere. [assumption]
 - "Close table" is unavailable when a table has no orders. [assumption]
+- FR2.2's "a card per table with its open orders" is read as "a card per table with an open visit": a table stays on the Kitchen Board while its current visit has any order, whatever its status, and leaves it only when the table is closed, so staff can always reach the bill to close it. (Added at U3 Build and Test Loop-back 1; AI decision under the team's review rule.) [assumption]
 - Status is shown with words or icons, never by colour alone. [assumption]
 - The corner-case requirements are recommended defaults. [assumption]
 
