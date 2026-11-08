@@ -32,6 +32,13 @@ type FetchMockArgs = {
 
 function setupFetchMock({ tableOrders = {} }: FetchMockArgs = {}) {
   vi.stubGlobal('fetch', vi.fn((url: string) => {
+    // U7 (BR4.1, BR10.3): the board reads the table list from the server; v1's tests assumed 10 tables.
+    if (url.includes('/api/staff/tables')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ tables: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, label: `Table ${i + 1}`, open_calls: [] })) }),
+      });
+    }
     // Menu
     if (url.includes('/api/menu')) {
       return Promise.resolve({

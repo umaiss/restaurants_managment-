@@ -10,6 +10,8 @@ export interface BillLine {
   price_cents_each: number;
   subtotal_cents: number;
   image?: string;
+  /** Frozen chosen options (v2); the line price already includes them (U7 BR9.1, BR9.2). */
+  options?: Array<{ label: string; price_delta_cents: number }>;
 }
 
 export interface BillOrder {

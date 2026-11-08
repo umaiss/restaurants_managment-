@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import NewHighlight from './NewHighlight';
 import { staffFetch } from '../../staff/staffAuth';
+import TicketTimer from '../../staff/board/TicketTimer';
+import { optionsText } from '../../staff/board/optionsText';
 import type { Order, OrderStatus, OrderLine } from '../../hooks/useBoardOrders';
 
 const STATUS_ICONS: Record<OrderStatus, string> = {
@@ -107,8 +109,10 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
             <span>{STATUS_ICONS[order.status]}</span>
             <span>{order.status}</span>
           </span>
-          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {formatTime(order.placed_at)}
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* U7 BR2.1, BR2.2: the ticket timer (green, amber "Slow", red "Late"; a finished ticket stops) */}
+            <TicketTimer placedAt={order.placed_at} completedAt={order.completed_at} status={order.status} orderNumber={order.order_number} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatTime(order.placed_at)}</span>
           </span>
         </div>
 
@@ -117,10 +121,19 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
           {order.lines.map((line: OrderLine, idx: number) => (
             <li
               key={`${line.menu_item_id}-${idx}`}
-              style={{ display: 'flex', gap: '0.25rem', fontSize: '0.875rem', marginBottom: '0.15rem' }}
+              style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', fontSize: '0.875rem', marginBottom: '0.15rem' }}
             >
               <span>×{line.quantity}</span>
               <span>{line.name}</span>
+              {/* U7 BR2.3: the chosen options under the item name, as text */}
+              {line.options && line.options.length > 0 && (
+                <span
+                  data-testid={`line-options-${order.order_number}-${idx}`}
+                  style={{ flexBasis: '100%', paddingLeft: 'var(--space-4)', color: 'var(--text-2)', fontSize: 'var(--text-sm)' }}
+                >
+                  {optionsText(line.options)}
+                </span>
+              )}
             </li>
           ))}
         </ul>

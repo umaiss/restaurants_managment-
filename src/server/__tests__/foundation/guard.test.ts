@@ -23,10 +23,8 @@ const STAFF_ROUTES: Array<[Method, string, object?]> = [
   ['post', '/api/specials', { item_id: 'i-04', special_price_cents: 900, stock: 5, minutes: 30 }],
   ['delete', '/api/specials/current'],
   ['post', '/api/service-calls/some-id/respond'],
-];
-
-/** The routes U7 owns, shipped as guarded stubs (BR14.1). */
-const STUB_ROUTES: Array<[Method, string]> = [
+  // U7 (Bolt 7): the routes it built, still behind the guard. No body is sent, so a signed-in call is refused
+  // by the route's own checks (400, 404 or 422) and never writes anything.
   ['get', '/api/staff/stations/Grill/board'],
   ['post', '/api/staff/orders/1/stations/Grill/done'],
   ['get', '/api/staff/menu'],
@@ -38,8 +36,15 @@ const STUB_ROUTES: Array<[Method, string]> = [
   ['get', '/api/staff/tables'],
   ['get', '/api/staff/sales'],
   ['get', '/api/staff/ratings'],
-  ['get', '/api/staff/qr/1'],
 ];
+
+/**
+ * The routes U7 owns that are still guarded stubs (BR14.1). U7 (Bolt 7) built the stations, menu, floor and
+ * sales modules, so their entries are gone from this list: a route that works must not be expected to answer
+ * 501. They are checked for the guard (401 first) in STAFF_ROUTES below. Only the QR stub is left, because
+ * U7 draws the QR codes in the browser and leaves that module as U5 made it.
+ */
+const STUB_ROUTES: Array<[Method, string]> = [['get', '/api/staff/qr/1']];
 
 describe('the staff guard', () => {
   beforeEach(() => {

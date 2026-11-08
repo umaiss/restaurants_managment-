@@ -23,6 +23,10 @@ const json = (status: number, body?: unknown) => ({
 beforeEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
+  // U7 (Bolt 7): the pages are real now, so they read their routes and open the live stream. They are stood in
+  // for here, as the v1 screens are above: a stream that never speaks and reads that never answer.
+  vi.stubGlobal('EventSource', class { addEventListener() {} close() {} });
+  vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
 });
 afterEach(() => {
   cleanup();
@@ -90,16 +94,18 @@ describe('StaffShell', () => {
     expect(screen.getByTestId('nav-board')).not.toHaveAttribute('aria-current');
   });
 
+  // U7 (Bolt 7) built these pages, so they are no longer placeholders: each shows its own page.
   it.each([
-    ['/staff/floor', 'Floor map'],
-    ['/staff/menu', 'Menu management'],
-    ['/staff/special', "Chef's special"],
-    ['/staff/sales', 'Past visits and sales'],
-    ['/staff/qr', 'QR codes'],
-    ['/staff/stations/Grill', 'Grill station'],
-  ])('%s shows its placeholder page "%s"', (path, title) => {
+    ['/staff/floor', 'Floor map', 'floor-map'],
+    ['/staff/menu', 'Menu management', 'menu-management'],
+    ['/staff/special', "Chef's special", 'special-page'],
+    ['/staff/sales', 'Past visits and sales', 'sales-page'],
+    ['/staff/qr', 'QR codes', 'qr-page'],
+    ['/staff/stations/Grill', 'Grill station', 'station-page'],
+  ])('%s shows its page "%s"', (path, title, testId) => {
     shell(path);
-    expect(screen.getByTestId('page-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId(testId)).toBeInTheDocument();
+    expect(screen.queryByTestId('page-placeholder')).toBeNull();
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
   });
 
@@ -200,6 +206,10 @@ describe('StaffView: the PIN screen in front of every staff address (BR1.7, BR1.
         signedIn = true;
         return json(204);
       }
+      // U7 (Bolt 7): the Sales page reads its own routes, and those answers are fine; only the explicit
+      // request below is refused.
+      if (url.startsWith('/api/staff/sales')) return json(200, { days: [] });
+      if (url.startsWith('/api/staff/ratings')) return json(200, { day: '2026-11-08', best: [], worst: [], tie_rule: '' });
       return json(401);
     });
     vi.stubGlobal('fetch', fetchMock);

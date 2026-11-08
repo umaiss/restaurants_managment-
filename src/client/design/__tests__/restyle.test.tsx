@@ -11,8 +11,10 @@ const boardOrders = new Map([
   [3, [{ order_number: 11, table_id: 3, status: 'Pending', placed_at: '2026-11-08T12:00:00Z', visit_id: 'v', lines: [{ menu_item_id: 'i-01', name: 'Garlic Bread', quantity: 2, price_cents_each: 650, subtotal_cents: 1300 }] }]],
   [4, [{ order_number: 12, table_id: 4, status: 'Completed', placed_at: '2026-11-08T12:01:00Z', visit_id: 'w', lines: [{ menu_item_id: 'i-02', name: 'House Salad', quantity: 1, price_cents_each: 850, subtotal_cents: 850 }] }]],
 ]);
-vi.mock('../../hooks/useBoardOrders.js', () => ({ useBoardOrders: () => ({ ordersByTable: boardOrders, loading: false, connected: true }) }));
-vi.mock('../../hooks/useBoardOrders', () => ({ useBoardOrders: () => ({ ordersByTable: boardOrders, loading: false, connected: true }) }));
+// U7 (BR4.1, BR3.1, BR3.2): the hook also returns the table list, the open requests and the live events.
+const boardHook = { ordersByTable: boardOrders, loading: false, connected: true, tables: [], error: false, callsByTable: new Map(), events: [], reload: () => {} };
+vi.mock('../../hooks/useBoardOrders.js', () => ({ useBoardOrders: () => boardHook }));
+vi.mock('../../hooks/useBoardOrders', () => ({ useBoardOrders: () => boardHook }));
 vi.mock('../../hooks/useBill', () => ({
   useBill: () => ({
     bill: {

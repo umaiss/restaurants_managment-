@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BillOrder } from '../../hooks/useBill';
 import { formatMoney, formatPlacedTime } from './money';
+import { optionsText } from '../../staff/board/optionsText';
 
 const STATUS_ICONS: Record<string, string> = {
   Pending: '⏳',
@@ -73,6 +74,15 @@ export default function BillOrderCard({ order, index = 0 }: { order: BillOrder; 
             <span>
               {line.image ? <span aria-hidden="true">{line.image} </span> : null}
               {line.name} <span style={{ color: 'var(--text-secondary)' }}>× {line.quantity}</span>
+              {/* U7 BR9.1: the chosen options under the item name; lines with none show nothing extra */}
+              {line.options && line.options.length > 0 && (
+                <span
+                  data-testid={`bill-line-options-${order.order_number}-${idx}`}
+                  style={{ display: 'block', color: 'var(--text-2)', fontSize: 'var(--text-sm)' }}
+                >
+                  {optionsText(line.options)}
+                </span>
+              )}
             </span>
             <span style={{ color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
               {formatMoney(line.price_cents_each)} each

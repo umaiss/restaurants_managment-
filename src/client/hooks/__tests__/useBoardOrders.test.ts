@@ -70,8 +70,18 @@ function makeOrder(overrides: Partial<{
   };
 }
 
+/**
+ * U7 (BR4.1, BR10.3): the board reads the table list from the server instead of a fixed 10 tables. This is
+ * the list v1's tests assumed, 10 tables with no open requests.
+ */
+const TEN_TABLES = {
+  ok: true,
+  json: () => Promise.resolve({ tables: Array.from({ length: 10 }, (_, i) => ({ id: i + 1, label: `Table ${i + 1}`, open_calls: [] })) }),
+};
+
 function setupFetchMock(tableOrders: Record<number, ReturnType<typeof makeOrder>[]> = {}) {
   vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url.includes('/api/staff/tables')) return Promise.resolve(TEN_TABLES);
     const match = /\/api\/tables\/(\d+)\/orders/.exec(url);
     if (match) {
       const tableId = parseInt(match[1], 10);
@@ -264,6 +274,8 @@ describe('useBoardOrders', () => {
       vi.stubGlobal(
         'fetch',
         vi.fn((url: string) => {
+          // U7: the table list answers at once and is not one of the order reads these tests count.
+          if (url.includes('/api/staff/tables')) return Promise.resolve(TEN_TABLES);
           const match = /\/api\/tables\/(\d+)\/orders/.exec(url);
           const tableId = match ? parseInt(match[1], 10) : 0;
           calls.orders += 1;
