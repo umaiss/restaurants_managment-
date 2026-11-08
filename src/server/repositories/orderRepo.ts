@@ -7,6 +7,7 @@
  */
 import { getDb, openVisit as dbOpenVisit, getCurrentVisit, nextOrderNumber } from '../db.js';
 import { toIso } from '../time.js';
+import { getLastClosedVisitId } from './tableRepo.js';
 import type { Station } from '../config.js';
 import { endIfSoldOut, getSpecialById, isLive, reduceSpecialStock } from './specialsRepo.js';
 
@@ -512,6 +513,16 @@ export function getOrdersByVisit(visitId: string): OrderWithItems[] {
       subtotal_cents,
     };
   });
+}
+
+/**
+ * U6 BR10.1: the orders of the table's most recently closed visit (the same shape as getOrdersByVisit),
+ * or an empty list when the table was never closed. The visit is the one tableRepo picks by parsed time.
+ * Cancelled orders are kept here; the Rate-your-meal screen leaves their dishes out.
+ */
+export function getOrdersOfLastClosedVisit(tableId: number): OrderWithItems[] {
+  const visitId = getLastClosedVisitId(tableId);
+  return visitId ? getOrdersByVisit(visitId) : [];
 }
 
 export function getOrderByNumber(orderNumber: number): {

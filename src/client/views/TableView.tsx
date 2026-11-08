@@ -16,8 +16,14 @@ export default function TableView() {
   const [tableClosed, setTableClosed] = useState(false);
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+  // The notice "Same again" leaves for the Cart (U6 BR8.2); it goes when the diner leaves the Cart.
+  const [sameAgainNotice, setSameAgainNotice] = useState<string | null>(null);
   // Apply the saved theme on every diner page (BR10.2); U6's Settings sheet changes it through the same hook.
   useTheme();
+
+  useEffect(() => {
+    if (activeTab !== 'cart') setSameAgainNotice(null);
+  }, [activeTab]);
 
   // After an order is placed the diner lands on My orders; the confirmation stays for 3 seconds.
   useEffect(() => {
@@ -257,7 +263,7 @@ export default function TableView() {
             <ul style={{ fontSize: '0.85rem', margin: 0, paddingLeft: '1.2rem' }}>
               {placedOrder.droppedLines.map((l) => (
                 <li key={l.menu_item_id}>
-                  {l.quantity}× {l.name} sold out and was removed
+                  {l.quantity}× {l.name} {l.reason ?? 'sold out'} and was removed
                 </li>
               ))}
             </ul>
@@ -266,8 +272,11 @@ export default function TableView() {
         {activeTab === 'cart' && (
           <CartScreen
             tableId={tableId}
+            events={events}
+            notice={sameAgainNotice}
             onBackToMenu={() => setActiveTab('menu')}
             onOrderPlaced={(placed) => {
+              setSameAgainNotice(null);
               setPlacedOrder(placed);
               setActiveTab('orders');
             }}
@@ -277,6 +286,12 @@ export default function TableView() {
           <MyOrdersScreen
             tableId={tableId}
             lastSSEEvent={lastEvent}
+            events={events}
+            onSameAgain={(notice) => {
+              // U6 BR8.2: the Cart opens with the one notice
+              setSameAgainNotice(notice);
+              setActiveTab('cart');
+            }}
           />
         )}
         </div>
@@ -352,9 +367,10 @@ export default function TableView() {
       />
 
       {/* Table closed overlay */}
-      <TableClosedTakeover visible={tableClosed} />
-      {/* Mount point U6 fills (BR14.2): Rate your meal, shown once the table is closed */}
-      {tableClosed && <RatingFeature tableId={tableId} events={events} />}
+      {/* U6 BR6.2: Rate your meal sits below the closed message, once the table is closed */}
+      <TableClosedTakeover visible={tableClosed}>
+        {tableClosed && <RatingFeature tableId={tableId} events={events} />}
+      </TableClosedTakeover>
     </div>
   );
 }

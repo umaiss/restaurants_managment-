@@ -35,6 +35,17 @@ function mockFetchOrders(orders: object[]) {
   );
 }
 
+// U6 changed this test (see code-summary "v1 tests changed"): the call card now reads the table's calls when
+// My orders opens, a request these order-by-order mocks would otherwise take for the answer meant for the next
+// order request. The calls request is answered here on its own; every other request goes to the mock as before.
+function callsAware(mock: ReturnType<typeof vi.fn>) {
+  return vi.fn((url: string, init?: RequestInit) =>
+    String(url).includes('/calls')
+      ? Promise.resolve({ ok: true, json: async () => ({ calls: [] }) } as Response)
+      : mock(url, init)
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -141,7 +152,7 @@ describe('MyOrdersScreen', () => {
         json: async () => ({ orders: [{ ...PENDING_ORDER, status: 'Preparing' }] }),
       } as Response);
 
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', callsAware(fetchMock));
 
     render(<RenderWithSSE />);
 
@@ -168,7 +179,7 @@ describe('MyOrdersScreen', () => {
       // The cancel is refused: staff moved the order to Preparing first
       .mockResolvedValueOnce({ ok: false, status: 422, json: async () => ({ error: { code: 'ILLEGAL_TRANSITION' } }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [preparing] }) } as Response);
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', callsAware(fetchMock));
 
     render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
     await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
@@ -186,7 +197,7 @@ describe('MyOrdersScreen', () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [PENDING_ORDER, PREPARING_ORDER] }) } as Response)
       // The cancel request never reaches the server
       .mockRejectedValueOnce(new TypeError('Failed to fetch'));
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', callsAware(fetchMock));
 
     render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
     await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
@@ -211,7 +222,7 @@ describe('MyOrdersScreen', () => {
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValueOnce({ ok: true, json: async () => ({ order_number: 1, status: 'Cancelled' }) } as Response)
       .mockResolvedValueOnce({ ok: true, json: async () => ({ orders: [cancelled] }) } as Response);
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', callsAware(fetchMock));
 
     render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
     await waitFor(() => expect(screen.getByTestId('btn-cancel-order-1')).toBeInTheDocument());
@@ -248,7 +259,7 @@ describe('MyOrdersScreen', () => {
         json: async () => ({ orders: [cancelledOrder] }),
       } as Response);
 
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', callsAware(fetchMock));
 
     render(<MyOrdersScreen tableId="5" lastSSEEvent={null} />);
 

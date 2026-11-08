@@ -5,7 +5,7 @@
  * when stock changed), BR3.6 (completed_at on ORDER_STATUS_CHANGED).
  */
 import { Router } from 'express';
-import { placeOrderAtTable, transitionOrder, getOrdersByVisit, type OrderStatus, type PlaceOrderInputLine } from '../repositories/orderRepo.js';
+import { placeOrderAtTable, transitionOrder, getOrdersByVisit, getOrdersOfLastClosedVisit, type OrderStatus, type PlaceOrderInputLine } from '../repositories/orderRepo.js';
 import { getTableStatus } from '../repositories/tableRepo.js';
 import { getCurrentVisit } from '../db.js';
 import { getCurrentSpecial } from '../repositories/specialsRepo.js';
@@ -172,6 +172,13 @@ router.get('/tables/:id/orders', (req, res) => {
   const { visit } = req.query as { visit?: string };
 
   try {
+    // U6 BR10.1 (additive): visit=last_closed answers the same body for the table's most recently
+    // closed visit. visit=current and v1's behaviour are unchanged; an unknown value stays an empty list.
+    if (visit === 'last_closed') {
+      res.json({ orders: getOrdersOfLastClosedVisit(tableId) });
+      return;
+    }
+
     let visitId: string | null = null;
     if (visit === 'current') {
       const currentVisit = getCurrentVisit(tableId);

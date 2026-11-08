@@ -2,26 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { SSEEvent } from '../../hooks/useTableSSE.js';
 import { HelpCardFeature, TrackerFeature, SameAgainFeature } from '../../diner/features/registry.js';
 
-interface OrderLine {
-  menu_item_id: string;
-  name: string;
-  quantity: number;
-  price_cents_each: number;
-  subtotal_cents: number;
-}
+import type { DinerOrder, DinerOrderStatus } from '../../diner/features/menuTypes.js';
 
-type OrderStatus = 'Pending' | 'Preparing' | 'Completed' | 'Cancelled';
-
-interface Order {
-  order_number: number;
-  status: OrderStatus;
-  placed_at: string;
-  lines: OrderLine[];
-}
+type OrderStatus = DinerOrderStatus;
+type Order = DinerOrder;
 
 interface MyOrdersScreenProps {
   tableId: string;
   lastSSEEvent: SSEEvent | null;
+  /** The table's live events (the call card listens to them). */
+  events?: SSEEvent[];
+  /** "Same again" finished: the one notice for the Cart (BR8.2). */
+  onSameAgain?: (notice: string) => void;
 }
 
 const STATUS_ICONS: Record<OrderStatus, string> = {
@@ -47,7 +39,7 @@ function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreenProps) {
+export default function MyOrdersScreen({ tableId, lastSSEEvent, events, onSameAgain }: MyOrdersScreenProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -181,9 +173,7 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
   return (
     <div data-testid="orders-screen" style={{ padding: '1rem', paddingBottom: '5rem' }}>
       {/* Mount points U6 fills (BR14.2): the call card, the tracker and "Same again" */}
-      <HelpCardFeature tableId={tableId} />
-      <TrackerFeature tableId={tableId} />
-      <SameAgainFeature tableId={tableId} />
+      <HelpCardFeature tableId={tableId} events={events} />
       {cancelNotice && (
         <div
           data-testid="cancel-notice"
@@ -258,11 +248,16 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                 </div>
               </div>
 
+              {/* U6: the tracker (US14.1) and the wait text (US9.1), beside the status */}
+              <div style={{ padding: '0 0.75rem' }}>
+                <TrackerFeature tableId={tableId} order={order} />
+              </div>
+
               {/* Line items */}
               <div style={{ padding: '0.5rem 0.75rem 0.75rem' }}>
-                {order.lines.map((line) => (
+                {order.lines.map((line, lineIndex) => (
                   <div
-                    key={line.menu_item_id}
+                    key={`${line.menu_item_id}-${lineIndex}`}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -272,12 +267,27 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                   >
                     <span>
                       {line.quantity}× {line.name}
+                      {/* U6: the options the line was ordered with */}
+                      {line.options && line.options.length > 0 && (
+                        <span
+                          className="secondary"
+                          data-testid={`order-line-options-${order.order_number}-${lineIndex}`}
+                          style={{ display: 'block', fontSize: '0.8rem', paddingLeft: '1rem' }}
+                        >
+                          {line.options.map((o) => o.label).join(', ')}
+                        </span>
+                      )}
                     </span>
                     <span style={{ color: 'var(--text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                       {formatPrice(line.subtotal_cents)}
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* U6 US16.1: "Same again" on a past order (renders only for a Completed one) */}
+              <div style={{ padding: '0 0.75rem 0.75rem', display: order.status === 'Completed' ? undefined : 'none' }}>
+                <SameAgainFeature tableId={tableId} order={order} onDone={onSameAgain} />
               </div>
 
               {/* Cancel button — only for Pending orders */}

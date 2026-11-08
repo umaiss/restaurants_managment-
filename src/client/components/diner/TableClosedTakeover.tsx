@@ -2,13 +2,15 @@ import React from 'react';
 
 interface TableClosedTakeoverProps {
   visible: boolean;
+  /** U6: Rate your meal, shown below the closed message. */
+  children?: React.ReactNode;
 }
 
 /**
  * Full-screen overlay shown when the TABLE_CLOSED SSE event is received.
  * Appears with a 300ms fade-in transition. Clears reduced-motion gracefully.
  */
-export default function TableClosedTakeover({ visible }: TableClosedTakeoverProps) {
+export default function TableClosedTakeover({ visible, children }: TableClosedTakeoverProps) {
   if (!visible) return null;
 
   return (
@@ -24,7 +26,9 @@ export default function TableClosedTakeover({ visible }: TableClosedTakeoverProp
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        // with Rate your meal below the message, start at the top and scroll (U6 BR6.2)
+        justifyContent: children ? 'flex-start' : 'center',
+        overflowY: 'auto',
         background: 'var(--overlay-strong)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
@@ -58,6 +62,7 @@ export default function TableClosedTakeover({ visible }: TableClosedTakeoverProp
       >
         Thanks for visiting!
       </p>
+      {children}
       <style>{`
         @keyframes tableClosedFadeIn {
           from { opacity: 0; }

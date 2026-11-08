@@ -228,7 +228,10 @@ describe('TableView: a table closed while this device was away', () => {
       });
 
       await waitFor(() => expect(localStorage.getItem(MARKER_KEY)).toBe('visit-x'));
-      expect(storedCart()).toEqual([LATER_ITEM]);
+      // U6 changed this line (see code-summary "v1 tests changed"): when the cart is saved again, the v1-shaped line
+      // is written in the new line model, so it carries the new fields besides the v1 ones.
+      expect(storedCart()).toMatchObject([LATER_ITEM]);
+      expect(storedCart()[0]).toMatchObject({ lineId: 'i-02', optionChoices: [] });
       expect(screen.queryByTestId('table-closed-takeover')).toBeNull();
     });
 

@@ -34,10 +34,29 @@ describe('diner feature mount points', () => {
     }
   });
 
-  it.each(COMPONENTS)('the %s placeholder renders nothing, whatever it is given', (_folder, name) => {
-    const Feature = (registry as unknown as Record<string, React.ComponentType<{ tableId: string; events?: never[] }>>)[name];
-    const { container } = render(<Feature tableId="5" events={[]} />);
-    expect(container).toBeEmptyDOMElement();
+  // U6 changed this test (see code-summary "v1 tests changed"): U6 fills the help-card and settings folders, and
+  // their blocks (the call card, the Settings gear) are always on the screen. The others still show nothing until
+  // they have something to show (no item for the options sheet, no allergy set, no order for the tracker, ...).
+  const ALWAYS_SHOWN = ['help-card', 'settings'];
+  it.each(COMPONENTS.filter(([folder]) => !ALWAYS_SHOWN.includes(folder)))(
+    'the %s mount point renders nothing while it has nothing to show',
+    (_folder, name) => {
+      const Feature = (registry as unknown as Record<string, React.ComponentType<{ tableId: string; events?: never[] }>>)[name];
+      const { container } = render(<Feature tableId="5" events={[]} />);
+      expect(container).toBeEmptyDOMElement();
+    }
+  );
+
+  it('the help-card and settings mount points show their controls', () => {
+    const Help = registry.HelpCardFeature;
+    const Settings = registry.SettingsFeature;
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ calls: [] }) })));
+    const a = render(<Help tableId="5" events={[]} />);
+    expect(a.getByTestId('call-waiter')).toBeInTheDocument();
+    a.unmount();
+    const b = render(<Settings tableId="5" events={[]} />);
+    expect(b.getByTestId('open-settings')).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });
 

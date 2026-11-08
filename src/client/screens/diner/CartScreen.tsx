@@ -1,11 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { useCart, type MenuPrice } from '../../hooks/useCart.js';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCart } from '../../hooks/useCart.js';
 import ConfirmModal from '../../components/ConfirmModal.js';
 import { EstimateFeature } from '../../diner/features/registry.js';
+import { AllergyWarning, useAllergyList } from '../../diner/features/allergies/index.js';
+import { cartAllergyHits, type CartHit } from '../../diner/features/allergies/allergyLogic.js';
+import { fetchCurrentSpecial } from '../../diner/features/api.js';
+import { lineLimit, refreshNotice, type RefreshSpecial } from '../../diner/features/cartModel.js';
+import { takePendingCartNotice } from '../../diner/features/cartNotice.js';
+import { useNewEvents } from '../../diner/features/liveHelpers.js';
+import type { DinerMenuItem } from '../../diner/features/menuTypes.js';
+import { sendOrder } from '../../diner/features/orderSend.js';
+import type { SSEEvent } from '../../hooks/useTableSSE.js';
 
 export interface PlacedOrder {
   orderNumber: number;
-  droppedLines: Array<{ menu_item_id: string; name: string; quantity: number }>;
+  /** `reason` says why the server dropped the line, in words ("sold out", "the Chef's special ran out", ...). */
+  droppedLines: Array<{ menu_item_id: string; name: string; quantity: number; reason?: string }>;
 }
 
 interface CartScreenProps {
@@ -13,6 +23,10 @@ interface CartScreenProps {
   onOrderPlaced?: (placed: PlacedOrder) => void;
   /** Called by the empty cart's "Back to menu" link. */
   onBackToMenu?: () => void;
+  /** The table's live events: a menu, availability or special change refreshes the cart (BR1.4). */
+  events?: SSEEvent[];
+  /** The one notice "Same again" leaves for the Cart (BR8.2). */
+  notice?: string | null;
 }
 
 function formatPrice(cents: number): string {
@@ -23,89 +37,132 @@ function formatPrice(cents: number): string {
 // the confirmation there), so only the states that stay on this screen are tracked here.
 type OrderStatus = 'idle' | 'posting' | 'error';
 
-export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: CartScreenProps) {
-  const { items, totalCents, removeItem, updateQuantity, clearCart, refreshPrices, ensurePlacementKey } =
+export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu, events, notice }: CartScreenProps) {
+  const { items, totalCents, removeItem, updateQuantity, clearCart, refreshCart, ensurePlacementKey } =
     useCart(tableId);
+  const allergies = useAllergyList();
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [orderStatus, setOrderStatus] = useState<OrderStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
+  // A notice left by a refresh that ran while the Cart was closed is shown as soon as the Cart opens.
+  const [refreshNote, setRefreshNote] = useState<string | null>(() => takePendingCartNotice(tableId));
+  const [warning, setWarning] = useState<{ hits: CartHit[]; unchecked: boolean } | null>(null);
+  const menuRef = useRef<DinerMenuItem[] | null>(null);
+  const sending = useRef(false); // W2 step 5: one tap sends one order
+  const checking = useRef(false); // the allergy check is running (the menu may still be loading)
+  const [checkingUi, setCheckingUi] = useState(false);
 
   const isEmpty = items.length === 0;
 
-  // Prices are copied into the cart when an item is added. Check them against the current menu when
-  // the cart opens, so the total shown is the total the server will charge. A failed check changes nothing.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  // BR1.4 / D3: prices, options and specials are copied into the cart when an item is added. Check them against
+  // the current menu and special when the cart opens and when they change, so the total shown is the total the
+  // server will charge. A failed check changes nothing. Returns whether the menu could be read.
+  const refresh = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/menu');
+      if (!res.ok) return false;
+      const data = (await res.json()) as { items?: unknown };
+      // An empty menu means "not ready", not "everything was removed": leave the cart alone.
+      if (!Array.isArray(data.items) || data.items.length === 0) return false;
+      const list = data.items as DinerMenuItem[];
+      menuRef.current = list;
+      let special: RefreshSpecial | null | undefined;
       try {
-        const res = await fetch('/api/menu');
-        if (!res.ok) return;
-        const data = (await res.json()) as { items?: unknown };
-        // An empty menu means "not ready", not "everything was removed": leave the cart alone.
-        if (cancelled || !Array.isArray(data.items) || data.items.length === 0) return;
-        const result = refreshPrices(data.items as MenuPrice[]);
-        if (result.removed.length > 0) {
-          setRefreshNotice(`No longer on the menu and removed from your cart: ${result.removed.join(', ')}.`);
-        } else if (result.repriced) {
-          setRefreshNotice('Some prices changed on the menu. Your cart total has been updated.');
-        }
+        special = await fetchCurrentSpecial();
       } catch {
-        // Offline or the menu is unreachable: keep the cart as it is.
+        special = undefined;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshPrices]);
+      const text = refreshNotice(refreshCart(list, special));
+      if (text) setRefreshNote(text);
+      return true;
+    } catch {
+      // Offline or the menu is unreachable: keep the cart as it is.
+      return false;
+    }
+  }, [refreshCart]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useNewEvents(events, (ev) => {
+    if (ev.type === 'MENU_CHANGED' || ev.type === 'MENU_AVAILABILITY_CHANGED' || ev.type === 'SPECIAL_CHANGED') void refresh();
+  });
+
+  // BR2.2 / D6: the warning comes first when the cart holds a marked item; it is asked every time.
+  async function handlePlaceClick() {
+    // One tap at a time: ignored while the menu is being read for the check and while a dialog is open
+    if (isEmpty || orderStatus === 'posting' || checking.current || warning || showConfirm) return;
+    checking.current = true;
+    setCheckingUi(true);
+    try {
+      if (allergies.length > 0) {
+        let menu = menuRef.current;
+        if (!menu) {
+          await refresh();
+          menu = menuRef.current;
+        }
+        if (!menu) {
+          setWarning({ hits: [], unchecked: true }); // cannot check: say so rather than pass silently
+          return;
+        }
+        const hits = cartAllergyHits(items, menu, allergies);
+        if (hits.length > 0) {
+          setWarning({ hits, unchecked: false });
+          return;
+        }
+      }
+      setShowConfirm(true);
+    } finally {
+      checking.current = false;
+      setCheckingUi(false);
+    }
+  }
 
   async function handlePlaceOrder() {
-    if (isEmpty) return;
+    if (isEmpty || sending.current) return;
+    sending.current = true;
     setShowConfirm(false);
+    setWarning(null);
     setOrderStatus('posting');
     setErrorMessage(null);
 
     try {
       // A cart restored in a new tab has no placement key yet; make one now so Place order always works.
       const placementKey = ensurePlacementKey();
-      const res = await fetch(`/api/tables/${tableId}/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          placement_key: placementKey,
-          lines: items.map((i) => ({ menu_item_id: i.menuItemId, quantity: i.quantity })),
-        }),
-      });
+      const result = await sendOrder(tableId, placementKey, items);
 
-      if (res.ok) {
-        // The server reports a sold-out line as { menu_item_id, reason }; name it from the cart.
-        const data = (await res.json()) as {
-          order_number: number;
-          dropped_lines?: Array<{ menu_item_id: string; reason?: string }>;
-        };
-        const dropped = (data.dropped_lines ?? []).map((d) => {
-          const line = items.find((i) => i.menuItemId === d.menu_item_id);
-          return { menu_item_id: d.menu_item_id, name: line?.name ?? d.menu_item_id, quantity: line?.quantity ?? 1 };
-        });
+      if (result.kind === 'placed') {
         clearCart();
-        onOrderPlaced?.({ orderNumber: data.order_number, droppedLines: dropped });
+        onOrderPlaced?.({ orderNumber: result.orderNumber, droppedLines: result.dropped });
         return;
       }
-
-      const data = (await res.json().catch(() => ({}))) as { error?: { message?: string }; message?: string };
-      setErrorMessage(data.error?.message ?? data.message ?? 'We could not place your order. Please try again.');
+      if (result.kind === 'empty') {
+        // BR1.6: every line was dropped. The cart stays; the refresh names why each line is no longer available.
+        await refresh();
+        setRefreshNote((prev) => `Nothing could be ordered. ${prev ?? 'Those items are no longer available.'}`);
+        setOrderStatus('idle');
+        return;
+      }
+      if (result.kind === 'invalid_options') {
+        // BR1.5: nothing is lost; the refresh brings the lines in line.
+        await refresh();
+        setRefreshNote((prev) => `An option needed attention, so your cart was checked again. ${prev ?? ''}`.trim());
+        setOrderStatus('idle');
+        return;
+      }
+      setErrorMessage(result.message);
       setOrderStatus('error');
-    } catch {
-      setErrorMessage('Network error. Please try again.');
-      setOrderStatus('error');
+    } finally {
+      sending.current = false;
     }
   }
 
   return (
     <div data-testid="cart-screen" style={{ padding: '1rem', paddingBottom: '8rem' }}>
       {/* Menu changed since items were added: say what happened to the cart */}
-      {refreshNotice && (
+      {refreshNote && (
         <div
           data-testid="cart-refresh-notice"
           role="status"
@@ -118,7 +175,25 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
             marginBottom: '1rem',
           }}
         >
-          {refreshNotice}
+          {refreshNote}
+        </div>
+      )}
+
+      {/* U6 BR8.2: what "Same again" added and skipped */}
+      {notice && (
+        <div
+          data-testid="cart-same-again-notice"
+          role="status"
+          style={{
+            padding: '0.6rem 0.9rem',
+            borderRadius: '0.6rem',
+            background: 'var(--accent-soft)',
+            color: 'var(--accent-text)',
+            fontSize: '0.9rem',
+            marginBottom: '1rem',
+          }}
+        >
+          {notice}
         </div>
       )}
 
@@ -203,8 +278,8 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
           </div>
           {items.map((item, index) => (
             <div
-              key={item.menuItemId}
-              data-testid={`cart-item-${item.menuItemId}`}
+              key={item.lineId}
+              data-testid={`cart-item-${item.lineId}`}
               className="stagger hover-lift"
               style={{
                 '--i': index,
@@ -220,6 +295,19 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
             >
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{item.name}</div>
+                {item.specialId && (
+                  <span className="badge badge-accent" data-testid={`cart-special-${item.lineId}`}>
+                    Chef's special
+                  </span>
+                )}
+                {/* U6 BR1.2: each chosen option under the name */}
+                {item.optionChoices.length > 0 && (
+                  <ul className="lines" data-testid={`cart-options-${item.lineId}`}>
+                    {item.optionChoices.map((c) => (
+                      <li className="opt" key={c.choiceId}>{c.label}</li>
+                    ))}
+                  </ul>
+                )}
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>
                   {formatPrice(item.priceCents)} each
                 </div>
@@ -228,8 +316,8 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
               {/* Quantity controls */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <button
-                  data-testid={`cart-decrease-${item.menuItemId}`}
-                  onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
+                  data-testid={`cart-decrease-${item.lineId}`}
+                  onClick={() => updateQuantity(item.lineId, item.quantity - 1)}
                   aria-label={`Decrease ${item.name} quantity`}
                   style={{
                     width: '2rem',
@@ -250,14 +338,15 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
                 <span
                   key={item.quantity}
                   className="bump"
-                  data-testid={`cart-qty-${item.menuItemId}`}
+                  data-testid={`cart-qty-${item.lineId}`}
                   style={{ minWidth: '1.5rem', textAlign: 'center', fontWeight: 600 }}
                 >
                   {item.quantity}
                 </span>
                 <button
-                  data-testid={`cart-increase-${item.menuItemId}`}
-                  onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
+                  data-testid={`cart-increase-${item.lineId}`}
+                  onClick={() => updateQuantity(item.lineId, item.quantity + 1)}
+                  disabled={item.quantity >= lineLimit(item)}
                   aria-label={`Increase ${item.name} quantity`}
                   style={{
                     width: '2rem',
@@ -292,7 +381,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
           ))}
 
           {/* Mount point U6 fills (BR14.2): the estimated wait */}
-          <EstimateFeature tableId={tableId} />
+          <EstimateFeature tableId={tableId} events={events} />
 
           {/* Total */}
           <div
@@ -337,8 +426,8 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
         <button
           data-testid="place-order-button"
           className="btn-primary"
-          disabled={isEmpty || orderStatus === 'posting'}
-          onClick={() => setShowConfirm(true)}
+          disabled={isEmpty || orderStatus === 'posting' || checkingUi}
+          onClick={() => void handlePlaceClick()}
           style={{
             width: '100%',
             padding: '0.75rem',
@@ -370,6 +459,11 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
         onConfirm={handlePlaceOrder}
         onCancel={() => setShowConfirm(false)}
       />
+
+      {/* U6 BR2.2: the allergy warning must be passed before an order with a marked item is placed */}
+      {warning && (
+        <AllergyWarning hits={warning.hits} unchecked={warning.unchecked} onConfirm={() => void handlePlaceOrder()} onBack={() => setWarning(null)} />
+      )}
 
       <style>{`
         @media (prefers-reduced-motion: reduce) {

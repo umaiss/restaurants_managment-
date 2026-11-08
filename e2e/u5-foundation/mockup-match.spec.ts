@@ -210,6 +210,7 @@ for (const theme of THEMES) {
         await page.goto('/table/5');
         await expect(page.getByTestId('menu-screen')).toBeVisible({ timeout: 8000 });
         await page.getByTestId('add-item-i-04').click();
+        await page.getByTestId('options-add').click(); // U6 changed this test: the burger has options, "+ Add" opens the sheet (no choice is required)
         await page.getByTestId('add-item-i-02').click();
         await expect(page.getByTestId('menu-cart-summary')).toContainText('View cart');
         await page.locator('main').evaluate((m) => m.scrollTo({ top: 520 })); // the mains, as in the mockup
@@ -235,6 +236,7 @@ for (const theme of THEMES) {
       await page.goto('/table/5');
       await expect(page.getByTestId('menu-screen')).toBeVisible({ timeout: 8000 });
       await page.getByTestId('add-item-i-04').click();
+      await page.getByTestId('options-add').click(); // U6 changed this test: the burger's options sheet opens
       await page.getByTestId('add-item-i-02').click();
       await page.getByTestId('tab-cart').click();
       await expect(page.getByTestId('cart-screen')).toBeVisible();
@@ -248,6 +250,7 @@ for (const theme of THEMES) {
       await savePair(browser, `diner-cart-${theme}.png`, await mock.shot('.phone', 0), await (async () => {
         await page.getByTestId('tab-menu').click();
         await page.getByTestId('add-item-i-04').click();
+        await page.getByTestId('options-add').click(); // U6 changed this test: the burger's options sheet opens
         await page.getByTestId('add-item-i-02').click();
         await page.getByTestId('tab-cart').click();
         await expect(page.getByTestId('cart-screen')).toBeVisible();

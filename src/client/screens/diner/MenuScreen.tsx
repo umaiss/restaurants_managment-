@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useCart } from '../../hooks/useCart.js';
 import { SpecialCardFeature, AllergiesFeature, OptionsFeature } from '../../diner/features/registry.js';
+import { AllergyMark, useAllergyList } from '../../diner/features/allergies/index.js';
+import { fetchCurrentSpecial } from '../../diner/features/api.js';
+import { refreshNotice, type RefreshSpecial } from '../../diner/features/cartModel.js';
+import { setPendingCartNotice } from '../../diner/features/cartNotice.js';
+import { allergyHits } from '../../diner/features/allergies/allergyLogic.js';
+import type { ChefSpecial, DinerMenuItem } from '../../diner/features/menuTypes.js';
+import type { OptionsAddPayload } from '../../diner/features/options/OptionsSheet.js';
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price_cents: number;
-  category_id: string;
-  // Legacy test-compat alias
-  category?: string;
-  image?: string;
-  image_url?: string;
-  available: boolean;
-}
+type MenuItem = DinerMenuItem;
 
 interface MenuCategory {
   id: string;
@@ -52,55 +48,124 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>(DEFAULT_CATEGORIES[0].id);
-  const { addItem, items: cartItems, refreshPrices } = useCart(tableId);
+  const { addItem, items: cartItems, refreshCart } = useCart(tableId);
+  const allergies = useAllergyList();
+  // The item whose options sheet is open (BR1.1, W1), with the special when it was opened from the card
+  const [optionsFor, setOptionsFor] = useState<{ item: MenuItem; special: ChefSpecial | null } | null>(null);
+  const itemsRef = useRef<MenuItem[]>([]);
+  const specialRef = useRef<RefreshSpecial | null | undefined>(undefined);
 
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const fetchMenu = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // BR1.4: bring the cart in line with the menu and the special; the notice waits for the Cart to open.
+  const syncCart = useCallback(
+    (list: MenuItem[], special: RefreshSpecial | null | undefined) => {
+      // An empty menu means "not ready", not "everything was removed", so it leaves the cart alone.
+      if (list.length === 0) return;
+      const text = refreshNotice(refreshCart(list, special));
+      if (text) setPendingCartNotice(tableId, text);
+    },
+    [refreshCart, tableId]
+  );
+
+  const fetchMenu = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const res = await fetch('/api/menu');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { items: MenuItem[]; categories: MenuCategory[] };
       setItems(data.items);
-      // Keep the cart's copied prices in line with the menu just loaded.
-      // (An empty menu means "not ready", not "everything was removed", so it leaves the cart alone.)
-      if (data.items.length > 0) refreshPrices(data.items);
+      itemsRef.current = data.items;
+      let special: RefreshSpecial | null | undefined;
+      try {
+        special = await fetchCurrentSpecial();
+      } catch {
+        special = undefined; // not known: a special line is left as it is
+      }
+      specialRef.current = special;
+      syncCart(data.items, special);
       if (data.categories && data.categories.length > 0) {
         setCategories(data.categories);
-        setActiveCategory(data.categories[0].id);
+        if (!silent) setActiveCategory(data.categories[0].id);
       }
     } catch (err) {
-      setError('Failed to load menu. Please try again.');
+      if (!silent) setError('Failed to load menu. Please try again.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [refreshPrices]);
+  }, [syncCart]);
 
   useEffect(() => {
     fetchMenu();
   }, [fetchMenu]);
 
-  // Apply sold-out changes as they arrive, so a diner who stays on the Menu sees them within
-  // seconds. Events from before this screen opened are already in the menu it just fetched.
+  // Apply live changes as they arrive, so a diner who stays on the Menu sees them within seconds.
+  // Events from before this screen opened are already in the menu it just fetched.
   const processedSeqRef = useRef(events.length > 0 ? (events[events.length - 1].seq ?? 0) : 0);
   useEffect(() => {
     for (const ev of events) {
       const seq = ev.seq ?? 0;
       if (seq <= processedSeqRef.current) continue;
       processedSeqRef.current = seq;
+      if (ev.type === 'MENU_CHANGED') {
+        void fetchMenu(true); // U6 BR1.4: reload quietly and refresh the cart
+        continue;
+      }
+      if (ev.type === 'SPECIAL_CHANGED') {
+        const sp = (ev.data as { special?: RefreshSpecial | null } | null)?.special;
+        specialRef.current = sp ?? null;
+        syncCart(itemsRef.current, sp ?? null);
+        continue;
+      }
       if (ev.type !== 'MENU_AVAILABILITY_CHANGED') continue;
       const data = ev.data as { menu_item_id?: string; available?: boolean };
       if (typeof data?.menu_item_id !== 'string' || typeof data.available !== 'boolean') continue;
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === data.menu_item_id ? { ...item, available: data.available as boolean } : item
-        )
+      const next = itemsRef.current.map((item) =>
+        item.id === data.menu_item_id ? { ...item, available: data.available as boolean } : item
       );
+      itemsRef.current = next;
+      setItems(next);
+      syncCart(next, specialRef.current);
     }
-  }, [events]);
+  }, [events, fetchMenu, syncCart]);
+
+  // BR1.1, W1: an item with options opens the sheet; any other item (and a special without options) adds straight.
+  function startAdd(item: MenuItem, special: ChefSpecial | null = null) {
+    if (item.options && item.options.length > 0) {
+      setOptionsFor({ item, special });
+      return;
+    }
+    if (special) {
+      addItem(item.id, item.name, special.special_price_cents, 1, {
+        basePriceCents: special.special_price_cents,
+        specialId: special.id,
+        maxQuantity: special.stock_left,
+      });
+    } else {
+      addItem(item.id, item.name, item.price_cents);
+    }
+  }
+
+  function addFromSheet(payload: OptionsAddPayload) {
+    if (!optionsFor) return;
+    const { item } = optionsFor;
+    addItem(item.id, item.name, payload.priceCents, 1, {
+      optionChoices: payload.optionChoices,
+      basePriceCents: payload.basePriceCents,
+      specialId: payload.specialId,
+      maxQuantity: payload.maxQuantity,
+    });
+    setOptionsFor(null);
+  }
+
+  function addSpecialFromCard(special: ChefSpecial) {
+    const item = itemsRef.current.find((i) => i.id === special.item_id);
+    if (item && item.available !== false) startAdd(item, special);
+  }
 
   // IntersectionObserver to highlight the active category pill
   useEffect(() => {
@@ -139,8 +204,14 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
     setActiveCategory(categoryId);
   }
 
+  // All lines of the item (an item with options can sit in the cart on several lines).
   function getCartQuantity(itemId: string): number {
-    return cartItems.find((i) => i.menuItemId === itemId)?.quantity ?? 0;
+    return cartItems.filter((i) => i.menuItemId === itemId).reduce((sum, i) => sum + i.quantity, 0);
+  }
+
+  // The plain line's quantity: only it can reach the 20 limit that disables "+ Add" (BR1.1).
+  function getPlainQuantity(itemId: string): number {
+    return cartItems.find((i) => i.lineId === itemId)?.quantity ?? 0;
   }
 
   if (loading) {
@@ -184,7 +255,7 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
         <p style={{ marginBottom: '1rem' }}>{error}</p>
         <button
           data-testid="menu-retry"
-          onClick={fetchMenu}
+          onClick={() => fetchMenu()}
           style={{
             padding: '0.65rem 1.5rem',
             borderRadius: '0.5rem',
@@ -212,9 +283,24 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
   return (
     <div data-testid="menu-screen" style={{ position: 'relative' }}>
       {/* Mount points U6 fills (BR14.2): the Chef's special card, allergy marks and the options sheet */}
-      <SpecialCardFeature tableId={tableId} events={events} />
+      <SpecialCardFeature
+        tableId={tableId}
+        events={events}
+        onAdd={addSpecialFromCard}
+        itemInfo={(id) => {
+          const it = items.find((i) => i.id === id);
+          return it ? { image: it.image_url ?? it.image, description: it.description } : undefined;
+        }}
+      />
       <AllergiesFeature tableId={tableId} events={events} />
-      <OptionsFeature tableId={tableId} events={events} />
+      <OptionsFeature
+        tableId={tableId}
+        events={events}
+        item={optionsFor?.item ?? null}
+        special={optionsFor?.special ?? null}
+        onAdd={addFromSheet}
+        onClose={() => setOptionsFor(null)}
+      />
       {/* Sticky category pill bar */}
       <div
         data-testid="category-pill-bar"
@@ -295,7 +381,9 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
                     index={index}
                     item={item}
                     cartQuantity={getCartQuantity(item.id)}
-                    onAdd={() => addItem(item.id, item.name, item.price_cents)}
+                    plainQuantity={getPlainQuantity(item.id)}
+                    allergies={allergies}
+                    onAdd={() => startAdd(item)}
                   />
                 ))}
               </div>
@@ -317,15 +405,22 @@ interface MenuItemCardProps {
   item: MenuItem;
   index: number;
   cartQuantity: number;
+  /** Quantity on the plain line (no options), the only line the 20 limit can disable "+ Add" for. */
+  plainQuantity: number;
+  allergies: readonly string[];
   onAdd: () => void;
 }
 
-function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
+function MenuItemCard({ item, index, cartQuantity, plainQuantity, allergies, onAdd }: MenuItemCardProps) {
   const soldOut = !item.available;
+  const hasOptions = !!item.options && item.options.length > 0;
+  const maxed = !hasOptions && plainQuantity >= 20;
+  const unsafe = allergyHits(item, allergies).length > 0;
 
   return (
     <div
-      className="hover-lift stagger"
+      className={['hover-lift', 'stagger', unsafe ? 'item-unsafe' : ''].filter(Boolean).join(' ')}
+      data-testid={`menu-item-${item.id}`}
       style={{
         '--i': index,
         display: 'flex',
@@ -402,6 +497,18 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
           </div>
         )}
 
+        {/* U6: "Make it yours" and the allergy mark (BR2.1) */}
+        {(hasOptions || unsafe || item.allergens === null) && (
+          <div className="row" style={{ marginBottom: '0.25rem', flexWrap: 'wrap' }}>
+            {hasOptions && (
+              <span className="badge badge-accent" data-testid={`make-it-yours-${item.id}`}>
+                Make it yours
+              </span>
+            )}
+            <AllergyMark item={item} allergies={allergies} />
+          </div>
+        )}
+
         {/* Price row + Add button */}
         <div
           style={{
@@ -439,25 +546,25 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
             <button
               className="add-pill"
               data-testid={`add-item-${item.id}`}
-              onClick={cartQuantity >= 20 ? undefined : onAdd}
-              disabled={cartQuantity >= 20}
-              aria-label={cartQuantity >= 20 ? `Maximum quantity reached for ${item.name}` : `Add ${item.name} to cart`}
+              onClick={maxed ? undefined : onAdd}
+              disabled={maxed}
+              aria-label={maxed ? `Maximum quantity reached for ${item.name}` : `Add ${item.name} to cart`}
               style={{
                 // 32px visual, 44px touch area
                 height: '32px',
                 minWidth: '44px',
                 padding: '0 0.75rem',
                 borderRadius: '999px',
-                background: cartQuantity >= 20
+                background: maxed
                   ? 'var(--border)'
                   : 'var(--accent)', // the filled "+ Add" pill of the design system
-                color: cartQuantity >= 20
+                color: maxed
                   ? 'var(--text-muted)'
                   : 'var(--accent-fg)',
-                border: cartQuantity >= 20
+                border: maxed
                   ? '1.5px solid var(--border-strong)'
                   : '1.5px solid var(--accent)',
-                cursor: cartQuantity >= 20 ? 'not-allowed' : 'pointer',
+                cursor: maxed ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 display: 'flex',
@@ -468,7 +575,7 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
                 position: 'relative',
               }}
             >
-              {cartQuantity >= 20 ? (
+              {maxed ? (
                 'Max'
               ) : (
                 <>
