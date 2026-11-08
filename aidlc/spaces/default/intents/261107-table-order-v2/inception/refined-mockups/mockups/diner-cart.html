@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diner Cart: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Diner: Cart (US8.1, US9.1, US10.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Left: the cart with options and the estimated wait. Right: Dina taps "Place order" with an unsafe item and gets the allergy warning first.</p>
+<div class="mock-stage">
+  <div>
+    <div class="phone"><div class="phone-screen" data-testid="cart-screen">
+      <header class="diner-header"><div><div class="title">Table 5</div><div class="live">Updated live</div></div><button class="icon-btn" aria-label="Settings">⚙</button></header>
+      <div class="screen-body">
+        <div class="row between"><h2>Your cart</h2><button class="btn btn-ghost btn-sm" data-testid="clear-cart">Clear cart</button></div>
+        <div class="card stack" style="gap:12px">
+          <div>
+            <div class="row between"><strong>1 × Classic Burger</strong><span class="price num">$18.50</span></div>
+            <ul class="lines"><li class="opt">Large</li><li class="opt">Extra cheese</li><li class="opt">No onions</li></ul>
+            <div class="row" style="margin-top:8px"><button class="btn btn-sm" aria-label="Fewer">−</button><span class="num" style="min-width:24px;text-align:center">1</span><button class="btn btn-sm" aria-label="More">+</button></div>
+          </div>
+          <hr style="border:0;border-top:1px solid var(--border);width:100%" />
+          <div>
+            <div class="row between"><strong>1 × House Salad</strong><span class="price num">$8.50</span></div>
+            <div class="row" style="margin-top:8px"><button class="btn btn-sm" aria-label="Fewer">−</button><span class="num" style="min-width:24px;text-align:center">1</span><button class="btn btn-sm" aria-label="More">+</button></div>
+          </div>
+        </div>
+        <div class="banner banner-info" data-testid="wait-estimate"><span aria-hidden="true">⏱</span><div><strong>Estimated wait: about 14 min</strong>Estimate, based on today's orders and how busy the kitchen is right now.</div></div>
+        <div class="row between card"><span class="secondary">Total</span><span class="price num" style="font-size:20px">$27.00</span></div>
+      </div>
+      <div class="cart-bar"><div><strong>Ready to order?</strong><div class="secondary" style="font-size:13px">2 items · $27.00</div></div><button class="btn btn-primary btn-sm" data-testid="menu-place-order">Place order</button></div>
+      <nav class="tabbar" data-testid="tab-bar" aria-label="Diner tabs">
+        <a class="tab" href="diner-menu.html"><span class="ico" aria-hidden="true">🍽</span>Menu</a>
+        <a class="tab" aria-current="page" href="#"><span class="ico" aria-hidden="true">🛒</span>Cart<span class="badge-count">2</span></a>
+        <a class="tab" href="diner-orders.html"><span class="ico" aria-hidden="true">🧾</span>My orders</a>
+      </nav>
+    </div></div>
+    <p class="mock-caption">Each option shows under its item and the line price includes it. The estimate is always labelled as an estimate.</p>
+  </div>
+  <div>
+    <div class="phone"><div class="phone-screen">
+      <header class="diner-header"><div><div class="title">Table 5</div><div class="live">Updated live</div></div><button class="icon-btn" aria-label="Settings">⚙</button></header>
+      <div class="screen-body" style="opacity:.45"><h2>Your cart</h2><div class="card">1 × Garlic Bread · $6.50</div></div>
+      <div class="scrim"></div>
+      <section class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="warn-title" data-testid="allergy-warning">
+        <div class="sheet-handle"></div>
+        <h2 id="warn-title">⚠ This order may not be safe for you</h2>
+        <p class="secondary">You told us you are allergic to <strong>dairy</strong>. These items contain it:</p>
+        <ul class="lines"><li><strong>Garlic Bread</strong> contains dairy</li></ul>
+        <p class="help">Marks are guidance, not a promise. Tell the staff about serious allergies.</p>
+        <button class="btn btn-primary" data-testid="allergy-confirm">Place order anyway</button>
+        <button class="btn" data-testid="allergy-back">Back to cart</button>
+      </section>
+    </div></div>
+    <p class="mock-caption">The order cannot finish without this extra confirmation (FR10.4).</p>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

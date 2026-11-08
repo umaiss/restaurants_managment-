@@ -1,7 +1,8 @@
 process.env.DB_FILE = ':memory:';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import request from 'supertest';
+// U5 (BR11.3): the sold-out toggle is a staff route, so the request carries the signed-in test staff cookie.
+import { requestAsStaff as request } from './helpers/staff.js';
 
 // Record every event the server publishes, while still delivering it.
 const published = vi.hoisted(() => [] as Array<{ channel: string; type: string; data: unknown }>);

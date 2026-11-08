@@ -26,11 +26,12 @@ export default function BillOrderCard({ order, index = 0 }: { order: BillOrder; 
       className="stagger hover-lift"
       style={{
         '--i': index,
-        background: 'var(--bg-secondary, #171b22)',
-        borderRadius: 'var(--radius-card, 12px)',
+        background: 'var(--bg-raised)',
+        borderRadius: 'var(--radius-md)',
         padding: '1rem',
         marginBottom: '0.75rem',
-        border: '1px solid var(--border, rgba(255,255,255,0.08))',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-card)',
       } as React.CSSProperties}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.625rem' }}>
@@ -51,7 +52,7 @@ export default function BillOrderCard({ order, index = 0 }: { order: BillOrder; 
           <span aria-hidden="true">{STATUS_ICONS[order.status] ?? ''}</span>
           <span>{order.status}</span>
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted, #7b8491)' }}>
+        <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           Placed {formatPlacedTime(order.placed_at)}
         </span>
       </div>
@@ -71,9 +72,9 @@ export default function BillOrderCard({ order, index = 0 }: { order: BillOrder; 
           >
             <span>
               {line.image ? <span aria-hidden="true">{line.image} </span> : null}
-              {line.name} <span style={{ color: 'var(--text-secondary, #a6aeb8)' }}>× {line.quantity}</span>
+              {line.name} <span style={{ color: 'var(--text-secondary)' }}>× {line.quantity}</span>
             </span>
-            <span style={{ color: 'var(--text-secondary, #a6aeb8)', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
               {formatMoney(line.price_cents_each)} each
             </span>
             <span style={{ minWidth: '4.5rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
@@ -90,7 +91,7 @@ export default function BillOrderCard({ order, index = 0 }: { order: BillOrder; 
           gap: '1rem',
           marginTop: '0.5rem',
           paddingTop: '0.5rem',
-          borderTop: '1px solid var(--border, rgba(255,255,255,0.08))',
+          borderTop: '1px solid var(--border)',
           fontWeight: 600,
           fontSize: '0.9rem',
         }}

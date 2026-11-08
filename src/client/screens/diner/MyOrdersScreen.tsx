@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SSEEvent } from '../../hooks/useTableSSE.js';
+import { HelpCardFeature, TrackerFeature, SameAgainFeature } from '../../diner/features/registry.js';
 
 interface OrderLine {
   menu_item_id: string;
@@ -179,6 +180,10 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
 
   return (
     <div data-testid="orders-screen" style={{ padding: '1rem', paddingBottom: '5rem' }}>
+      {/* Mount points U6 fills (BR14.2): the call card, the tracker and "Same again" */}
+      <HelpCardFeature tableId={tableId} />
+      <TrackerFeature tableId={tableId} />
+      <SameAgainFeature tableId={tableId} />
       {cancelNotice && (
         <div
           data-testid="cancel-notice"
@@ -209,10 +214,10 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
               className="stagger hover-lift"
               style={{
                 '--i': index,
-                borderRadius: '0.75rem',
-                background: 'var(--bg-secondary)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-card)',
                 overflow: 'hidden',
               } as React.CSSProperties}
             >
@@ -223,7 +228,7 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '0.75rem',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid var(--border)',
                 }}
               >
                 <span style={{ fontWeight: 700 }}>Order #{order.order_number}</span>
@@ -268,7 +273,7 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                     <span>
                       {line.quantity}× {line.name}
                     </span>
-                    <span style={{ color: 'var(--accent, #6366f1)', fontWeight: 600 }}>
+                    <span style={{ color: 'var(--text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                       {formatPrice(line.subtotal_cents)}
                     </span>
                   </div>
@@ -286,8 +291,8 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                         margin: '0 0 0.5rem',
                         padding: '0.5rem 0.7rem',
                         borderRadius: '0.5rem',
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        color: '#ef4444',
+                        background: 'var(--danger-soft)',
+                        color: 'var(--danger)',
                         fontSize: '0.85rem',
                       }}
                     >
@@ -301,8 +306,8 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                       style={{
                         padding: '0.65rem 0.75rem',
                         borderRadius: '0.5rem',
-                        background: 'rgba(239, 68, 68, 0.08)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        background: 'var(--danger-soft)',
+                        border: '1px solid var(--danger)',
                       }}
                     >
                       <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 500 }}>
@@ -317,8 +322,8 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                             padding: '0.45rem',
                             borderRadius: '0.4rem',
                             border: 'none',
-                            background: '#ef4444',
-                            color: '#fff',
+                            background: 'var(--danger)',
+                            color: 'var(--bg)',
                             cursor: 'pointer',
                             fontSize: '0.8rem',
                             fontWeight: 600,
@@ -333,7 +338,7 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                             flex: 1,
                             padding: '0.45rem',
                             borderRadius: '0.4rem',
-                            border: '1px solid rgba(255,255,255,0.15)',
+                            border: '1px solid var(--border-strong)',
                             background: 'transparent',
                             color: 'inherit',
                             cursor: 'pointer',
@@ -352,9 +357,9 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent }: MyOrdersScreen
                       style={{
                         padding: '0.4rem 0.9rem',
                         borderRadius: '0.4rem',
-                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        border: '1px solid var(--danger)',
                         background: 'transparent',
-                        color: '#ef4444',
+                        color: 'var(--danger)',
                         cursor: isCancelling ? 'not-allowed' : 'pointer',
                         fontSize: '0.8rem',
                         fontWeight: 500,

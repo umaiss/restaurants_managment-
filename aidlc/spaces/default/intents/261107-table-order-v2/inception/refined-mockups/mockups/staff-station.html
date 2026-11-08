@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kitchen station board: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: Grill station board (US13.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Kai works the Grill. Only Grill lines show. "Grill done" marks this station's part; the order is Completed only when every station that has lines in it is done.</p>
+<div class="mock-stage">
+  <div class="desk" data-testid="station-board">
+    <aside class="sidenav" aria-label="Staff navigation">
+      <div class="brand">Table Order</div>
+      <a href="staff-board.html" aria-current="page">🍳 Kitchen Board</a>
+      <a href="staff-floor.html">🗺 Floor map</a>
+      <a href="staff-menu.html">📋 Menu management</a>
+      <a href="staff-special.html">⭐ Chef's special</a>
+      <a href="staff-sales.html">📈 Past visits and sales</a>
+      <a href="staff-qr.html">▦ QR codes</a>
+      <div class="spacer"></div>
+      <a href="staff-pin.html">Sign out</a>
+    </aside>
+    <main class="main">
+      <div class="page-head"><div><h1>Kitchen Board</h1><div class="live" style="margin-top:4px">Updated live</div></div></div>
+      <div class="seg" role="group" aria-label="Station" style="align-self:flex-start">
+        <button aria-pressed="false">All stations</button><button aria-pressed="true">Grill</button><button aria-pressed="false">Cold</button><button aria-pressed="false">Bar</button><button aria-pressed="false">Desserts</button>
+      </div>
+      <div class="grid">
+        <article class="ticket" data-testid="station-ticket-12">
+          <div class="row between"><strong>Order #12 · Table 5</strong><span class="timer amber num">⏱ 9 min · Slow</span></div>
+          <ul class="lines"><li>1 × Classic Burger</li><li class="opt">Large, Extra cheese, No onions</li></ul>
+          <p class="help">Other stations on this order: Bar (done)</p>
+          <button class="btn btn-sm btn-primary" data-testid="grill-done-12">Grill done</button>
+        </article>
+        <article class="ticket" data-testid="station-ticket-14">
+          <div class="row between"><strong>Order #14 · Table 7</strong><span class="timer num">1 min</span></div>
+          <ul class="lines"><li>1 × Grilled Salmon</li></ul>
+          <p class="help">Other stations on this order: Bar (waiting)</p>
+          <button class="btn btn-sm btn-primary" data-testid="grill-done-14">Grill done</button>
+        </article>
+        <article class="ticket" style="opacity:.7" data-testid="station-ticket-9">
+          <div class="row between"><strong>Order #9 · Table 5</strong><span class="badge badge-completed">Grill done</span></div>
+          <ul class="lines"><li>1 × Garlic Bread</li></ul>
+          <p class="help">Waiting for: Desserts</p>
+        </article>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

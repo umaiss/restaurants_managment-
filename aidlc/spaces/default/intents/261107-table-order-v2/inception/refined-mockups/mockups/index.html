@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Table Order v2: all mockups</title>
+<link rel="stylesheet" href="design-system.css" />
+<style>
+  .wrap { max-width: 1100px; margin: 0 auto; padding: var(--space-8) var(--space-4) var(--space-12); display: flex; flex-direction: column; gap: var(--space-6); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--space-4); }
+  .tile { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); text-decoration: none; color: var(--text); min-height: 112px; transition: transform var(--t-normal) var(--ease-out); }
+  .tile:hover { transform: translateY(-2px); }
+  .tile strong { font-size: var(--text-md); } .tile span { color: var(--text-2); font-size: var(--text-sm); }
+</style>
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><strong>Table Order v2: refined mockups</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<main class="wrap">
+  <header><h1>Table Order v2: all mockups</h1><p class="secondary" style="margin-top:8px;max-width:720px">High-fidelity mockups of every new or changed screen, built on one small design system. Each page can be opened on its own, and each has a Follow device / Light / Dark switch in its toolbar. v1's own mockups are untouched.</p></header>
+  <section aria-labelledby="h-ds"><h2 id="h-ds" style="margin-bottom:12px">Design system</h2><div class="tiles">
+    <a class="tile" href="design-system.html" data-testid="tile-design-system"><strong>Design system</strong><span>Colours (dark and light), type scale, spacing, radius, shadows and components</span></a></div></section>
+  <section aria-labelledby="h-diner"><h2 id="h-diner" style="margin-bottom:12px">Diner screens (phone)</h2><div class="tiles">
+    <a class="tile" href="diner-menu.html" data-testid="tile-diner-menu"><strong>Menu</strong><span>Chef's special, allergy marks, options badge, category pills</span></a>
+    <a class="tile" href="diner-item-options.html" data-testid="tile-diner-options"><strong>Make it yours sheet</strong><span>Choose size, extras and leave-outs with a live line price</span></a>
+    <a class="tile" href="diner-cart.html" data-testid="tile-diner-cart"><strong>Cart</strong><span>Options on each line, estimated wait, allergy warning before ordering</span></a>
+    <a class="tile" href="diner-orders.html" data-testid="tile-diner-orders"><strong>My orders</strong><span>Ready banner, order tracker, estimate, Same again, Call the waiter</span></a>
+    <a class="tile" href="diner-settings.html" data-testid="tile-diner-settings"><strong>Settings sheet</strong><span>Allergies, theme (Dark mode) and sound</span></a>
+    <a class="tile" href="diner-closed-rate.html" data-testid="tile-diner-closed"><strong>Table closed and Rate your meal</strong><span>Thumbs up or down for each dish</span></a></div></section>
+  <section aria-labelledby="h-staff"><h2 id="h-staff" style="margin-bottom:12px">Staff screens (wide)</h2><div class="tiles">
+    <a class="tile" href="staff-pin.html" data-testid="tile-staff-pin"><strong>Staff PIN</strong><span>PIN entry, wrong PIN, locked</span></a>
+    <a class="tile" href="staff-board.html" data-testid="tile-staff-board"><strong>Kitchen Board: All stations</strong><span>New-order alert, ticket timers, options on tickets, call pulse</span></a>
+    <a class="tile" href="staff-station.html" data-testid="tile-staff-station"><strong>Kitchen Board: Grill station</strong><span>One station's lines, Grill done</span></a>
+    <a class="tile" href="staff-bill.html" data-testid="tile-staff-bill"><strong>Table Bill and Close table</strong><span>v1's bill in the new look, with options</span></a>
+    <a class="tile" href="staff-floor.html" data-testid="tile-staff-floor"><strong>Floor map</strong><span>Every table by state, live</span></a>
+    <a class="tile" href="staff-menu.html" data-testid="tile-staff-menu"><strong>Menu management</strong><span>Items, categories, options, allergens, stations</span></a>
+    <a class="tile" href="staff-special.html" data-testid="tile-staff-special"><strong>Chef's special</strong><span>Launch, countdown, stock, end early</span></a>
+    <a class="tile" href="staff-sales.html" data-testid="tile-staff-sales"><strong>Past visits and sales</strong><span>By day: totals, best sellers, average time, ratings</span></a>
+    <a class="tile" href="staff-qr.html" data-testid="tile-staff-qr"><strong>QR codes</strong><span>A printable code for every table</span></a></div></section>
+</main>
+<script src="mockup.js"></script>
+</body>
+</html>

@@ -69,12 +69,13 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
         bottom: 0,
         width: '320px',
         maxWidth: '100vw',
-        background: 'var(--bg-secondary, #1e1e2e)',
-        borderLeft: '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--bg-raised)',
+        color: 'var(--text)',
+        borderLeft: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         zIndex: 200,
-        boxShadow: '-4px 0 24px rgba(0,0,0,0.3)',
+        boxShadow: 'var(--shadow-sheet)',
         outline: 'none',
       }}
     >
@@ -85,7 +86,7 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '1rem',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Menu availability</h2>
@@ -96,7 +97,7 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: 'var(--text-secondary, #94a3b8)',
+            color: 'var(--text-secondary)',
             fontSize: '1.25rem',
             padding: '0.25rem',
           }}
@@ -108,12 +109,12 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem' }}>
         {loading && (
-          <p style={{ color: 'var(--text-secondary, #94a3b8)', textAlign: 'center' }}>Loading…</p>
+          <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>Loading…</p>
         )}
         {error && (
           <p
             role="alert"
-            style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '0.5rem' }}
+            style={{ color: 'var(--danger)', fontSize: '0.8rem', marginBottom: '0.5rem' }}
           >
             {error}
           </p>
@@ -131,7 +132,7 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
       <div
         style={{
           padding: '0.75rem 1rem',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
+          borderTop: '1px solid var(--border)',
         }}
       >
         <button
@@ -141,8 +142,9 @@ export default function MenuAvailabilityPanel({ onClose }: MenuAvailabilityPanel
             padding: '0.625rem',
             borderRadius: '0.5rem',
             border: 'none',
-            background: 'var(--accent, #f59e0b)',
-            color: '#000',
+            background: 'var(--accent)',
+            color: 'var(--accent-fg)',
+            minHeight: 'var(--touch)',
             fontWeight: 700,
             fontSize: '0.9rem',
             cursor: 'pointer',
@@ -170,10 +172,10 @@ function AvailabilityRow({ item, onToggle }: AvailabilityRowProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0.625rem 0',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid var(--border)',
       }}
     >
-      <span style={{ fontSize: '0.9rem', color: isSoldOut ? 'var(--text-secondary, #94a3b8)' : undefined }}>
+      <span style={{ fontSize: '0.9rem', color: isSoldOut ? 'var(--text-secondary)' : undefined }}>
         <span aria-hidden="true" style={{ marginRight: '0.5rem' }}>{item.image}</span>
         {item.name}
       </span>
@@ -193,7 +195,7 @@ function AvailabilityRow({ item, onToggle }: AvailabilityRowProps) {
           border: 'none',
           padding: '0.25rem 0.5rem',
           borderRadius: '0.25rem',
-          color: isSoldOut ? '#ef4444' : 'var(--text-secondary, #94a3b8)',
+          color: isSoldOut ? 'var(--danger)' : 'var(--text-secondary)',
         }}
       >
         <span
@@ -203,7 +205,7 @@ function AvailabilityRow({ item, onToggle }: AvailabilityRowProps) {
             width: '2.25rem',
             height: '1.25rem',
             borderRadius: '999px',
-            background: isSoldOut ? 'rgba(255,255,255,0.12)' : 'var(--accent, #ffb04a)',
+            background: isSoldOut ? 'var(--text-disabled)' : 'var(--accent)',
             transition: 'background 150ms ease',
           }}
         >
@@ -215,7 +217,7 @@ function AvailabilityRow({ item, onToggle }: AvailabilityRowProps) {
               width: '1rem',
               height: '1rem',
               borderRadius: '50%',
-              background: '#0f1218',
+              background: isSoldOut ? 'var(--bg)' : 'var(--accent-fg)',
               transition: 'left 150ms ease',
             }}
           />

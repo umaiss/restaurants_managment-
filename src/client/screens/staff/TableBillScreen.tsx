@@ -6,9 +6,10 @@ import BillTotal from '../../components/staff/BillTotal';
 import CloseTableSection from '../../components/staff/CloseTableSection';
 import ConfirmModal from '../../components/ConfirmModal';
 import { formatMoney } from '../../components/staff/money';
+import { staffFetch } from '../../staff/staffAuth';
 
 const SCREEN_STYLES = `
-  .bill-focusable:focus-visible { outline: 2px solid var(--accent, #ffb04a); outline-offset: 2px; }
+  .bill-focusable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @keyframes billShimmer { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { [data-testid="bill-loading"] > div { animation: none !important; } }
 `;
@@ -21,8 +22,8 @@ function BillShimmer() {
           key={i}
           style={{
             height: '96px',
-            borderRadius: 'var(--radius-card, 12px)',
-            background: 'rgba(255,255,255,0.05)',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-card)',
             animation: 'billShimmer 1.5s ease-in-out infinite',
           }}
         />
@@ -57,7 +58,7 @@ export default function TableBillScreen() {
     setClosing(true);
     setCloseError(null);
     try {
-      const res = await fetch(`/api/tables/${tableId}/close`, {
+      const res = await staffFetch(`/api/tables/${tableId}/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
@@ -94,7 +95,7 @@ export default function TableBillScreen() {
   const empty = !!bill && bill.orders.length === 0 && !bill.close_available;
 
   return (
-    <div data-testid="table-bill-screen" style={{ padding: '1rem', maxWidth: '56rem', margin: '0 auto' }}>
+    <div data-testid="table-bill-screen" style={{ maxWidth: '56rem' }}>
       <style>{SCREEN_STYLES}</style>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
@@ -106,8 +107,11 @@ export default function TableBillScreen() {
           style={{
             padding: '0.4rem 0.9rem',
             borderRadius: '0.375rem',
-            border: '1px solid var(--border, rgba(255,255,255,0.15))',
-            color: 'var(--text-primary, #f1f3f6)',
+            border: '1px solid var(--border-strong)',
+            color: 'var(--text)',
+            minHeight: 'var(--touch)',
+            display: 'inline-flex',
+            alignItems: 'center',
             textDecoration: 'none',
             fontSize: '0.85rem',
           }}
@@ -125,8 +129,8 @@ export default function TableBillScreen() {
           style={{
             padding: '1rem',
             borderRadius: '0.5rem',
-            background: 'rgba(255,107,107,0.12)',
-            border: '1px solid rgba(255,107,107,0.3)',
+            background: 'var(--danger-soft)',
+            border: '1px solid var(--danger)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -143,8 +147,8 @@ export default function TableBillScreen() {
               padding: '0.4rem 0.9rem',
               borderRadius: '0.375rem',
               border: 'none',
-              background: 'var(--accent, #ffb04a)',
-              color: 'var(--accent-fg, #0f1216)',
+              background: 'var(--accent)',
+              color: 'var(--accent-fg)',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -157,7 +161,7 @@ export default function TableBillScreen() {
       {bill && (
         <>
           {error && (
-            <p data-testid="bill-stale-note" role="status" style={{ fontSize: '0.8rem', color: 'var(--status-pending, #ffc75a)', marginBottom: '0.75rem' }}>
+            <p data-testid="bill-stale-note" role="status" style={{ fontSize: '0.8rem', color: 'var(--pending)', marginBottom: '0.75rem' }}>
               We cannot refresh the bill right now. Showing the last version.{' '}
               <button type="button" className="bill-focusable" onClick={reload} style={{ background: 'none', border: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>
                 Retry
@@ -178,8 +182,8 @@ export default function TableBillScreen() {
                 margin: '0.5rem 1rem',
                 padding: '0.6rem 0.8rem',
                 borderRadius: '0.375rem',
-                background: 'rgba(255,107,107,0.12)',
-                color: 'var(--danger, #ff6b6b)',
+                background: 'var(--danger-soft)',
+                color: 'var(--danger)',
                 fontSize: '0.875rem',
               }}
             >

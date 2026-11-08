@@ -1,4 +1,5 @@
 import { getDb, openVisit as dbOpenVisit, getCurrentVisit } from '../db.js';
+import { parseStoredTime, toIso } from '../time.js';
 
 export interface TableStatus {
   id: number;
@@ -10,13 +11,25 @@ export interface TableStatus {
   last_closed_visit_id: string | null;
 }
 
-function getLastClosedVisitId(tableId: number): string | null {
-  const row = getDb()
-    .prepare(
-      'SELECT id FROM visits WHERE table_id = ? AND closed_at IS NOT NULL ORDER BY closed_at DESC, rowid DESC LIMIT 1'
-    )
-    .get(tableId) as { id: string } | undefined;
-  return row?.id ?? null;
+/** True when a table with this id exists. */
+export function tableExists(tableId: number): boolean {
+  return getDb().prepare('SELECT 1 FROM tables WHERE id = ?').get(tableId) !== undefined;
+}
+
+/** The table's most recently closed visit (BR7.1 uses it for ratings), or null. */
+export function getLastClosedVisitId(tableId: number): string | null {
+  // Chosen by parsed time, not by comparing the text: v1 wrote "2026-11-05 12:00:00" and v2 writes ISO
+  // "2026-11-05T12:00:00.000Z", and the two do not sort correctly against each other as text (BR11.6).
+  // The row number breaks a tie.
+  const rows = getDb()
+    .prepare('SELECT id, closed_at, rowid AS rid FROM visits WHERE table_id = ? AND closed_at IS NOT NULL')
+    .all(tableId) as Array<{ id: string; closed_at: string; rid: number }>;
+  let best: { id: string; time: number; rid: number } | null = null;
+  for (const row of rows) {
+    const time = parseStoredTime(row.closed_at)?.getTime() ?? -Infinity;
+    if (!best || time > best.time || (time === best.time && row.rid > best.rid)) best = { id: row.id, time, rid: row.rid };
+  }
+  return best?.id ?? null;
 }
 
 export function getTableStatus(tableId: number): TableStatus {
@@ -77,7 +90,9 @@ export function closeCurrentVisit(tableId: number): string | null {
   const db = getDb();
   const visit = getCurrentVisit(tableId);
   if (!visit) return null;
-  db.prepare("UPDATE visits SET closed_at = datetime('now') WHERE id = ? AND table_id = ? AND closed_at IS NULL").run(
+  // BR11.6: times v2 writes are ISO 8601 UTC text.
+  db.prepare('UPDATE visits SET closed_at = ? WHERE id = ? AND table_id = ? AND closed_at IS NULL').run(
+    toIso(),
     visit.id,
     tableId
   );
@@ -95,8 +110,5 @@ export function hasClosedVisit(tableId: number): boolean {
 
 export function closeVisit(visitId: string, tableId: number): void {
   const db = getDb();
-  db.prepare("UPDATE visits SET closed_at = datetime('now') WHERE id = ? AND table_id = ?").run(
-    visitId,
-    tableId
-  );
+  db.prepare('UPDATE visits SET closed_at = ? WHERE id = ? AND table_id = ?').run(toIso(), visitId, tableId);
 }

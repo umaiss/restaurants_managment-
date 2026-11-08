@@ -34,7 +34,7 @@ function BoardEmptyState() {
         justifyContent: 'center',
         minHeight: '40vh',
         gap: '0.75rem',
-        color: 'var(--text-muted, #64748b)',
+        color: 'var(--text-muted)',
       }}
     >
       <span className="float" style={{ fontSize: '2.5rem' }}>⚪</span>
@@ -82,9 +82,9 @@ export default function KitchenBoardScreen() {
             padding: '0.5rem 1rem',
             marginBottom: '1rem',
             borderRadius: '0.375rem',
-            background: 'rgba(245,158,11,0.15)',
-            border: '1px solid rgba(245,158,11,0.3)',
-            color: '#f59e0b',
+            background: 'var(--pending-soft)',
+            border: '1px solid var(--pending)',
+            color: 'var(--pending)',
             fontSize: '0.875rem',
             textAlign: 'center',
           }}
@@ -112,19 +112,20 @@ export default function KitchenBoardScreen() {
                 width: '0.45rem',
                 height: '0.45rem',
                 borderRadius: '50%',
-                background: connected ? '#22c55e' : '#ef4444',
+                background: connected ? 'var(--completed)' : 'var(--danger)',
               }}
             />
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #94a3b8)' }}>Updated live</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Updated live</span>
           </span>
           <button
             onClick={() => setPanelOpen(true)}
             style={{
               padding: '0.4rem 0.9rem',
               borderRadius: '0.375rem',
-              border: '1px solid var(--border, rgba(255,255,255,0.15))',
+              border: '1px solid var(--border-strong)',
               background: 'none',
-              color: 'var(--text-primary, #f8fafc)',
+              color: 'var(--text)',
+              minHeight: 'var(--touch)',
               fontSize: '0.85rem',
               cursor: 'pointer',
             }}
@@ -185,10 +186,10 @@ function TableSection({ index, tableId, orders }: TableSectionProps) {
       className="stagger"
       style={{
         '--i': index,
-        background: 'var(--bg-secondary, #1e1e2e)',
-        borderRadius: '0.75rem',
+        background: 'var(--bg-raised)',
+        borderRadius: 'var(--radius-md)',
         padding: '0.875rem',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-card)',
       } as React.CSSProperties}
     >
@@ -201,7 +202,7 @@ function TableSection({ index, tableId, orders }: TableSectionProps) {
           style={{
             fontSize: '1rem',
             fontWeight: 700,
-            color: 'var(--accent, #f59e0b)',
+            color: 'var(--accent-text)',
             textDecoration: 'none',
           }}
         >
@@ -211,7 +212,7 @@ function TableSection({ index, tableId, orders }: TableSectionProps) {
       {!hasOpenOrder && (
         <p
           data-testid={`table-ready-to-close-${tableId}`}
-          style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary, #94a3b8)' }}
+          style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}
         >
           No open orders. Open the bill to close this table.
         </p>

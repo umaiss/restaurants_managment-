@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import NewHighlight from './NewHighlight';
+import { staffFetch } from '../../staff/staffAuth';
 import type { Order, OrderStatus, OrderLine } from '../../hooks/useBoardOrders';
 
 const STATUS_ICONS: Record<OrderStatus, string> = {
@@ -32,7 +33,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
     setInFlight(true);
     setTransitionError(null);
     try {
-      const response = await fetch(`/api/orders/${order.order_number}/transition`, {
+      const response = await staffFetch(`/api/orders/${order.order_number}/transition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ to: newStatus, by: 'staff' }),
@@ -66,11 +67,11 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         data-testid={`order-card-${order.order_number}`}
         className="pop-in hover-lift"
         style={{
-          background: 'var(--bg-secondary, #1e1e2e)',
-          borderRadius: '0.5rem',
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-md)',
           padding: '0.875rem',
           marginBottom: '0.5rem',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid var(--border)',
         }}
       >
         {/* Header: order number + status + time */}
@@ -106,7 +107,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
             <span>{STATUS_ICONS[order.status]}</span>
             <span>{order.status}</span>
           </span>
-          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted, #64748b)' }}>
+          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             {formatTime(order.placed_at)}
           </span>
         </div>
@@ -126,7 +127,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
 
         {/* Action buttons */}
         {transitionError && (
-          <p style={{ color: 'var(--danger, #ff6b6b)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>{transitionError}</p>
+          <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>{transitionError}</p>
         )}
         {cancelConfirming && (
           <div
@@ -138,7 +139,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               gap: '0.5rem',
               marginBottom: '0.5rem',
               padding: '0.375rem 0.5rem',
-              background: 'rgba(239,68,68,0.1)',
+              background: 'var(--danger-soft)',
               borderRadius: '0.375rem',
               fontSize: '0.8rem',
             }}
@@ -151,8 +152,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 padding: '0.25rem 0.625rem',
                 borderRadius: '0.25rem',
                 border: 'none',
-                background: '#ef4444',
-                color: '#fff',
+                background: 'var(--danger)',
+                color: 'var(--bg)',
                 fontWeight: 600,
                 fontSize: '0.75rem',
                 cursor: 'pointer',
@@ -166,7 +167,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               style={{
                 padding: '0.25rem 0.625rem',
                 borderRadius: '0.25rem',
-                border: '1px solid rgba(255,255,255,0.2)',
+                border: '1px solid var(--border-strong)',
                 background: 'transparent',
                 color: 'var(--text-secondary)',
                 fontWeight: 600,
@@ -189,8 +190,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.375rem',
                 border: 'none',
-                background: 'var(--accent, #ffb04a)',
-                color: 'var(--accent-fg, #0f1216)',
+                background: 'var(--accent)',
+                color: 'var(--accent-fg)',
                 fontWeight: 600,
                 fontSize: '0.8rem',
                 cursor: inFlight ? 'not-allowed' : 'pointer',
@@ -210,8 +211,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.375rem',
                 border: 'none',
-                background: 'var(--accent, #ffb04a)',
-                color: 'var(--accent-fg, #0f1216)',
+                background: 'var(--accent)',
+                color: 'var(--accent-fg)',
                 fontWeight: 600,
                 fontSize: '0.8rem',
                 cursor: inFlight ? 'not-allowed' : 'pointer',
@@ -229,9 +230,9 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               style={{
                 padding: '0.375rem 0.75rem',
                 borderRadius: '0.375rem',
-                border: '1px solid rgba(255,107,107,0.4)',
+                border: '1px solid var(--danger)',
                 background: 'transparent',
-                color: 'var(--danger, #ff6b6b)',
+                color: 'var(--danger)',
                 fontWeight: 600,
                 fontSize: '0.8rem',
                 cursor: inFlight ? 'not-allowed' : 'pointer',

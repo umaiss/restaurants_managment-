@@ -86,7 +86,7 @@ export default function ConfirmModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0,0,0,0.6)',
+        background: 'var(--scrim)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
         animation: 'fadeIn 150ms ease-out',
@@ -98,12 +98,14 @@ export default function ConfirmModal({
       <div
         className="pop-in"
         style={{
-          background: 'var(--bg-secondary, #1e1e2e)',
-          borderRadius: '1rem',
+          background: 'var(--bg-raised)',
+          color: 'var(--text)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
           padding: '1.5rem',
           maxWidth: '20rem',
           width: '90%',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow-sheet)',
         }}
       >
         <h2
@@ -118,7 +120,7 @@ export default function ConfirmModal({
         {message && (
           <p
             style={{
-              color: 'var(--text-secondary, #9ca3af)',
+              color: 'var(--text-secondary)',
               fontSize: '0.9rem',
               marginBottom: '1.25rem',
             }}
@@ -134,7 +136,7 @@ export default function ConfirmModal({
               flex: 1,
               padding: '0.65rem',
               borderRadius: '0.5rem',
-              border: '1px solid rgba(255,255,255,0.15)',
+              border: '1px solid var(--border-strong)',
               background: 'transparent',
               color: 'inherit',
               cursor: 'pointer',
@@ -152,8 +154,8 @@ export default function ConfirmModal({
               padding: '0.65rem',
               borderRadius: '0.5rem',
               border: 'none',
-              background: 'var(--accent, #6366f1)',
-              color: 'var(--accent-fg, #0f1216)',
+              background: 'var(--accent)',
+              color: 'var(--accent-fg)',
               cursor: 'pointer',
               fontSize: '0.9rem',
               fontWeight: 600,

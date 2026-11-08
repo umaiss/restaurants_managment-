@@ -5,7 +5,8 @@ vi.hoisted(() => {
   process.env.DB_FILE = ':memory:';
 });
 
-import request from 'supertest';
+// U5 (BR11.3): staff routes now need a session, so every request carries the signed-in test staff cookie.
+import { requestAsStaff as request } from './helpers/staff.js';
 import type { Response } from 'express';
 import { app } from '../index.js';
 import { resetDb, seedIfEmpty } from '../db.js';

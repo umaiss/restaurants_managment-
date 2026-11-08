@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { buildBill, closeTable, BillingError } from '../repositories/billingRepo.js';
 import { publish } from '../sse.js';
+import { requireStaff } from '../staffAccess.js';
 import { parseTableId, unknownTable } from './tableId.js';
 
 const router = Router();
 
-// GET /api/tables/:id/bill
-router.get('/tables/:id/bill', (req, res) => {
+// GET /api/tables/:id/bill — staff only (BR1.5)
+router.get('/tables/:id/bill', requireStaff(), (req, res) => {
   const tableId = parseTableId(req.params.id);
   if (tableId === null) {
     unknownTable(res, req.params.id);
@@ -24,8 +25,8 @@ router.get('/tables/:id/bill', (req, res) => {
   }
 });
 
-// POST /api/tables/:id/close
-router.post('/tables/:id/close', (req, res) => {
+// POST /api/tables/:id/close — staff only (BR1.5); also clears the visit's open service calls (BR6.3)
+router.post('/tables/:id/close', requireStaff(), (req, res) => {
   const tableId = parseTableId(req.params.id);
   if (tableId === null) {
     unknownTable(res, req.params.id);

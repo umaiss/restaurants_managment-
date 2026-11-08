@@ -7,6 +7,8 @@ import TableClosedTakeover from '../components/diner/TableClosedTakeover.js';
 import MenuScreen from '../screens/diner/MenuScreen.js';
 import CartScreen, { type PlacedOrder } from '../screens/diner/CartScreen.js';
 import MyOrdersScreen from '../screens/diner/MyOrdersScreen.js';
+import { SettingsFeature, ReadyBannerFeature, RatingFeature } from '../diner/features/registry.js';
+import { useTheme } from '../hooks/useTheme.js';
 
 export default function TableView() {
   const { id: tableId } = useParams<{ id: string }>();
@@ -14,6 +16,8 @@ export default function TableView() {
   const [tableClosed, setTableClosed] = useState(false);
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+  // Apply the saved theme on every diner page (BR10.2); U6's Settings sheet changes it through the same hook.
+  useTheme();
 
   // After an order is placed the diner lands on My orders; the confirmation stays for 3 seconds.
   useEffect(() => {
@@ -139,35 +143,46 @@ export default function TableView() {
       <header
         style={{
           padding: '1.25rem 1rem 0.75rem',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          background: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-bar)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
           flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <h1
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              letterSpacing: '-0.01em',
-              margin: 0,
-              flex: 1,
-            }}
-          >
-            Table {tableId}
-          </h1>
-          {/* SSE connection indicator */}
-          <span
-            title={connected ? 'Live' : 'Reconnecting…'}
-            className={connected ? 'live-dot' : undefined}
-            style={{
-              width: '0.5rem',
-              height: '0.5rem',
-              borderRadius: '50%',
-              background: connected ? '#22c55e' : '#ef4444',
-              flexShrink: 0,
-            }}
-          />
+          <div style={{ flex: 1 }}>
+            <h1
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                letterSpacing: '-0.01em',
+                margin: 0,
+              }}
+            >
+              Table {tableId}
+            </h1>
+            {/* SSE connection indicator, in words as well as colour */}
+            <span
+              data-testid="live-status"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: 'var(--text-xs)', color: connected ? 'var(--completed)' : 'var(--danger)' }}
+            >
+              <span
+                title={connected ? 'Live' : 'Reconnecting…'}
+                className={connected ? 'live-dot' : undefined}
+                style={{
+                  width: '0.5rem',
+                  height: '0.5rem',
+                  borderRadius: '50%',
+                  background: connected ? 'var(--completed)' : 'var(--danger)',
+                  flexShrink: 0,
+                }}
+              />
+              {connected ? 'Updated live' : 'Reconnecting…'}
+            </span>
+          </div>
+          {/* Mount point U6 fills (BR14.2): the Settings gear and sheet */}
+          <SettingsFeature tableId={tableId} events={events} />
         </div>
       </header>
 
@@ -190,9 +205,9 @@ export default function TableView() {
               margin: '0.5rem 1rem',
               padding: '0.5rem 0.75rem',
               borderRadius: '0.5rem',
-              background: 'rgba(234, 179, 8, 0.12)',
-              border: '1px solid rgba(234, 179, 8, 0.25)',
-              color: '#eab308',
+              background: 'var(--pending-soft)',
+              border: '1px solid var(--pending)',
+              color: 'var(--pending)',
               fontSize: '0.8rem',
               textAlign: 'center',
             }}
@@ -200,6 +215,8 @@ export default function TableView() {
             Reconnecting… Updates will resume shortly.
           </div>
         )}
+        {/* Mount point U6 fills (BR14.2): the "Order is ready" banner, on every tab */}
+        <ReadyBannerFeature tableId={tableId} events={events} />
         <div key={activeTab} className="screen-enter">
         {activeTab === 'menu' && <MenuScreen tableId={tableId} events={events} />}
         {placedOrder && placedOrder.droppedLines.length === 0 && (
@@ -211,9 +228,9 @@ export default function TableView() {
               margin: '0.5rem 1rem',
               padding: '0.75rem 1rem',
               borderRadius: '0.75rem',
-              background: 'rgba(34, 197, 94, 0.15)',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
-              color: '#22c55e',
+              background: 'var(--completed-soft)',
+              border: '1px solid var(--completed)',
+              color: 'var(--completed)',
               fontWeight: 600,
               textAlign: 'center',
             }}
@@ -229,9 +246,9 @@ export default function TableView() {
               margin: '0.5rem 1rem',
               padding: '0.75rem 1rem',
               borderRadius: '0.75rem',
-              background: 'rgba(234, 179, 8, 0.15)',
-              border: '1px solid rgba(234, 179, 8, 0.3)',
-              color: '#eab308',
+              background: 'var(--pending-soft)',
+              border: '1px solid var(--pending)',
+              color: 'var(--pending)',
             }}
           >
             <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>
@@ -271,19 +288,24 @@ export default function TableView() {
           data-testid="menu-cart-summary"
           className="diner-fixed slide-up"
           style={{
+            // A frosted rounded card floating just above the tab bar (mockup cart-bar)
             position: 'fixed',
-            bottom: 'var(--tab-bar-height, 56px)',
+            bottom: 'calc(var(--tab-bar-height, 56px) + var(--space-2))',
             left: 0,
             right: 0,
+            width: 'calc(100% - 2 * var(--space-4))',
+            maxWidth: 'calc(var(--diner-max) - 2 * var(--space-4))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '0.75rem',
             padding: '0.6rem 1rem',
-            background: 'var(--bg-tab-bar, rgba(15, 18, 22, 0.95))',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderTop: '1px solid var(--border, rgba(255,255,255,0.06))',
+            background: 'var(--bg-bar)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-card)',
             zIndex: 90,
           }}
         >
@@ -311,8 +333,8 @@ export default function TableView() {
               padding: '0.55rem 1.1rem',
               borderRadius: '999px',
               border: 'none',
-              background: 'var(--accent, #ffb04a)',
-              color: 'var(--accent-fg, #0f1216)',
+              background: 'var(--accent)',
+              color: 'var(--accent-fg)',
               fontWeight: 700,
               cursor: 'pointer',
             }}
@@ -331,6 +353,8 @@ export default function TableView() {
 
       {/* Table closed overlay */}
       <TableClosedTakeover visible={tableClosed} />
+      {/* Mount point U6 fills (BR14.2): Rate your meal, shown once the table is closed */}
+      {tableClosed && <RatingFeature tableId={tableId} events={events} />}
     </div>
   );
 }

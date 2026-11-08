@@ -35,15 +35,15 @@ export default function CloseTableSection({ closeAvailable, blockingOrders, empt
           fontSize: '1rem',
           fontWeight: 700,
           cursor: disabled ? 'not-allowed' : 'pointer',
-          background: disabled ? 'var(--bg-card, #1f2630)' : 'var(--accent, #ffb04a)',
-          color: disabled ? 'var(--text-muted, #7b8491)' : 'var(--accent-fg, #0f1216)',
+          background: disabled ? 'var(--bg-card)' : 'var(--accent)',
+          color: disabled ? 'var(--text-muted)' : 'var(--accent-fg)',
           minHeight: '44px',
         }}
       >
         Close table
       </button>
       {note && (
-        <p data-testid="open-orders-note" style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary, #a6aeb8)' }}>
+        <p data-testid="open-orders-note" style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           {note}
         </p>
       )}

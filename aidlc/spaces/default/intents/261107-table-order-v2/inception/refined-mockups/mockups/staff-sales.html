@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Past visits and sales: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: Past visits and sales (US5.1, US18.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Closed visits by day, newest first. Cancelled orders are left out. Ratings appear here when "Rate your meal" is built; with none today the card says so.</p>
+<div class="mock-stage">
+  <div class="desk">
+    <aside class="sidenav" aria-label="Staff navigation">
+      <div class="brand">Table Order</div>
+      <a href="staff-board.html">🍳 Kitchen Board</a>
+      <a href="staff-floor.html">🗺 Floor map</a>
+      <a href="staff-menu.html">📋 Menu management</a>
+      <a href="staff-special.html">⭐ Chef's special</a>
+      <a href="staff-sales.html" aria-current="page">📈 Past visits and sales</a>
+      <a href="staff-qr.html">▦ QR codes</a>
+      <div class="spacer"></div>
+      <a href="staff-pin.html">Sign out</a>
+    </aside>
+    <main class="main" data-testid="sales-page">
+      <div class="page-head"><h1>Past visits and sales</h1></div>
+      <section class="card stack" style="gap:12px" aria-labelledby="day1" data-testid="sales-day-today">
+        <div class="row between"><h2 id="day1">Saturday 7 November</h2><span class="secondary">6 visits · 14 orders</span></div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="v num">$312.50</div><div class="k">Total sales</div></div>
+          <div class="stat"><div class="v num">11 min</div><div class="k">Average time to Completed</div></div>
+          <div class="stat"><div class="v num">$52.08</div><div class="k">Average per visit</div></div>
+        </div>
+        <table class="data" aria-label="Best sellers">
+          <thead><tr><th>Best sellers</th><th class="r">Sold</th></tr></thead>
+          <tbody><tr><td>1. Classic Burger</td><td class="r">9</td></tr><tr><td>2. Sparkling Water</td><td class="r">8</td></tr><tr><td>3. House Salad</td><td class="r">6</td></tr></tbody>
+        </table>
+        <div class="grid" style="grid-template-columns:repeat(2,1fr)" data-testid="ratings-card">
+          <div class="stat"><div class="k">Best rated today</div><div class="v" style="font-size:18px">Chocolate Fondant</div><div class="k">👍 100% · 5 ratings</div></div>
+          <div class="stat"><div class="k">Worst rated today</div><div class="v" style="font-size:18px">House Salad</div><div class="k">👎 67% thumbs down · 3 ratings</div></div>
+        </div>
+      </section>
+      <section class="card stack" style="gap:12px" aria-labelledby="day2" data-testid="sales-day-yesterday">
+        <div class="row between"><h2 id="day2">Friday 6 November</h2><span class="secondary">9 visits · 21 orders</span></div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><div class="v num">$468.00</div><div class="k">Total sales</div></div>
+          <div class="stat"><div class="v num">No completed orders</div><div class="k">Average time to Completed</div></div>
+          <div class="stat"><div class="v num">$52.00</div><div class="k">Average per visit</div></div>
+        </div>
+        <p class="help">No ratings this day.</p>
+      </section>
+    </main>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStaffSSE } from './useStaffSSE';
+import { staffFetch } from '../staff/staffAuth';
 import type { OrderStatus } from './useBoardOrders';
 
 export interface BillLine {
@@ -53,7 +54,7 @@ export function useBill(tableId: number): UseBill {
   const load = useCallback(async () => {
     const request = ++requestRef.current;
     try {
-      const res = await fetch(`/api/tables/${tableId}/bill`);
+      const res = await staffFetch(`/api/tables/${tableId}/bill`); // staff only: a 401 returns to the PIN screen
       if (!res.ok) throw new Error(`bill request failed with ${res.status}`);
       const data = (await res.json()) as Bill;
       if (request !== requestRef.current) return; // a newer request owns the state

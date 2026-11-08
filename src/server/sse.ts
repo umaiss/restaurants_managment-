@@ -1,3 +1,9 @@
+/**
+ * Live event channels (v1, extended by U5 Step 7).
+ * BR1.9: a staff stream is tied to the session that opened it; sign-out or the idle end closes it,
+ * and every keep-alive re-checks the session, so a stream never outlives its session by more than
+ * one keep-alive (20 seconds). Stream traffic is not staff action and never refreshes the idle time.
+ */
 import type { Response } from 'express';
 
 interface SSEEvent {
@@ -9,6 +15,48 @@ interface SSEEvent {
 interface SSESubscriber {
   res: Response;
   channel: string;
+  /** Set on a staff stream: the staff session that opened it (BR1.9). */
+  sessionToken?: string;
+}
+
+export interface SubscribeOptions {
+  sessionToken?: string;
+}
+
+/**
+ * Asks whether a staff session is still valid, without refreshing it. StaffAccess registers itself
+ * here when it loads, so this file never imports it (no import loop).
+ */
+let sessionValidator: (token: string) => boolean = () => true;
+export function setSessionValidator(fn: (token: string) => boolean): void {
+  sessionValidator = fn;
+}
+
+/** Ends one subscriber's connection and forgets it. */
+function dropSubscriber(sub: SSESubscriber): void {
+  // Idempotent: a stream already dropped (for example by the session ending while the keep-alive was
+  // looking at it) is not ended a second time.
+  if (!subscribers.get(sub.channel)?.delete(sub)) return;
+  try {
+    sub.res.end?.();
+  } catch {
+    // The connection is already gone.
+  }
+}
+
+/** Closes every open stream that belongs to a staff session (sign-out, idle end). Returns how many. */
+export function closeStreamsForSession(token: string): number {
+  let closed = 0;
+  for (const set of subscribers.values()) {
+    for (const sub of [...set]) {
+      if (sub.sessionToken === token) {
+        dropSubscriber(sub);
+        closed++;
+      }
+    }
+  }
+  if (subscriberCount() === 0) stopKeepAlive();
+  return closed;
 }
 
 // Per-channel ring buffers: last 60 events each
@@ -37,6 +85,11 @@ function startKeepAlive(): void {
   keepAliveTimer = setInterval(() => {
     for (const set of subscribers.values()) {
       for (const sub of [...set]) {
+        // BR1.9: a staff stream whose session is gone is closed instead of kept alive.
+        if (sub.sessionToken !== undefined && !sessionValidator(sub.sessionToken)) {
+          dropSubscriber(sub);
+          continue;
+        }
         try {
           sub.res.write(': keep-alive\n\n');
         } catch {
@@ -88,7 +141,7 @@ export function sendEvent(res: Response, eventType: string, data: unknown): void
   }
 }
 
-export function subscribe(channel: string, res: Response): void {
+export function subscribe(channel: string, res: Response, options: SubscribeOptions = {}): void {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -112,7 +165,7 @@ export function subscribe(channel: string, res: Response): void {
     }
   }
 
-  const subscriber: SSESubscriber = { res, channel };
+  const subscriber: SSESubscriber = { res, channel, sessionToken: options.sessionToken };
   getOrCreateSubscribers(channel).add(subscriber);
   startKeepAlive();
 

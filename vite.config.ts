@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// The dev server proxies to the app's port, which comes from the environment like everywhere else (BR11.5).
+const apiTarget = `http://localhost:${process.env.PORT ?? 3000}`;
+
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -10,11 +13,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/sse': {
-        target: 'http://localhost:3000',
+        target: apiTarget,
         changeOrigin: true,
       },
     },

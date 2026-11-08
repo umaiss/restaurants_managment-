@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getMenu, updateItemAvailability } from '../repositories/menuRepo.js';
 import { publish } from '../sse.js';
 import { getDb } from '../db.js';
+import { requireStaff } from '../staffAccess.js';
 
 const router = Router();
 
@@ -17,7 +18,8 @@ router.get('/menu', (_req, res) => {
 });
 
 // POST /api/menu/items/:id/availability
-router.post('/menu/items/:id/availability', (req, res) => {
+// Staff only (BR1.5): the sold-out toggle needs a staff session.
+router.post('/menu/items/:id/availability', requireStaff(), (req, res) => {
   const { id } = req.params;
   const { available } = req.body as { available: boolean };
 

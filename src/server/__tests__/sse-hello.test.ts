@@ -10,12 +10,14 @@ import type { AddressInfo } from 'net';
 import { app } from '../index.js';
 import { resetDb, seedIfEmpty } from '../db.js';
 import { _resetForTest } from '../sse.js';
+import { staffCookie } from './helpers/staff.js';
 
 /** Opens a real stream and records everything it receives. */
 function openStream(port: number, path: string): Promise<{ received: () => string; close: () => void }> {
   return new Promise((resolve, reject) => {
     let text = '';
-    const req = http.get({ port, path, headers: { Accept: 'text/event-stream' } }, (res) => {
+    // U5 (BR11.3): /sse/staff needs a staff session, so the staff stream is opened with the test staff cookie.
+    const req = http.get({ port, path, headers: { Accept: 'text/event-stream', Cookie: staffCookie() } }, (res) => {
       res.setEncoding('utf8');
       res.on('data', (chunk: string) => {
         text += chunk;
@@ -86,7 +88,7 @@ describe('HELLO goes only to the connection that just opened', () => {
 
     const again = await new Promise<string>((resolve) => {
       let text = '';
-      const req = http.get({ port, path: '/sse/staff?lastEventId=0' }, (res) => {
+      const req = http.get({ port, path: '/sse/staff?lastEventId=0', headers: { Cookie: staffCookie() } }, (res) => {
         res.setEncoding('utf8');
         res.on('data', (c: string) => (text += c));
         setTimeout(() => {

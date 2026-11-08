@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCart, type MenuPrice } from '../../hooks/useCart.js';
 import ConfirmModal from '../../components/ConfirmModal.js';
+import { EstimateFeature } from '../../diner/features/registry.js';
 
 export interface PlacedOrder {
   orderNumber: number;
@@ -129,9 +130,9 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
           style={{
             padding: '0.75rem 1rem',
             borderRadius: '0.75rem',
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#ef4444',
+            background: 'var(--danger-soft)',
+            border: '1px solid var(--danger)',
+            color: 'var(--danger)',
             fontWeight: 500,
             marginBottom: '1rem',
           }}
@@ -166,9 +167,9 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
                 marginTop: '1rem',
                 padding: '0.5rem 1.1rem',
                 borderRadius: '999px',
-                border: '1px solid var(--accent, #ffb04a)',
+                border: '1px solid var(--accent)',
                 background: 'transparent',
-                color: 'var(--accent, #ffb04a)',
+                color: 'var(--accent)',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -190,7 +191,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
               style={{
                 padding: '0.35rem 0.8rem',
                 borderRadius: '999px',
-                border: '1px solid var(--border, rgba(255,255,255,0.15))',
+                border: '1px solid var(--border-strong)',
                 background: 'transparent',
                 color: 'var(--text-secondary)',
                 fontSize: '0.8rem',
@@ -211,10 +212,10 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem',
-                borderRadius: '0.75rem',
-                background: 'var(--bg-secondary)',
-                border: '1px solid rgba(255,255,255,0.05)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-card)',
               } as React.CSSProperties}
             >
               <div style={{ flex: 1 }}>
@@ -234,7 +235,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
                     width: '2rem',
                     height: '2rem',
                     borderRadius: '50%',
-                    border: '1.5px solid rgba(255,255,255,0.15)',
+                    border: '1.5px solid var(--border-strong)',
                     background: 'transparent',
                     color: 'inherit',
                     cursor: 'pointer',
@@ -262,7 +263,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
                     width: '2rem',
                     height: '2rem',
                     borderRadius: '50%',
-                    border: '1.5px solid rgba(255,255,255,0.15)',
+                    border: '1.5px solid var(--border-strong)',
                     background: 'transparent',
                     color: 'inherit',
                     cursor: 'pointer',
@@ -282,7 +283,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
                   fontWeight: 700,
                   minWidth: '4rem',
                   textAlign: 'right',
-                  color: 'var(--accent, #6366f1)',
+                  color: 'var(--text)',
                 }}
               >
                 {formatPrice(item.priceCents * item.quantity)}
@@ -290,13 +291,17 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
             </div>
           ))}
 
+          {/* Mount point U6 fills (BR14.2): the estimated wait */}
+          <EstimateFeature tableId={tableId} />
+
           {/* Total */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               padding: '0.75rem 0.25rem',
-              borderTop: '1px solid rgba(255,255,255,0.08)',
+              borderTop: '1px solid var(--border)',
+              fontVariantNumeric: 'tabular-nums',
               fontWeight: 700,
               fontSize: '1.05rem',
             }}
@@ -312,15 +317,20 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
         data-testid="cart-sticky-bar"
         className="diner-fixed slide-up"
         style={{
+          // A frosted rounded card floating just above the tab bar (mockup cart-bar)
           position: 'fixed',
-          bottom: 'var(--tab-bar-height, 56px)',
+          bottom: 'calc(var(--tab-bar-height, 56px) + var(--space-2))',
           left: 0,
           right: 0,
-          padding: '0.75rem 1rem',
-          background: 'var(--bg-tab-bar, rgba(18, 18, 30, 0.9))',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          width: 'calc(100% - 2 * var(--space-4))',
+          maxWidth: 'calc(var(--diner-max) - 2 * var(--space-4))',
+          padding: '0.6rem',
+          background: 'var(--bg-bar)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-card)',
           zIndex: 90,
         }}
       >
@@ -331,14 +341,15 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu }: Car
           onClick={() => setShowConfirm(true)}
           style={{
             width: '100%',
-            padding: '0.85rem',
-            borderRadius: '0.75rem',
+            padding: '0.75rem',
+            minHeight: 'var(--touch)',
+            borderRadius: 'var(--radius-pill)',
             border: 'none',
             background:
               isEmpty || orderStatus === 'posting'
-                ? 'var(--accent-soft, rgba(255,176,74,0.3))'
-                : 'var(--accent, #ffb04a)',
-            color: isEmpty || orderStatus === 'posting' ? 'var(--text-muted, rgba(255,255,255,0.4))' : 'var(--accent-fg, #0f1216)',
+                ? 'var(--accent-soft)'
+                : 'var(--accent)',
+            color: isEmpty || orderStatus === 'posting' ? 'var(--text-muted)' : 'var(--accent-fg)',
             cursor: isEmpty || orderStatus === 'posting' ? 'not-allowed' : 'pointer',
             fontWeight: 700,
             fontSize: '1rem',

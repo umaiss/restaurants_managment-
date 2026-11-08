@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Make it yours sheet: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Diner: Make it yours sheet (US8.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Dina taps "+ Add" on the Classic Burger. A required group (Size) must be chosen before "Add to cart" works; here it is chosen.</p>
+<div class="mock-stage">
+  <div>
+    <div class="phone"><div class="phone-screen">
+      <header class="diner-header"><div><div class="title">Table 5</div><div class="live">Updated live</div></div><button class="icon-btn" aria-label="Settings">⚙</button></header>
+      <div class="screen-body" style="opacity:.5">
+        <article class="item"><div class="img" aria-hidden="true">🍔</div><div><div class="name">Classic Burger</div><div class="desc">Beef patty, cheddar, house sauce</div><div class="price-row"><span class="price num">$14.50</span></div></div></article>
+      </div>
+      <div class="scrim"></div>
+      <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="opt-title" data-testid="options-sheet">
+        <div class="sheet-handle"></div>
+        <div class="row between"><h2 id="opt-title">Classic Burger</h2><button class="icon-btn" aria-label="Close">✕</button></div>
+        <div class="field"><div class="row between"><label>Size</label><span class="badge badge-accent">Required</span></div>
+          <div class="stack" role="radiogroup" aria-label="Size" style="gap:8px">
+            <div class="choice" role="radio" aria-checked="false"><span>Regular</span><span class="row"><span class="secondary num">+$0.00</span><span class="radio"></span></span></div>
+            <div class="choice" role="radio" aria-checked="true"><span>Large</span><span class="row"><span class="secondary num">+$3.00</span><span class="radio">✓</span></span></div>
+          </div></div>
+        <div class="field"><label>Extras (choose any)</label>
+          <div class="stack" style="gap:8px">
+            <div class="choice" role="checkbox" aria-checked="true"><span>Extra cheese</span><span class="row"><span class="secondary num">+$1.00</span><span class="check">✓</span></span></div>
+            <div class="choice" role="checkbox" aria-checked="false"><span>Bacon</span><span class="row"><span class="secondary num">+$1.50</span><span class="check"></span></span></div>
+          </div></div>
+        <div class="field"><label>Leave out</label>
+          <div class="stack" style="gap:8px"><div class="choice" role="checkbox" aria-checked="true"><span>No onions</span><span class="row"><span class="secondary num">+$0.00</span><span class="check">✓</span></span></div></div></div>
+        <div class="row between" style="margin-top:4px"><div><div class="secondary" style="font-size:13px">Line price</div><div class="price num" style="font-size:20px" data-testid="options-price">$18.50</div></div><button class="btn btn-primary" data-testid="options-add">Add to cart</button></div>
+      </section>
+    </div></div>
+    <p class="mock-caption">Choose one (Size), choose any (Extras) or leave out (No onions). The line price is the item price plus the chosen options: $14.50 + $3.00 + $1.00 = $18.50.</p>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

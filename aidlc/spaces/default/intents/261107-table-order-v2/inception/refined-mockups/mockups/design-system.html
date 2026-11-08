@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Design system: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+<style>
+  .sw { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .sw div { width: 132px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--bg-raised); font-size: var(--text-xs); }
+  .sw i { display: block; height: 44px; }
+  .sw span { display: block; padding: 6px 8px; }
+  section.block { background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); max-width: 1000px; width: 100%; }
+</style>
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Design system (US1.1, US2.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<div class="mock-stage" style="flex-direction:column;align-items:center">
+  <section class="block" data-testid="ds-colours"><h2>Colours</h2><p class="secondary">The dark theme is v1's palette, kept. The light theme is new. Switch the theme above to compare.</p>
+    <div class="sw">
+      <div><i style="background:var(--bg)"></i><span>bg</span></div><div><i style="background:var(--bg-raised)"></i><span>bg-raised</span></div><div><i style="background:var(--bg-card)"></i><span>bg-card</span></div><div><i style="background:var(--border)"></i><span>border</span></div>
+      <div><i style="background:var(--text)"></i><span>text</span></div><div><i style="background:var(--text-2)"></i><span>text-2</span></div><div><i style="background:var(--text-muted)"></i><span>text-muted</span></div><div><i style="background:var(--accent)"></i><span>accent</span></div>
+      <div><i style="background:var(--pending)"></i><span>pending</span></div><div><i style="background:var(--preparing)"></i><span>preparing</span></div><div><i style="background:var(--completed)"></i><span>completed</span></div><div><i style="background:var(--cancelled)"></i><span>cancelled</span></div><div><i style="background:var(--danger)"></i><span>danger</span></div>
+    </div></section>
+  <section class="block" data-testid="ds-type"><h2>Type scale</h2>
+    <div style="font-size:var(--text-3xl);font-weight:700">3xl 40 · Table Order</div><div style="font-size:var(--text-2xl);font-weight:700">2xl 30 · Kitchen Board</div><div style="font-size:var(--text-xl);font-weight:700">xl 24 · Table 5 — Bill</div><div style="font-size:var(--text-lg);font-weight:600">lg 20 · Mains</div><div style="font-size:var(--text-md);font-weight:600">md 17 · Classic Burger</div><div style="font-size:var(--text-base)">base 15 · Beef patty, cheddar, house sauce</div><div style="font-size:var(--text-sm)" class="secondary">sm 13 · Estimate, based on today's orders</div><div style="font-size:var(--text-xs)" class="muted">xs 12 · Updated live</div></section>
+  <section class="block" data-testid="ds-space"><h2>Spacing, radius and shadows</h2>
+    <div class="row" style="align-items:flex-end;gap:16px"><span>Spacing 4 8 12 16 20 24 32 48</span></div>
+    <div class="row" style="gap:16px;flex-wrap:wrap"><div class="card" style="width:140px">radius 12 · card shadow</div><div class="card" style="width:140px;border-radius:var(--radius-lg)">radius 16 · sheet</div><span class="pill">radius pill</span><span class="card" style="width:90px;border-radius:var(--radius-sm);box-shadow:var(--shadow-sm);padding:8px">radius 6</span></div></section>
+  <section class="block" data-testid="ds-components"><h2>Components</h2>
+    <div class="row" style="flex-wrap:wrap"><button class="btn btn-primary">Place order</button><button class="btn">Same again</button><button class="btn btn-danger">Cancel</button><button class="btn btn-ghost">Clear cart</button><button class="add-pill">+ Add</button><button class="btn" disabled>Disabled</button></div>
+    <div class="row" style="flex-wrap:wrap"><span class="pill active">Mains</span><span class="pill">Desserts</span><span class="chip" aria-pressed="true">Dairy</span><span class="chip" aria-pressed="false">Gluten</span><div class="seg"><button aria-pressed="true">Follow device</button><button aria-pressed="false">Light</button><button aria-pressed="false">Dark</button></div></div>
+    <div class="row" style="flex-wrap:wrap"><span class="badge badge-pending">Pending</span><span class="badge badge-preparing">Preparing</span><span class="badge badge-completed">Completed</span><span class="badge badge-cancelled">Cancelled</span><span class="badge badge-danger">⚠ Contains dairy</span><span class="timer">3 min</span><span class="timer amber">⏱ 9 min · Slow</span><span class="timer red">⏱ 16 min · Late</span></div>
+    <div class="banner banner-success"><span aria-hidden="true">✅</span><div><strong>Order #9 is ready</strong>Your food is on its way to the table.</div></div>
+    <div class="banner banner-warn"><span aria-hidden="true">⏳</span><div><strong>Too many tries</strong>Wait 60 seconds, then try again.</div></div>
+    <div class="banner banner-danger"><span aria-hidden="true">⚠</span><div><strong>That PIN is not right</strong>Check it and try again.</div></div>
+    <div class="tracker" style="max-width:420px"><div class="step done">Pending</div><div class="step current">Preparing</div><div class="step">Completed</div></div>
+    <div class="field" style="max-width:320px"><label for="d-in">Input</label><input class="input" id="d-in" value="Classic Burger" /><span class="help">Help text</span></div></section>
+  <section class="block"><h2>Rules that stay from v1</h2><ul class="lines"><li>Bottom tab bar for the diner (Menu, Cart with count, My orders), never at the top</li><li>Sticky category pills; the current one is filled</li><li>44 px touch areas (the "+ Add" pill looks 32 px but has a 44 px touch area)</li><li>Frosted bars, rounded cards, soft shadows, aligned tabular prices</li><li>All motion stops when the device asks for reduced motion; focus is always visible</li></ul></section>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

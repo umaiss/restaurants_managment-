@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diner Settings: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Diner: Settings sheet (US2.1, US4.1, US10.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Opens from the gear icon in the header of every diner tab. Allergies, theme and sound are set once and remembered in this browser.</p>
+<div class="mock-stage">
+  <div>
+    <div class="phone"><div class="phone-screen">
+      <header class="diner-header"><div><div class="title">Table 5</div><div class="live">Updated live</div></div><button class="icon-btn" aria-label="Settings">⚙</button></header>
+      <div class="screen-body" style="opacity:.45"><h2>Menu</h2></div>
+      <div class="scrim"></div>
+      <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="set-title" data-testid="settings-sheet">
+        <div class="sheet-handle"></div>
+        <div class="row between"><h2 id="set-title">Settings</h2><button class="icon-btn" aria-label="Close">✕</button></div>
+        <div class="field"><label id="allergies-label">My allergies</label>
+          <div class="row" style="flex-wrap:wrap" role="group" aria-labelledby="allergies-label" data-testid="allergy-chips">
+            <button class="chip" aria-pressed="false">Gluten</button><button class="chip" aria-pressed="true">Dairy</button><button class="chip" aria-pressed="false">Eggs</button>
+            <button class="chip" aria-pressed="false">Peanuts</button><button class="chip" aria-pressed="false">Tree nuts</button><button class="chip" aria-pressed="false">Fish</button>
+            <button class="chip" aria-pressed="false">Shellfish</button><button class="chip" aria-pressed="false">Soy</button><button class="chip" aria-pressed="false">Sesame</button>
+          </div>
+          <p class="help">Marks on the menu are guidance, not a promise. Tell the staff about serious allergies.</p></div>
+        <div class="field"><label>Theme</label>
+          <div class="seg" role="group" aria-label="Theme" data-testid="theme-toggle"><button aria-pressed="true">Follow device</button><button aria-pressed="false">Light</button><button aria-pressed="false">Dark</button></div></div>
+        <div class="row between"><div><strong>Sound alerts</strong><div class="help">A short beep when your order is ready</div></div>
+          <div class="seg" role="group" aria-label="Sound" data-testid="sound-toggle"><button aria-pressed="true">On</button><button aria-pressed="false">Muted</button></div></div>
+      </section>
+    </div></div>
+    <p class="mock-caption">The nine allergens are the fixed list from the requirements. Theme choices: Follow device, Light, Dark.</p>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

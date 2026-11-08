@@ -25,7 +25,7 @@ export default function TableClosedTakeover({ visible }: TableClosedTakeoverProp
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(0, 0, 0, 0.9)',
+        background: 'var(--overlay-strong)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         animation: 'tableClosedFadeIn 300ms ease-out forwards',
@@ -43,7 +43,7 @@ export default function TableClosedTakeover({ visible }: TableClosedTakeoverProp
         style={{
           fontSize: '1.5rem',
           fontWeight: 700,
-          color: '#fff',
+          color: 'var(--text)',
           margin: 0,
         }}
       >
@@ -52,7 +52,7 @@ export default function TableClosedTakeover({ visible }: TableClosedTakeoverProp
       <p
         style={{
           fontSize: '1.1rem',
-          color: 'rgba(255,255,255,0.7)',
+          color: 'var(--text-2)',
           margin: 0,
         }}
       >

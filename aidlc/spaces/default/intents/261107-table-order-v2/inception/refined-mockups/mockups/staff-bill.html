@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Table Bill: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: Table Bill and Close table (US1.1, US8.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">v1's bill keeps its words and rules (Close table works only when no order is Pending or Preparing). New: the new look, side navigation, and the chosen options on each line.</p>
+<div class="mock-stage">
+  <div class="desk" data-testid="staff-view">
+    <aside class="sidenav" aria-label="Staff navigation">
+      <div class="brand">Table Order</div>
+      <a href="staff-board.html" aria-current="page">🍳 Kitchen Board</a>
+      <a href="staff-floor.html">🗺 Floor map</a>
+      <a href="staff-menu.html">📋 Menu management</a>
+      <a href="staff-special.html">⭐ Chef's special</a>
+      <a href="staff-sales.html">📈 Past visits and sales</a>
+      <a href="staff-qr.html">▦ QR codes</a>
+      <div class="spacer"></div>
+      <a href="staff-pin.html">Sign out</a>
+    </aside>
+    <main class="main" data-testid="table-bill-screen" style="max-width:760px">
+      <div class="page-head"><div><a href="staff-board.html" data-testid="bill-back-link">← Board</a><h1 style="margin-top:4px">Table 5 — Bill</h1></div><span class="live">Updated live</span></div>
+      <section class="card stack" style="gap:12px" data-testid="bill-order-9">
+        <div class="row between"><strong>Order #9</strong><span class="badge badge-completed">Completed</span></div>
+        <table class="data"><tbody>
+          <tr><td>2 × Sparkling Water</td><td class="r">$7.00</td></tr>
+          <tr><td>1 × Chocolate Fondant</td><td class="r">$9.50</td></tr>
+        </tbody></table>
+      </section>
+      <section class="card stack" style="gap:12px" data-testid="bill-order-12">
+        <div class="row between"><strong>Order #12</strong><span class="badge badge-completed">Completed</span></div>
+        <table class="data"><tbody>
+          <tr><td>1 × Classic Burger<div class="secondary" style="font-size:13px">Large, Extra cheese, No onions</div></td><td class="r">$18.50</td></tr>
+          <tr><td>1 × House Salad</td><td class="r">$8.50</td></tr>
+        </tbody></table>
+      </section>
+      <section class="card row between" data-testid="bill-combined-total"><span class="secondary">Combined total</span><span class="price num" style="font-size:24px">$43.50</span></section>
+      <div class="row"><button class="btn btn-primary" data-testid="btn-close-table">Close table</button><span class="secondary" style="font-size:13px">All orders are finished, so this table can be closed.</span></div>
+    </main>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

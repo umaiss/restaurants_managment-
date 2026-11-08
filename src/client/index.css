@@ -1,50 +1,7 @@
-:root {
-  /* Palette from the refined mockups (dark theme, amber accent) */
-  --bg-primary: #0f1216;
-  --bg-secondary: #171b22;
-  --bg-card: #1f2630;
-  --bg-overlay: #1f2630;
-  --bg-tab-bar: rgba(15, 18, 22, 0.95);
-  --border: #2a313c;
-  --text-primary: #f1f3f6;
-  --text-secondary: #a6aeb8;
-  --text-muted: #7b8491;
-  --accent: #ffb04a;
-  --accent-hover: #ffc37a;
-  --accent-soft: rgba(255, 176, 74, 0.15);
-  --accent-fg: #0f1216;
-  --highlight-new: #ffd98a;
-  --status-pending: #ffc75a;
-  --status-preparing: #4cb3ff;
-  --status-completed: #5dd48e;
-  --status-cancelled: #8a94a2;
-  --status-pending-soft: rgba(255, 199, 90, 0.15);
-  --status-preparing-soft: rgba(76, 179, 255, 0.15);
-  --status-completed-soft: rgba(93, 212, 142, 0.15);
-  --status-cancelled-soft: rgba(138, 148, 162, 0.15);
-  --danger: #ff6b6b;
-  --tab-active: #ffb04a;
-  --tab-inactive: #7b8491;
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-tab-bar: 0 -4px 24px rgba(0, 0, 0, 0.5);
-  --radius-card: 12px;
-  --radius-pill: 20px;
-  --radius-sm: 6px;
-  --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    animation-delay: 0ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* The design tokens and the shared component styles come first (U5, BR10.1). Everything below uses tokens
+   only: no colour value is written in this file. Every animation here stops under reduced motion (tokens.css). */
+@import './design/tokens.css';
+@import './design/components.css';
 
 *,
 *::before,
@@ -57,9 +14,9 @@
 html,
 body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  font-family: var(--font);
+  background-color: var(--page-bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -69,16 +26,11 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Motion and polish. Every animation here stops under reduced motion  */
-/* (see the media query at the top of this file).                      */
+/* Motion and polish                                                   */
 /* ------------------------------------------------------------------ */
 
 :root {
-  --ease-out: cubic-bezier(0.22, 0.8, 0.24, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --accent-gradient: linear-gradient(135deg, #ffc46b 0%, #ffa733 100%);
-  --accent-glow: 0 6px 18px rgba(255, 176, 74, 0.32);
-  --diner-max: 520px;
 }
 
 html {
@@ -87,19 +39,19 @@ html {
 
 body {
   background-image:
-    radial-gradient(900px 500px at 15% -10%, rgba(255, 176, 74, 0.07), transparent 60%),
-    radial-gradient(700px 500px at 100% 0%, rgba(76, 179, 255, 0.05), transparent 60%);
+    radial-gradient(900px 500px at 15% -10%, var(--accent-soft), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, var(--preparing-soft), transparent 60%);
   background-attachment: fixed;
 }
 
 ::selection {
-  background: rgba(255, 176, 74, 0.35);
+  background: var(--accent-soft);
 }
 
 /* Slim, quiet scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  scrollbar-color: var(--scrollbar) transparent;
 }
 
 /* Every button: smooth hover, a small press, a clear keyboard focus ring */
@@ -121,7 +73,8 @@ button:not(:disabled):active {
   transform: scale(0.96);
 }
 button:focus-visible,
-a:focus-visible {
+a:focus-visible,
+input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -165,13 +118,13 @@ a {
   100% { transform: translateY(0) scale(1); }
 }
 @keyframes livePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
-  70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0%   { box-shadow: 0 0 0 0 var(--live); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 @keyframes newGlow {
-  0%, 100% { box-shadow: 0 0 0 2px var(--accent, #f59e0b), 0 0 10px 2px rgba(245, 158, 11, 0.28); }
-  50%      { box-shadow: 0 0 0 2px var(--accent, #f59e0b), 0 0 20px 5px rgba(245, 158, 11, 0.5); }
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent), 0 0 10px 2px var(--accent-soft); }
+  50%      { box-shadow: 0 0 0 2px var(--accent), 0 0 20px 5px var(--accent-soft); }
 }
 @keyframes statusFlash {
   0%   { transform: scale(0.85); filter: brightness(1.6); }
@@ -232,8 +185,8 @@ a {
 }
 .hover-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.38);
-  border-color: rgba(255, 176, 74, 0.25);
+  box-shadow: var(--shadow-card);
+  border-color: var(--border-strong);
 }
 
 /* Primary actions get the amber gradient and a soft glow */
@@ -242,7 +195,7 @@ a {
   box-shadow: var(--accent-glow);
 }
 .btn-primary:disabled {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--border) !important;
   box-shadow: none;
 }
 
@@ -262,8 +215,8 @@ a {
   .diner-shell {
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
-    box-shadow: 0 0 80px rgba(0, 0, 0, 0.55);
-    background: var(--bg-primary);
+    box-shadow: var(--shadow-card);
+    background: var(--bg);
   }
 }
 .diner-fixed {
@@ -275,7 +228,7 @@ a {
 
 /* Skeleton loading blocks */
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-secondary) 25%, #262d38 50%, var(--bg-secondary) 75%);
+  background: linear-gradient(90deg, var(--bg-raised) 25%, var(--bg-card) 50%, var(--bg-raised) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s linear infinite;
 }
@@ -289,7 +242,7 @@ a {
   height: 2px;
   background: var(--accent-gradient);
   border-radius: 0 0 4px 4px;
-  box-shadow: 0 2px 10px rgba(255, 176, 74, 0.6);
+  box-shadow: 0 2px 10px var(--accent-soft);
   transition: transform 320ms var(--ease-spring);
 }
 
@@ -300,8 +253,8 @@ a {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(93, 212, 142, 0.14);
-  border: 2px solid var(--status-completed);
+  background: var(--completed-soft);
+  border: 2px solid var(--completed);
   animation: ringGrow 460ms var(--ease-spring) backwards;
 }
 .check-ring svg path {

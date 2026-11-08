@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kitchen Board: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: Kitchen Board, All stations (US1.1, US4.1, US8.1, US13.1, US15.1, US17.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">The v1 board keeps its cards and buttons. New: the side navigation, a new-order alert, station tabs, ticket timers (green, amber "Slow" at 8 min, red "Late" at 15 min), the chosen options on each ticket, and a pulsing card when a table calls.</p>
+<div class="mock-stage">
+  <div class="desk" data-testid="staff-view">
+    <aside class="sidenav" aria-label="Staff navigation">
+      <div class="brand">Table Order</div>
+      <a href="staff-board.html" aria-current="page">🍳 Kitchen Board</a>
+      <a href="staff-floor.html">🗺 Floor map</a>
+      <a href="staff-menu.html">📋 Menu management</a>
+      <a href="staff-special.html">⭐ Chef's special</a>
+      <a href="staff-sales.html">📈 Past visits and sales</a>
+      <a href="staff-qr.html">▦ QR codes</a>
+      <div class="spacer"></div>
+      <a href="staff-pin.html">Sign out</a>
+    </aside>
+    <main class="main" data-testid="kitchen-board">
+      <div class="page-head">
+        <div><h1>Kitchen Board</h1><div class="live" style="margin-top:4px">Updated live</div></div>
+        <div class="row"><div class="seg" role="group" aria-label="Sound" data-testid="staff-sound"><button aria-pressed="true">Sound on</button><button aria-pressed="false">Muted</button></div><button class="btn btn-sm" data-testid="open-availability">Menu availability</button></div>
+      </div>
+      <div class="banner banner-info" role="status" data-testid="new-order-alert"><span aria-hidden="true">🔔</span><div><strong>New order #14 from Table 7</strong>2 items just came in.</div></div>
+      <div class="seg" role="group" aria-label="Station" data-testid="station-tabs" style="align-self:flex-start">
+        <button aria-pressed="true">All stations</button><button aria-pressed="false">Grill</button><button aria-pressed="false">Cold</button><button aria-pressed="false">Bar</button><button aria-pressed="false">Desserts</button>
+      </div>
+      <div class="grid" data-testid="board-grid">
+        <section class="table-card needs" data-testid="table-section-7" aria-label="Table 7">
+          <div class="row between"><h2>Table 7</h2><span class="badge badge-danger" data-testid="call-label">🔔 Asking for the bill</span></div>
+          <article class="ticket" data-testid="order-card-14">
+            <div class="row between"><strong>Order #14</strong><span class="row"><span class="timer num" data-testid="timer-14">1 min</span><span class="badge badge-pending">Pending</span></span></div>
+            <ul class="lines"><li>1 × Grilled Salmon</li><li>1 × Fresh Orange Juice</li></ul>
+            <div class="row"><button class="btn btn-sm btn-primary" data-testid="btn-preparing-14">Start preparing</button><button class="btn btn-sm btn-danger" data-testid="btn-cancel-14">Cancel</button></div>
+          </article>
+          <button class="btn btn-sm" data-testid="respond-7">Respond</button>
+        </section>
+        <section class="table-card" data-testid="table-section-5" aria-label="Table 5">
+          <div class="row between"><h2>Table 5</h2><span class="badge badge-accent">🔔 Calling the waiter</span></div>
+          <article class="ticket" data-testid="order-card-12">
+            <div class="row between"><strong>Order #12</strong><span class="row"><span class="timer amber num" data-testid="timer-12">⏱ 9 min · Slow</span><span class="badge badge-preparing">Preparing</span></span></div>
+            <ul class="lines"><li>1 × Classic Burger</li><li class="opt">Large, Extra cheese, No onions</li></ul>
+            <div class="row"><button class="btn btn-sm btn-primary" data-testid="btn-complete-12">Complete</button><button class="btn btn-sm btn-danger">Cancel</button></div>
+          </article>
+          <button class="btn btn-sm" data-testid="respond-5">Respond</button>
+        </section>
+        <section class="table-card" data-testid="table-section-3" aria-label="Table 3">
+          <div class="row between"><h2>Table 3</h2></div>
+          <article class="ticket" data-testid="order-card-10">
+            <div class="row between"><strong>Order #10</strong><span class="row"><span class="timer red num" data-testid="timer-10">⏱ 16 min · Late</span><span class="badge badge-preparing">Preparing</span></span></div>
+            <ul class="lines"><li>2 × Margherita Pizza</li><li>1 × Caesar Salad</li></ul>
+            <div class="row"><button class="btn btn-sm btn-primary">Complete</button><button class="btn btn-sm btn-danger">Cancel</button></div>
+          </article>
+          <article class="ticket"><div class="row between"><strong>Order #6</strong><span class="badge badge-completed">Completed</span></div><ul class="lines"><li>1 × House Coffee</li></ul></article>
+          <div class="badge badge-completed" data-testid="table-ready-to-close-3" style="align-self:flex-start">Ready to close</div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

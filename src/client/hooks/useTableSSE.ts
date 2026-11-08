@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { EVENT_NAMES, HEARTBEAT_INTERVAL_MS, makePageId } from './eventNames.js';
 
 export interface SSEEvent {
   type: string;
@@ -44,7 +45,43 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
 
+  // BR8.1: each open diner page makes a random page id, opens its stream with it and tells the server
+  // it is still there when the stream opens and about every 60 seconds after, so staff see the table
+  // as "Browsing". Every page that uses this hook is counted, with nothing for a screen to do.
+  const pageIdRef = useRef<string>('');
+  if (pageIdRef.current === '') pageIdRef.current = makePageId();
+  const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatTimerRef.current !== null) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
+  }, []);
+
+  const sendHeartbeat = useCallback(() => {
+    if (!tableId || typeof fetch !== 'function') return;
+    try {
+      void Promise.resolve(
+        fetch(`/api/tables/${tableId}/presence`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ page_id: pageIdRef.current }),
+        })
+      ).catch(() => undefined); // a missed heartbeat is retried a minute later; the page is not affected
+    } catch {
+      // fetch itself failed to start: the same
+    }
+  }, [tableId]);
+
+  const startHeartbeat = useCallback(() => {
+    stopHeartbeat();
+    sendHeartbeat();
+    heartbeatTimerRef.current = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+  }, [sendHeartbeat, stopHeartbeat]);
+
   const disconnect = useCallback(() => {
+    stopHeartbeat();
     if (reconnectTimerRef.current !== null) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -53,7 +90,7 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
       esRef.current.close();
       esRef.current = null;
     }
-  }, []);
+  }, [stopHeartbeat]);
 
   const connect = useCallback(() => {
     if (unmountedRef.current || !tableId) return;
@@ -62,9 +99,9 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
 
     // Build URL; include Last-Event-ID as query param because EventSource
     // does not allow setting request headers directly.
-    let url = `/sse/tables/${tableId}`;
+    let url = `/sse/tables/${tableId}?page=${encodeURIComponent(pageIdRef.current)}`;
     if (lastEventIdRef.current !== null) {
-      url += `?lastEventId=${encodeURIComponent(lastEventIdRef.current)}`;
+      url += `&lastEventId=${encodeURIComponent(lastEventIdRef.current)}`;
     }
 
     const es = new EventSource(url);
@@ -74,6 +111,7 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
       if (unmountedRef.current) return;
       retryCountRef.current = 0;
       setConnected(true);
+      startHeartbeat();
     };
 
     // Generic message handler (unnamed events)
@@ -90,15 +128,8 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
       }
     };
 
-    // Named event types the server emits
-    const namedEvents = [
-      'ORDER_PLACED',
-      'ORDER_STATUS_CHANGED',
-      'TABLE_CLOSED',
-      'MENU_AVAILABILITY_CHANGED',
-    ];
-
-    for (const eventType of namedEvents) {
+    // Every named event type of contract 4, registered once (BR9.2)
+    for (const eventType of EVENT_NAMES) {
       es.addEventListener(eventType, (ev: Event) => {
         if (unmountedRef.current) return;
         const msgEv = ev as MessageEvent;
@@ -117,6 +148,7 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
     es.onerror = () => {
       if (unmountedRef.current) return;
       setConnected(false);
+      stopHeartbeat();
       es.close();
       esRef.current = null;
 
@@ -130,7 +162,7 @@ export function useTableSSE(tableId: string | undefined): UseTableSSEResult {
         }
       }, delay);
     };
-  }, [tableId, disconnect, pushEvent]);
+  }, [tableId, disconnect, pushEvent, startHeartbeat, stopHeartbeat]);
 
   useEffect(() => {
     if (!tableId) return;

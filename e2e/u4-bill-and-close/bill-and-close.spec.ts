@@ -5,6 +5,7 @@
  * test server. Every port comes from the Playwright config (E2E_PORT) through baseURL.
  */
 import { test, expect, type APIRequestContext } from '@playwright/test';
+import { resetTable } from '../build-and-test/helpers';
 
 const RUN = Date.now();
 let keyCounter = 0;
@@ -38,6 +39,9 @@ async function complete(request: APIRequestContext, baseURL: string, n: number) 
 test.describe('Table bill and Close table', () => {
   test('Flow 1: the bill lists every order with items, prices, subtotals and the combined total; a Cancelled order is not shown', async ({ page, request, baseURL }) => {
     const url = baseURL!;
+    // Start from an empty table 7: this flow leaves its finished orders on it, so a second browser project
+    // on the same server (playwright.cross-browser.config.ts) would otherwise see the first one's orders.
+    await resetTable(request, url, 7);
     const a = await placeOrder(request, url, 7, [{ id: 'i-04', quantity: 2 }, { id: 'i-10', quantity: 1 }]);
     const b = await placeOrder(request, url, 7, [{ id: 'i-06', quantity: 1 }]);
     const cancelled = await placeOrder(request, url, 7, [{ id: 'i-12', quantity: 3 }]);

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diner My orders: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Diner: My orders (US4.1, US9.1, US14.1, US16.1, US17.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">An order is ready, so the ready banner shows. Order #12 is being prepared (tracker and estimate). Order #9 is complete and can be repeated with "Same again". The Call the waiter card sits above the orders.</p>
+<div class="mock-stage">
+  <div>
+    <div class="phone"><div class="phone-screen" data-testid="orders-screen">
+      <header class="diner-header"><div><div class="title">Table 5</div><div class="live">Updated live</div></div><button class="icon-btn" aria-label="Settings">⚙</button></header>
+      <div class="screen-body">
+        <div class="banner banner-success" role="status" data-testid="ready-banner"><span aria-hidden="true">✅</span><div><strong>Order #9 is ready</strong>Your food is on its way to the table.</div></div>
+        <section class="card stack" style="gap:8px" aria-label="Need something?" data-testid="help-card">
+          <h3>Need something?</h3>
+          <div class="row"><button class="btn btn-sm" style="flex:1" data-testid="call-waiter">Call the waiter</button><button class="btn btn-sm" style="flex:1" data-testid="ask-bill">Ask for the bill</button></div>
+          <p class="help" role="status" data-testid="help-status">Help is on the way.</p>
+        </section>
+        <article class="card stack" style="gap:8px" data-testid="order-card-12">
+          <div class="row between"><strong>Order #12</strong><span class="badge badge-preparing">Preparing</span></div>
+          <div class="tracker" role="img" aria-label="Order progress: Preparing, step 2 of 3" data-testid="order-tracker-12">
+            <div class="step done">Pending</div><div class="step current">Preparing</div><div class="step">Completed</div>
+          </div>
+          <div class="secondary" data-testid="order-estimate-12">About 8 min left</div>
+          <ul class="lines"><li>1 × Classic Burger</li><li class="opt">Large, Extra cheese, No onions</li></ul>
+        </article>
+        <article class="card stack" style="gap:8px" data-testid="order-card-9">
+          <div class="row between"><strong>Order #9</strong><span class="badge badge-completed">Completed</span></div>
+          <ul class="lines"><li>2 × Sparkling Water</li><li>1 × Chocolate Fondant</li></ul>
+          <button class="btn btn-sm" data-testid="same-again-9">Same again</button>
+        </article>
+        <article class="card stack" style="gap:8px" data-testid="order-card-8">
+          <div class="row between"><strong>Order #8</strong><span class="badge badge-pending">Pending</span></div>
+          <div class="tracker" role="img" aria-label="Order progress: Pending, step 1 of 3"><div class="step current">Pending</div><div class="step">Preparing</div><div class="step">Completed</div></div>
+          <div class="row between"><span class="badge badge-danger" data-testid="running-late">Running late</span><button class="btn btn-sm btn-danger">Cancel order</button></div>
+        </article>
+      </div>
+      <nav class="tabbar" data-testid="tab-bar" aria-label="Diner tabs">
+        <a class="tab" href="diner-menu.html"><span class="ico" aria-hidden="true">🍽</span>Menu</a>
+        <a class="tab" href="diner-cart.html"><span class="ico" aria-hidden="true">🛒</span>Cart</a>
+        <a class="tab" aria-current="page" href="#"><span class="ico" aria-hidden="true">🧾</span>My orders</a>
+      </nav>
+    </div></div>
+    <p class="mock-caption">Statuses and tracker: Pending, Preparing, Completed. Cancelled orders show "Cancelled" with no bar.</p>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

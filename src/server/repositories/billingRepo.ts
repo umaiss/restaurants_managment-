@@ -1,6 +1,7 @@
 import { getDb, getCurrentVisit } from '../db.js';
 import { getOrdersByVisit, type OrderLine, type OrderStatus } from './orderRepo.js';
 import { closeCurrentVisit, hasClosedVisit } from './tableRepo.js';
+import { clearOpenCalls } from './serviceCallRepo.js';
 
 export type BillingErrorCode = 'UNKNOWN_TABLE' | 'CLOSE_BLOCKED' | 'TABLE_EMPTY' | 'TABLE_ALREADY_CLOSED';
 
@@ -119,6 +120,9 @@ export function closeTable(tableId: number): { closed: true; archived_visit_id: 
     if (!archived) {
       throw new BillingError(`Table ${tableId} is already closed`, 'TABLE_ALREADY_CLOSED');
     }
+    // BR6.3: closing clears the visit's open service calls in the same transaction. No per-call event:
+    // TABLE_CLOSED already tells every screen to reset.
+    clearOpenCalls(archived);
     return { closed: true, archived_visit_id: archived };
   });
   return run.immediate();

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Live floor map: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: Live floor map (US12.1, US17.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Every table, coloured and labelled by what is happening. If a table both asks for the bill and has an order Pending, "Needs the bill" wins. Selecting a table opens its bill.</p>
+<div class="mock-stage">
+  <div class="desk">
+    <aside class="sidenav" aria-label="Staff navigation">
+      <div class="brand">Table Order</div>
+      <a href="staff-board.html">🍳 Kitchen Board</a>
+      <a href="staff-floor.html" aria-current="page">🗺 Floor map</a>
+      <a href="staff-menu.html">📋 Menu management</a>
+      <a href="staff-special.html">⭐ Chef's special</a>
+      <a href="staff-sales.html">📈 Past visits and sales</a>
+      <a href="staff-qr.html">▦ QR codes</a>
+      <div class="spacer"></div>
+      <a href="staff-pin.html">Sign out</a>
+    </aside>
+    <main class="main" data-testid="floor-map">
+      <div class="page-head"><div><h1>Floor map</h1><div class="live" style="margin-top:4px">Updated live</div></div></div>
+      <div class="legend" aria-label="Legend" data-testid="floor-legend">
+        <span><i style="border-style:dashed"></i>Empty</span><span><i style="border-color:var(--preparing)"></i>Browsing</span><span><i style="border-color:var(--pending)"></i>Waiting</span><span><i style="border-color:var(--completed)"></i>Eating</span><span><i style="border-color:var(--danger)"></i>Needs the bill</span>
+      </div>
+      <div class="floor">
+        <a class="t waiting" href="staff-bill.html" data-testid="floor-table-1" style="color:inherit;text-decoration:none"><strong>Table 1</strong><span class="badge badge-pending">Waiting</span></a>
+        <a class="t empty" href="staff-bill.html" data-testid="floor-table-2" style="text-decoration:none"><strong>Table 2</strong><span class="badge badge-cancelled">Empty</span></a>
+        <a class="t eating" href="staff-bill.html" data-testid="floor-table-3" style="color:inherit;text-decoration:none"><strong>Table 3</strong><span class="badge badge-completed">Eating</span></a>
+        <a class="t browsing" href="staff-bill.html" data-testid="floor-table-4" style="color:inherit;text-decoration:none"><strong>Table 4</strong><span class="badge badge-preparing">Browsing</span></a>
+        <a class="t bill" href="staff-bill.html" data-testid="floor-table-5" style="color:inherit;text-decoration:none"><strong>Table 5</strong><span class="badge badge-danger">🔔 Needs the bill</span></a>
+        <a class="t empty" href="staff-bill.html" style="text-decoration:none"><strong>Table 6</strong><span class="badge badge-cancelled">Empty</span></a>
+        <a class="t waiting" href="staff-bill.html" style="color:inherit;text-decoration:none"><strong>Table 7</strong><span class="badge badge-pending">Waiting</span></a>
+        <a class="t eating" href="staff-bill.html" style="color:inherit;text-decoration:none"><strong>Table 8</strong><span class="badge badge-completed">Eating</span></a>
+        <a class="t empty" href="staff-bill.html" style="text-decoration:none"><strong>Table 9</strong><span class="badge badge-cancelled">Empty</span></a>
+        <a class="t browsing" href="staff-bill.html" style="color:inherit;text-decoration:none"><strong>Table 10</strong><span class="badge badge-preparing">Browsing</span></a>
+      </div>
+      <p class="help">Each state also shows as a word, so colour is never the only signal.</p>
+    </main>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

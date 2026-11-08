@@ -1,0 +1,25 @@
+{
+  "stage": "domain-design",
+  "upstream_ids": ["US3.1","US1.1","US4.1","US8.1","US9.1","US14.1","US15.1","US2.1","US5.1","US6.1","US10.1","US13.1","US17.1","US7.1","US11.1","US12.1","US16.1","US18.1","US19.1"],
+  "coverage": [
+    { "id": "US1.1", "status": "OK", "target": "DesignSystem" },
+    { "id": "US2.1", "status": "OK", "target": "DesignSystem, ClientPreferences, ThemePreference" },
+    { "id": "US3.1", "status": "OK", "target": "StaffAccess, StaffSession, LoginAttempt, ApiRoutes, StaffApp" },
+    { "id": "US4.1", "status": "OK", "target": "Notifications, LiveEvents, DinerApp, StaffApp, SoundPreference" },
+    { "id": "US5.1", "status": "OK", "target": "SalesReporting, TableSessions, Visit" },
+    { "id": "US6.1", "status": "OK", "target": "MenuCatalog, MenuItem, Category, StaffApp" },
+    { "id": "US7.1", "status": "OK", "target": "TableQrCodes, StaffApp" },
+    { "id": "US8.1", "status": "OK", "target": "MenuCatalog, OptionGroup, OptionChoice, OrderManagement, OrderLineOption, DinerApp, CartLine" },
+    { "id": "US9.1", "status": "OK", "target": "WaitEstimation, Order, DinerApp" },
+    { "id": "US10.1", "status": "OK", "target": "ClientPreferences, AllergyProfile, MenuCatalog, MenuItem, DinerApp" },
+    { "id": "US11.1", "status": "OK", "target": "ChefSpecials, ChefSpecial, DinerApp, StaffApp" },
+    { "id": "US12.1", "status": "OK", "target": "FloorStatus, TableSessions, LiveEvents, StaffApp" },
+    { "id": "US13.1", "status": "OK", "target": "KitchenStations, StationDone, OrderLine, StaffApp" },
+    { "id": "US14.1", "status": "OK", "target": "DinerApp, OrderManagement, WaitEstimation" },
+    { "id": "US15.1", "status": "OK", "target": "StaffApp, Order" },
+    { "id": "US16.1", "status": "OK", "target": "DinerApp, Cart, CartLine" },
+    { "id": "US17.1", "status": "OK", "target": "ServiceCalls, ServiceCall, FloorStatus, DinerApp, StaffApp" },
+    { "id": "US18.1", "status": "OK", "target": "DishRatings, DishRating, SalesReporting, DinerApp, StaffApp" },
+    { "id": "US19.1", "status": "OK", "target": "ApiRoutes, TableSessions, OrderManagement, LiveEvents" }
+  ]
+}

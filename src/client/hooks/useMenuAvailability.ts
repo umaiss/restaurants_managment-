@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStaffSSE } from './useStaffSSE';
+import { staffFetch } from '../staff/staffAuth';
 
 export interface Category {
   id: string;
@@ -74,7 +75,7 @@ export function useMenuAvailability(): {
     setError(null);
 
     try {
-      const response = await fetch(`/api/menu/items/${menuItemId}/availability`, {
+      const response = await staffFetch(`/api/menu/items/${menuItemId}/availability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ available }),

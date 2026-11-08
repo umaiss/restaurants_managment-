@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Menu management: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: Menu management (US6.1, US8.1, US10.1, US13.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Left: the list of items by category, with Hide. Right: editing one item, including its options, allergens and station. An invalid save names the field and keeps what was typed.</p>
+<div class="mock-stage">
+  <div class="desk">
+    <aside class="sidenav" aria-label="Staff navigation">
+      <div class="brand">Table Order</div>
+      <a href="staff-board.html">🍳 Kitchen Board</a>
+      <a href="staff-floor.html">🗺 Floor map</a>
+      <a href="staff-menu.html" aria-current="page">📋 Menu management</a>
+      <a href="staff-special.html">⭐ Chef's special</a>
+      <a href="staff-sales.html">📈 Past visits and sales</a>
+      <a href="staff-qr.html">▦ QR codes</a>
+      <div class="spacer"></div>
+      <a href="staff-pin.html">Sign out</a>
+    </aside>
+    <main class="main" data-testid="menu-management">
+      <div class="page-head"><h1>Menu management</h1><div class="row"><button class="btn btn-sm" data-testid="add-category">Add category</button><button class="btn btn-sm btn-primary" data-testid="add-item">Add item</button></div></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start">
+        <section class="card" aria-label="Menu items">
+          <div class="row between" style="margin-bottom:8px"><h2>Mains</h2><span class="row"><button class="btn btn-sm btn-ghost" aria-label="Move category up">↑</button><button class="btn btn-sm btn-ghost" aria-label="Move category down">↓</button><button class="btn btn-sm btn-ghost">Hide category</button></span></div>
+          <table class="data">
+            <thead><tr><th>Item</th><th>Station</th><th class="r">Price</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Classic Burger <span class="badge badge-accent">2 option groups</span></td><td>Grill</td><td class="r">$14.50</td><td class="r"><button class="btn btn-sm" data-testid="edit-i-04">Edit</button></td></tr>
+              <tr><td>Grilled Salmon <span class="badge badge-cancelled">Allergens not set</span></td><td>Grill</td><td class="r">$18.50</td><td class="r"><button class="btn btn-sm">Edit</button></td></tr>
+              <tr><td>Margherita Pizza</td><td>Grill</td><td class="r">$13.50</td><td class="r"><button class="btn btn-sm">Edit</button></td></tr>
+              <tr style="opacity:.6"><td>Pasta Carbonara <span class="badge badge-cancelled">Hidden</span></td><td>Grill</td><td class="r">$12.50</td><td class="r"><button class="btn btn-sm">Show</button></td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="card stack" aria-labelledby="edit-title" data-testid="item-form" style="gap:12px">
+          <div class="row between"><h2 id="edit-title">Edit Classic Burger</h2><span class="live">Changes reach open menus live</span></div>
+          <div class="field"><label for="f-name">Name</label><input class="input" id="f-name" value="Classic Burger" /></div>
+          <div class="field"><label for="f-desc">Description</label><input class="input" id="f-desc" value="Beef patty, cheddar, house sauce" /></div>
+          <div class="row"><div class="field" style="flex:1"><label for="f-price">Price (dollars)</label><input class="input num" id="f-price" value="14.50" /></div><div class="field" style="flex:1"><label for="f-image">Image (emoji or web address)</label><input class="input" id="f-image" value="🍔" /></div></div>
+          <div class="row"><div class="field" style="flex:1"><label for="f-cat">Category</label><select class="input" id="f-cat"><option>Mains</option></select></div><div class="field" style="flex:1"><label for="f-station">Station</label><select class="input" id="f-station"><option>Grill</option></select></div></div>
+          <div class="field"><label id="al-label">Allergens it contains</label><div class="row" style="flex-wrap:wrap" role="group" aria-labelledby="al-label"><button class="chip" aria-pressed="true">Gluten</button><button class="chip" aria-pressed="true">Dairy</button><button class="chip" aria-pressed="true">Eggs</button><button class="chip" aria-pressed="false">Peanuts</button><button class="chip" aria-pressed="false">Tree nuts</button><button class="chip" aria-pressed="false">Fish</button><button class="chip" aria-pressed="false">Shellfish</button><button class="chip" aria-pressed="false">Soy</button><button class="chip" aria-pressed="true">Sesame</button></div></div>
+          <div class="field"><label>Options</label>
+            <div class="card" style="box-shadow:none"><div class="row between"><strong>Size</strong><span class="badge badge-accent">Choose one · required</span></div><div class="secondary" style="font-size:13px">Regular +$0.00 · Large +$3.00</div></div>
+            <div class="card" style="box-shadow:none"><div class="row between"><strong>Extras</strong><span class="badge badge-accent">Choose any</span></div><div class="secondary" style="font-size:13px">Extra cheese +$1.00 · Bacon +$1.50</div></div>
+            <div class="card" style="box-shadow:none"><div class="row between"><strong>Leave out</strong><span class="badge badge-accent">Remove an ingredient</span></div><div class="secondary" style="font-size:13px">No onions +$0.00</div></div>
+            <button class="btn btn-sm" style="align-self:flex-start">Add option group</button></div>
+          <div class="field"><label for="f-bad">Name (example of an invalid save)</label><input class="input" id="f-bad" aria-invalid="true" aria-describedby="f-bad-err" value="" /><span class="error-text" id="f-bad-err" role="alert">Name is required. What you typed in the other fields is kept.</span></div>
+          <div class="row"><button class="btn btn-primary" data-testid="save-item">Save</button><button class="btn">Hide item</button></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

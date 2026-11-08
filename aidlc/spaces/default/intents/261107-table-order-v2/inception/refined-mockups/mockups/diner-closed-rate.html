@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Table closed and Rate your meal: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Diner: Table closed and Rate your meal (US18.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Shown after staff press "Close table". v1's closed message stays; the rating list is new. Dina can change a thumb until she taps Done.</p>
+<div class="mock-stage">
+  <div>
+    <div class="phone"><div class="phone-screen" role="alertdialog" aria-labelledby="closed-title" data-testid="table-closed-takeover">
+      <div class="screen-body" style="padding-top:40px;align-items:stretch">
+        <div style="text-align:center"><div style="font-size:48px" aria-hidden="true">👋</div><h1 id="closed-title" style="margin-top:8px">Table closed</h1><p class="secondary" style="margin-top:4px">Thank you for dining with us.</p></div>
+        <section class="card stack" style="gap:12px" aria-label="Rate your meal" data-testid="rate-meal">
+          <h2>Rate your meal</h2>
+          <div class="row between"><span>Classic Burger</span><span class="row"><button class="btn btn-sm" aria-pressed="true" aria-label="Thumbs up for Classic Burger" style="background:var(--completed-soft);border-color:var(--completed)">👍</button><button class="btn btn-sm" aria-pressed="false" aria-label="Thumbs down for Classic Burger">👎</button></span></div>
+          <div class="row between"><span>House Salad</span><span class="row"><button class="btn btn-sm" aria-pressed="false" aria-label="Thumbs up for House Salad">👍</button><button class="btn btn-sm" aria-pressed="true" aria-label="Thumbs down for House Salad" style="background:var(--danger-soft);border-color:var(--danger)">👎</button></span></div>
+          <div class="row between"><span>Chocolate Fondant</span><span class="row"><button class="btn btn-sm" aria-pressed="false" aria-label="Thumbs up for Chocolate Fondant">👍</button><button class="btn btn-sm" aria-pressed="false" aria-label="Thumbs down for Chocolate Fondant">👎</button></span></div>
+        </section>
+        <button class="btn btn-primary" data-testid="rate-done">Done</button>
+      </div>
+    </div></div>
+    <p class="mock-caption">One rating per dish per table visit. Tapping Done ends the visit screen; a rating cannot be changed after that.</p>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

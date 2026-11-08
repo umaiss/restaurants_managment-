@@ -8,7 +8,7 @@ interface NewHighlightProps {
 const styles = `
 .new-highlight-active {
   border-radius: 0.5rem;
-  box-shadow: 0 0 0 2px var(--accent, #f59e0b), 0 0 12px 2px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 12px 2px var(--accent-soft);
   transition: box-shadow 150ms ease-out;
   animation: newGlow 2.4s ease-in-out infinite;
 }
@@ -32,7 +32,7 @@ const styles = `
   gap: 0.25rem;
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--accent, #f59e0b);
+  color: var(--accent-text);
   letter-spacing: 0.04em;
   margin-bottom: 0.25rem;
 }

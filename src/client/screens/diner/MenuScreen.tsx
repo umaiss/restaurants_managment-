@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useCart } from '../../hooks/useCart.js';
+import { SpecialCardFeature, AllergiesFeature, OptionsFeature } from '../../diner/features/registry.js';
 
 interface MenuItem {
   id: string;
@@ -187,8 +188,8 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
           style={{
             padding: '0.65rem 1.5rem',
             borderRadius: '0.5rem',
-            background: 'var(--accent, #6366f1)',
-            color: 'var(--accent-fg, #0f1216)',
+            background: 'var(--accent)',
+            color: 'var(--accent-fg)',
             border: 'none',
             cursor: 'pointer',
             fontWeight: 600,
@@ -210,6 +211,10 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
 
   return (
     <div data-testid="menu-screen" style={{ position: 'relative' }}>
+      {/* Mount points U6 fills (BR14.2): the Chef's special card, allergy marks and the options sheet */}
+      <SpecialCardFeature tableId={tableId} events={events} />
+      <AllergiesFeature tableId={tableId} events={events} />
+      <OptionsFeature tableId={tableId} events={events} />
       {/* Sticky category pill bar */}
       <div
         data-testid="category-pill-bar"
@@ -221,10 +226,10 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
           gap: '0.5rem',
           padding: '0.75rem 1rem',
           overflowX: 'auto',
-          background: 'var(--bg-tab-bar, rgba(18, 18, 30, 0.85))',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg-bar)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          borderBottom: '1px solid var(--border)',
           scrollbarWidth: 'none',
         }}
       >
@@ -240,10 +245,10 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
                 padding: '0.3rem 0.9rem',
                 borderRadius: '999px',
                 border: isActive
-                  ? '1.5px solid var(--accent, #6366f1)'
-                  : '1.5px solid rgba(255,255,255,0.15)',
-                background: isActive ? 'var(--accent, #6366f1)' : 'transparent',
-                color: isActive ? 'var(--accent-fg, #0f1216)' : 'var(--text-secondary)',
+                  ? '1.5px solid var(--accent)'
+                  : '1.5px solid var(--border-strong)',
+                background: isActive ? 'var(--accent)' : 'transparent',
+                color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: isActive ? 600 : 400,
@@ -326,10 +331,10 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
         display: 'flex',
         gap: '0.75rem',
         padding: '0.75rem',
-        borderRadius: '0.75rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--bg-raised)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-card)',
         opacity: soldOut ? 0.6 : 1,
       } as React.CSSProperties}
     >
@@ -339,8 +344,8 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
           src={item.image_url ?? item.image}
           alt={item.name}
           style={{
-            width: '4.5rem',
-            height: '4.5rem',
+            width: '56px',
+            height: '56px',
             objectFit: 'cover',
             borderRadius: '0.5rem',
             flexShrink: 0,
@@ -349,15 +354,15 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
       ) : (
         <div
           style={{
-            width: '4.5rem',
-            height: '4.5rem',
-            borderRadius: '0.5rem',
-            background: 'var(--bg-muted, #2a2a3e)',
+            width: '56px',
+            height: '56px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-card)',
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.5rem',
+            fontSize: '34px',
           }}
           role="img"
           aria-label={item.name}
@@ -408,9 +413,10 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
         >
           <span
             style={{
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: '0.95rem',
-              color: 'var(--accent, #6366f1)',
+              color: 'var(--text)',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             {formatPrice(item.price_cents)}
@@ -421,8 +427,8 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
               style={{
                 padding: '0.15rem 0.6rem',
                 borderRadius: '999px',
-                background: 'rgba(255,255,255,0.1)',
-                color: 'var(--text-muted)',
+                background: 'var(--cancelled-soft)',
+                color: 'var(--text-2)',
                 fontSize: '0.75rem',
                 fontWeight: 500,
               }}
@@ -431,6 +437,7 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
             </span>
           ) : (
             <button
+              className="add-pill"
               data-testid={`add-item-${item.id}`}
               onClick={cartQuantity >= 20 ? undefined : onAdd}
               disabled={cartQuantity >= 20}
@@ -442,14 +449,14 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
                 padding: '0 0.75rem',
                 borderRadius: '999px',
                 background: cartQuantity >= 20
-                  ? 'rgba(255,255,255,0.08)'
-                  : cartQuantity > 0 ? 'var(--accent, #6366f1)' : 'var(--accent-soft)',
+                  ? 'var(--border)'
+                  : 'var(--accent)', // the filled "+ Add" pill of the design system
                 color: cartQuantity >= 20
                   ? 'var(--text-muted)'
-                  : cartQuantity > 0 ? 'var(--accent-fg, #0f1216)' : 'var(--accent, #6366f1)',
+                  : 'var(--accent-fg)',
                 border: cartQuantity >= 20
-                  ? '1.5px solid rgba(255,255,255,0.1)'
-                  : '1.5px solid var(--accent, #6366f1)',
+                  ? '1.5px solid var(--border-strong)'
+                  : '1.5px solid var(--accent)',
                 cursor: cartQuantity >= 20 ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
                 fontWeight: 600,
@@ -470,8 +477,8 @@ function MenuItemCard({ item, index, cartQuantity, onAdd }: MenuItemCardProps) {
                       key={cartQuantity}
                       className="bump"
                       style={{
-                        background: '#fff',
-                        color: 'var(--accent, #6366f1)',
+                        background: 'var(--accent-fg)',
+                        color: 'var(--accent)',
                         borderRadius: '50%',
                         width: '1.1rem',
                         height: '1.1rem',

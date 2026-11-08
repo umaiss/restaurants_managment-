@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Staff PIN: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff: PIN entry (US3.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Every staff address shows only this screen until a correct PIN is entered. Left: ready to type. Right: after a wrong PIN, and after five wrong tries.</p>
+<div class="mock-stage">
+  <div>
+    <div class="desk no-nav" style="width:420px;min-height:520px;place-items:center"><main class="main" style="align-items:center;justify-content:center;width:100%">
+      <section class="card stack" style="width:100%;max-width:340px;align-items:center;gap:16px" data-testid="pin-screen" aria-labelledby="pin-title">
+        <div style="font-size:40px" aria-hidden="true">🔒</div>
+        <h1 id="pin-title">Staff PIN</h1>
+        <p class="secondary" style="text-align:center">Enter the 4-digit PIN to open the staff screens.</p>
+        <div class="row" role="group" aria-label="PIN digits" data-testid="pin-dots"><span class="input" style="width:48px;text-align:center;padding:10px 0">●</span><span class="input" style="width:48px;text-align:center;padding:10px 0">●</span><span class="input" style="width:48px;text-align:center;padding:10px 0"></span><span class="input" style="width:48px;text-align:center;padding:10px 0"></span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,64px);gap:8px">
+          <button class="btn">1</button><button class="btn">2</button><button class="btn">3</button>
+          <button class="btn">4</button><button class="btn">5</button><button class="btn">6</button>
+          <button class="btn">7</button><button class="btn">8</button><button class="btn">9</button>
+          <button class="btn btn-ghost" aria-label="Delete">⌫</button><button class="btn">0</button><button class="btn btn-primary" data-testid="pin-submit">Open</button>
+        </div>
+      </section>
+    </main></div>
+    <p class="mock-caption">A keypad with big touch targets; a keyboard works too.</p>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div class="desk no-nav" style="width:420px;min-height:0"><main class="main">
+      <div class="banner banner-danger" role="alert" data-testid="pin-error"><span aria-hidden="true">⚠</span><div><strong>That PIN is not right</strong>Check it and try again. 3 tries left.</div></div>
+    </main></div>
+    <div class="desk no-nav" style="width:420px;min-height:0"><main class="main">
+      <div class="banner banner-warn" role="alert" data-testid="pin-locked"><span aria-hidden="true">⏳</span><div><strong>Too many tries</strong>Wait 60 seconds, then try again.</div></div>
+    </main></div>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

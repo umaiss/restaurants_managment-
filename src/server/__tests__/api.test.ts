@@ -1,7 +1,8 @@
 process.env.DB_FILE = ':memory:';
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import request from 'supertest';
+// U5 (BR11.3): staff routes now need a session, so every request carries the signed-in test staff cookie.
+import { requestAsStaff as request } from './helpers/staff.js';
 import { app } from '../index.js';
 import { resetDb, seedIfEmpty } from '../db.js';
 

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diner Menu: Table Order v2 mockup</title>
+<link rel="stylesheet" href="design-system.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Diner: Menu (US1.1, US8.1, US10.1, US11.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="device" aria-pressed="true">Follow device</button><button data-mode="light" aria-pressed="false">Light</button><button data-mode="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="mock-note" style="margin-top:16px">Dina has "dairy" set in Settings, so Garlic Bread is marked unsafe. A Chef's special is live. The Classic Burger has options.</p>
+<div class="mock-stage">
+  <div>
+    <div class="phone"><div class="phone-screen" data-testid="menu-screen">
+      <header class="diner-header">
+        <div><div class="title">Table 5</div><div class="live">Updated live</div></div>
+        <button class="icon-btn" aria-label="Settings" data-testid="open-settings">⚙</button>
+      </header>
+      <div class="screen-body">
+        <section class="item special" aria-label="Chef's special" data-testid="chef-special">
+          <div class="img" aria-hidden="true">🦞</div>
+          <div>
+            <div class="row between"><span class="badge badge-accent">Chef's special</span><span class="timer amber num" data-testid="special-countdown">Ends in 12:40</span></div>
+            <div class="name" style="margin-top:4px">Lobster Linguine</div>
+            <div class="desc">Fresh pasta, butter and herbs</div>
+            <div class="price-row"><span class="price num">$24.00 <span class="muted" style="font-weight:400">· 6 left</span></span><button class="add-pill">+ Add</button></div>
+          </div>
+        </section>
+        <div class="cat-bar" data-testid="category-pill-bar" role="tablist" aria-label="Menu categories">
+          <button class="pill" data-testid="category-pill-starters">Starters</button>
+          <button class="pill" aria-current="true" data-testid="category-pill-mains">Mains</button>
+          <button class="pill" data-testid="category-pill-desserts">Desserts</button>
+          <button class="pill" data-testid="category-pill-drinks">Drinks</button>
+        </div>
+        <h2 class="cat-title">Mains</h2>
+        <article class="item unsafe">
+          <div class="img" aria-hidden="true">🥖</div>
+          <div>
+            <div class="name">Garlic Bread</div>
+            <div class="desc">Toasted baguette, garlic butter</div>
+            <div class="row" style="margin-top:4px"><span class="badge badge-danger" data-testid="allergen-mark">⚠ Contains dairy</span></div>
+            <div class="price-row"><span class="price num">$6.50</span><button class="add-pill">+ Add</button></div>
+          </div>
+        </article>
+        <article class="item">
+          <div class="img" aria-hidden="true">🍔</div>
+          <div>
+            <div class="name">Classic Burger</div>
+            <div class="desc">Beef patty, cheddar, house sauce</div>
+            <div class="row" style="margin-top:4px"><span class="badge badge-accent">Make it yours</span></div>
+            <div class="price-row"><span class="price num">$14.50</span><button class="add-pill" data-testid="add-item-i-04">+ Add</button></div>
+          </div>
+        </article>
+        <article class="item">
+          <div class="img" aria-hidden="true">🐟</div>
+          <div>
+            <div class="name">Grilled Salmon</div>
+            <div class="desc">Lemon, new potatoes, greens</div>
+            <div class="row" style="margin-top:4px"><span class="badge badge-cancelled">Allergens not set</span></div>
+            <div class="price-row"><span class="price num">$18.50</span><button class="add-pill">+ Add</button></div>
+          </div>
+        </article>
+        <article class="item sold-out">
+          <div class="img" aria-hidden="true">🍕</div>
+          <div>
+            <div class="name">Margherita Pizza</div>
+            <div class="desc">Tomato, mozzarella, basil</div>
+            <div class="price-row"><span class="price num">$13.50</span><span class="badge badge-cancelled">Sold out</span></div>
+          </div>
+        </article>
+      </div>
+      <div class="cart-bar"><div><strong data-testid="menu-view-cart">View cart</strong><div class="secondary num" style="font-size:13px">2 items · $21.00</div></div><button class="btn btn-primary btn-sm" data-testid="menu-place-order">Place order</button></div>
+      <nav class="tabbar" data-testid="tab-bar" aria-label="Diner tabs">
+        <a class="tab" aria-current="page" data-testid="tab-menu" href="#"><span class="ico" aria-hidden="true">🍽</span>Menu</a>
+        <a class="tab" data-testid="tab-cart" href="diner-cart.html"><span class="ico" aria-hidden="true">🛒</span>Cart<span class="badge-count" data-testid="cart-badge">2</span></a>
+        <a class="tab" data-testid="tab-orders" href="diner-orders.html"><span class="ico" aria-hidden="true">🧾</span>My orders</a>
+      </nav>
+    </div></div>
+    <p class="mock-caption">Menu, Cart and My orders stay as a bottom tab bar with the Cart count; "View cart" and "Place order" sit just above it.</p>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>
