@@ -3,7 +3,7 @@
 // U7 Step 11: the Kitchen Board's data now comes from the server's table list (BR4.1, BR10.3) and carries the open
 // requests (BR3.2), options and completed_at (BR2.2, BR2.3).
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act, waitFor, cleanup } from '@testing-library/react';
 import { useBoardOrders } from '../useBoardOrders';
 import { MockEventSource, calledWith, failed, ok, routeFetch, stubStream } from '../../staff/__tests__/u7Mocks';
 
@@ -31,6 +31,7 @@ beforeEach(() => {
   orders = {};
 });
 afterEach(() => {
+  cleanup(); // unmount the hooks, so the shared staff stream closes and the next test opens its own
   vi.unstubAllGlobals();
 });
 

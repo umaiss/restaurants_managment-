@@ -25,67 +25,67 @@ Standard strategy, scope `dpl-workshop`, methodology test-after (Testing Contrac
 
 ### Project structure and configuration
 
-- [ ] **Step 1: Project structure and production configuration skeleton** (BR10.1, BR10.2; US1.1, US19.1)
+- [x] **Step 1: Project structure and production configuration skeleton** (BR10.1, BR10.2; US1.1, US19.1)
   - In the worktree run `npm ci` (no new package), then `npm install qrcode@1.5.4` and `npm install --save-dev @types/qrcode@1.5.5` (the one new package, approved by you); confirm `npx tsc --noEmit` is clean.
   - Create the folders `src/server/__tests__/u7/`, `src/client/staff/board/`, `src/client/staff/board/__tests__/`, `src/client/staff/pages/**/__tests__/` and `e2e/u7-staff-kitchen-features/`.
   - No other configuration changes: `vite.config.ts`, `vitest.config.ts`, `playwright*.ts` and `tsconfig.json` are U5's.
 
 ### Verify the test runner
 
-- [ ] **Step 2: Verify the existing test runner and record the exact unit-scoped commands** (Testing Contract runner step)
+- [x] **Step 2: Verify the existing test runner and record the exact unit-scoped commands** (Testing Contract runner step)
   - Run v1 and U5's suite once before any change (`npx vitest run src/server src/client --coverage.enabled=false`) and record the number of passing tests as the baseline in `code-summary.md`.
   - Confirm `E2E_PORT=5100 npx playwright test e2e/u1-walking-skeleton` starts its server on port 5100 with an in-memory database. The exact commands are in `unit-test-instructions.md`.
 
 ### Data model and database behaviour
 
-- [ ] **Step 3: Data model** (none)
+- [x] **Step 3: Data model** (none)
   - U7 changes no table, column or seed (contract 5 is U5's); the done-mark table already exists. A test reads `PRAGMA table_info` for the tables U7 reads and checks the schema is U5's.
 
 ### Repository and data access
 
-- [ ] **Step 4: Repositories, implemented** (BR1.1, BR1.2, BR4.1, BR4.2, BR5.1 to BR5.6, BR7.1 to BR7.6; US5.1, US6.1, US12.1, US13.1, US18.1)
+- [x] **Step 4: Repositories, implemented** (BR1.1, BR1.2, BR4.1, BR4.2, BR5.1 to BR5.6, BR7.1 to BR7.6; US5.1, US6.1, US12.1, US13.1, US18.1)
   - `src/server/routes/` helper modules next to the routes (not under `repositories/`, to keep U7's files separate): a stations module (the station board read and the done-mark write in one transaction, using `transitionOrder` with actor `station`), a floor module (each table's state from the open visit, orders, open requests and `getPresence`), a menu module (the staff menu read from U5's `getStaffMenu`, item and category writes with the server-made ids, the options replacement in one transaction), and a sales module (days grouped by the local day of `closed_at` with both timestamp formats, totals, best sellers, the average, and the ratings ranking).
-- [ ] **Step 5: Repositories: write and run their tests** (same rules)
+- [x] **Step 5: Repositories: write and run their tests** (same rules)
   - `src/server/__tests__/u7/`: `stationsRepo.test.ts` (board content, the mark, Pending to Preparing, the last mark completes with `completed_at`, a repeat mark returns 200 with no change even after Completed, no lines for the station, a first mark on a Cancelled order), `floorRepo.test.ts` (each of the five states and the precedence), `menuRepo.test.ts` (writes, hidden items, category order and uniqueness, options replacement keeps ids), `salesRepo.test.ts` (two days, 23:59 and 00:01, both timestamp formats, Cancelled left out, the average and "none", best sellers and ties, ratings ranking and ties).
 
 ### Business logic
 
-- [ ] **Step 6: Validation and rules, implemented** (BR5.2 to BR5.4, BR1.3, BR7.6)
+- [x] **Step 6: Validation and rules, implemented** (BR5.2 to BR5.4, BR1.3, BR7.6)
   - The validation functions for items, categories and option groups (limits in the rules, including the cheapest-possible-line rule), the event publishing after a station done (`STATION_DONE` then a status event for each change) and after every menu write (`publishMenuChange`), and the ratings ranking with its stated tie rule.
-- [ ] **Step 7: Validation and rules: write and run their tests** (same rules)
+- [x] **Step 7: Validation and rules: write and run their tests** (same rules)
   - `validation.test.ts` (each field's valid and invalid values, the first invalid field named, text with control characters, the cheapest line below zero), `stationEvents.test.ts` (publish order, nothing published on a repeat mark), `menuPublish.test.ts` (every successful write calls `publishMenuChange` with the reason and ids).
 
 ### API and endpoint layer
 
-- [ ] **Step 8: Routes, implemented** (contract 3; BR1.x, BR4.1, BR5.x, BR7.x, BR10.2)
+- [x] **Step 8: Routes, implemented** (contract 3; BR1.x, BR4.1, BR5.x, BR7.x, BR10.2)
   - Replace the bodies of the stub modules `staff-stations.ts` (`GET /api/staff/stations/{station}/board`, `POST /api/staff/orders/{n}/stations/{station}/done`), `staff-menu.ts` (`GET /api/staff/menu`, the item, options and category writes), `staff-floor.ts` (`GET /api/staff/tables`) and `staff-sales.ts` (`GET /api/staff/sales`, `GET /api/staff/ratings`). Every route stays behind U5's guard (401 before anything else), uses v1's error shape, and is mounted by U5's registry before the page catch-all. `staff-qr.ts` and `routes/registry.ts` are not edited.
-- [ ] **Step 9: Routes: write and run their tests, and update U5's stub test** (BR10.2, BR13.1 of U5)
+- [x] **Step 9: Routes: write and run their tests, and update U5's stub test** (BR10.2, BR13.1 of U5)
   - `src/server/__tests__/u7/`: one API test file per module (happy path, validation 400 with the field named, 401 without a session, 404 for unknown ids and stations, the answers' shapes), `routeOrder.test.ts` (a new route never returns the page) and `timing.test.ts` (each new read answers within 300 ms on the seed data).
   - U5's `guard.test.ts` lists the stub routes that answer 501: the four U7 modules no longer answer 501, so their entries are removed from that list, and the change is named in `code-summary.md` under "v1 tests changed" (they are U5 tests) with its reason.
 
 ### Frontend
 
-- [ ] **Step 10: Board, tickets, timers, alerts and calls, implemented** (BR1.1 to BR1.5, BR2.1 to BR2.3, BR3.1, BR3.2, BR9.1; US4.1, US13.1, US15.1, US17.1, US8.1)
+- [x] **Step 10: Board, tickets, timers, alerts and calls, implemented** (BR1.1 to BR1.5, BR2.1 to BR2.3, BR3.1, BR3.2, BR9.1; US4.1, US13.1, US15.1, US17.1, US8.1)
   - `KitchenBoardScreen` and `useBoardOrders` (read the table list, not a fixed 10), `OrderCard` (options under each item, the timer with "Slow" and "Late", "<Station> done" on a station tab), `src/client/staff/board/` (`StationTabs`, `StationBoard`, `TicketTimer`, `NewOrderBanner` with the Sound on / Muted switch in the header, `CallPulse` with Respond), and `BillOrderCard` (option lines under each item).
-- [ ] **Step 11: Board and tickets: write and run their tests** (same rules)
+- [x] **Step 11: Board and tickets: write and run their tests** (same rules)
   - Component and hook tests: tabs and keyboard, a station board's tickets and "done", timer colours and words at 7, 8, 14 and 15 minutes and stopped states, the new-order banner once per event and not for old events, mute, the pulse and Respond and reduced motion, option lines on tickets and on the bill, the table list instead of a fixed 10. v1's board and bill tests stay green except those named under "v1 tests changed".
-- [ ] **Step 12: Pages, implemented** (BR4.1 to BR4.4, BR5.1 to BR5.7, BR6.1 to BR6.3, BR7.1 to BR7.6, BR8.1 to BR8.3; US5.1, US6.1, US7.1, US11.1, US12.1, US18.1)
+- [x] **Step 12: Pages, implemented** (BR4.1 to BR4.4, BR5.1 to BR5.7, BR6.1 to BR6.3, BR7.1 to BR7.6, BR8.1 to BR8.3; US5.1, US6.1, US7.1, US11.1, US12.1, US18.1)
   - The staff pages U5 registered, in their own files: Floor map (`staff/pages/floor`, with `useFloorTables`), Menu management (`staff/pages/menu`, the list, `ItemForm`, `OptionGroupEditor`, `CategoryEditor`), Chef's special (`staff/pages/special`), Past visits and sales (`staff/pages/sales`, `DayCard`, `RatedDishes`), QR codes (`staff/pages/qr`, drawn in the browser with `qrcode`, with a print stylesheet), and the station page (`staff/pages/stations`, the same board by link). The registry file is not edited.
-- [ ] **Step 13: Pages: write and run their tests** (same rules)
+- [x] **Step 13: Pages: write and run their tests** (same rules)
   - Component and hook tests for each page: loading, empty and error states with their words, the five floor states and live refresh, the item form (field errors beside the field, typed text kept, the Save button disabled while saving, text shown as text), option groups (add, remove, the cheapest-line message), the special page (live card, launch errors beside the field, the cheapest-price check, end now, switch on `SPECIAL_CHANGED`), the sales page (days, "No completed orders", the empty and failed states, best and worst rated and "No ratings yet today"), the QR page (each code decodes to the address followed by `/table/<n>`, the print view hides the buttons).
 
 ### Browser tests and test helpers
 
-- [ ] **Step 14: Playwright tests for the main flows** (project rule; Testing Standards)
+- [x] **Step 14: Playwright tests for the main flows** (project rule; Testing Standards)
   - `e2e/u7-staff-kitchen-features/staff-kitchen.spec.ts`, using U5's helpers for the diner side: (1) a mixed order shows the burger on Grill and the drink on Bar, "Grill done" makes it Preparing and "Bar done" completes it, and a second press changes nothing; (2) All stations "Complete" finishes at once; (3) timer colours and "Slow" and "Late" for orders placed at known times; (4) the new-order banner and the mute switch; (5) an open call pulses with its words and Respond stops it; (6) the floor map shows each of the five states and updates live; (7) menu management: add, edit, hide an item and a category, an invalid save names the field and keeps the text, and an open diner Menu updates within 2 seconds; (8) option groups saved and shown on a ticket; (9) the Chef's special page: launch, countdown, end now, a launch with a bad value refused; (10) past visits and sales on two days, best sellers, the average and "No completed orders", best and worst rated; (11) the QR page with decoded codes and the print view; (12) option lines on the bill.
-- [ ] **Step 15: Mockup-match spec** (BR10.1; project rule)
+- [x] **Step 15: Mockup-match spec** (BR10.1; project rule)
   - `e2e/u7-staff-kitchen-features/mockup-match.spec.ts`: for `staff-station`, `staff-floor`, `staff-menu`, `staff-special`, `staff-sales`, `staff-qr` and the U7 parts of `staff-board` and `staff-bill`, set up the same state in both themes and check the headings, labels, buttons, messages and status words; save the mockup and app screenshots side by side in `test-results/mockup-match/u7-staff-kitchen-features/`; list the parts U5 and U6 own that are left out.
 
 ### Environment, build and documentation
 
-- [ ] **Step 16: Environment and build configuration** (BR10.2)
+- [x] **Step 16: Environment and build configuration** (BR10.2)
   - `npm run build` succeeds with the new package bundled; no threshold or time limit is lowered; the Unit's browser tests read `E2E_PORT` and never start anything on port 3000.
-- [ ] **Step 17: Documentation and traceability**
+- [x] **Step 17: Documentation and traceability**
   - `code-summary.md` (files, decisions, test summary, tests not run and why, deviations, the new package and where it is used, "v1 tests changed" with reasons, and "Bugs found by the tests and fixed" with each bug's regression test), `source-manifest.json`, and `traceability.json` from `aidlc engine sensor-traceability`. Inline comments on every new module name the rule ids (BR numbers) it implements.
 
 ## Story-to-Step Traceability

@@ -94,6 +94,9 @@ export default function ItemForm({ item, categories, onSaved, onCancel }: ItemFo
         category_id: categoryId,
         station,
         allergens,
+        // Integration fix: an edit is ONE request, with the option groups inside it, so the new price is checked
+        // against the new options and the item is saved all or nothing.
+        ...(editing ? { options: options.body.groups } : {}),
       };
       const res = await staffFetch(editing ? `/api/staff/menu/items/${savedId}` : '/api/staff/menu/items', {
         method: editing ? 'PATCH' : 'POST',
@@ -108,6 +111,11 @@ export default function ItemForm({ item, categories, onSaved, onCancel }: ItemFo
       const saved = (await res.json()) as StaffItem;
       setSavedId(saved.id);
 
+      if (editing) {
+        onSaved();
+        return;
+      }
+      // A new item is made first (it has no id yet); its option groups follow in a second request.
       const optionsRes = await staffFetch(`/api/staff/menu/items/${saved.id}/options`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -114,8 +114,12 @@ function generatePlacementKey(): string {
 // blocked (a private window, cleared or blocked site data) or full, the cart still works from this copy, and
 // every hook instance (Menu, Cart, "Same again") sees the same one.
 const memoryCarts = new Map<string, CartItem[]>();
+// Tables whose last write to storage failed (storage full or blocked for writing): storage then holds an older
+// cart, so reads use the in-memory copy until a write succeeds again.
+const writeFailed = new Set<string>();
 
 function loadItems(tableId: string): CartItem[] {
+  if (writeFailed.has(tableId)) return memoryCarts.get(tableId) ?? [];
   let raw: string | null;
   try {
     raw = localStorage.getItem(cartStorageKey(tableId));
@@ -135,8 +139,10 @@ function saveItems(tableId: string, items: CartItem[]): void {
   memoryCarts.set(tableId, items);
   try {
     localStorage.setItem(cartStorageKey(tableId), JSON.stringify(items));
+    writeFailed.delete(tableId);
   } catch {
-    // Storage blocked or full: the in-memory copy above keeps the cart.
+    // Storage blocked or full: the in-memory copy above keeps the cart, and reads use it from now on.
+    writeFailed.add(tableId);
   }
   // Tell the other hook instances in the same tab, whether or not storage took the write
   try {

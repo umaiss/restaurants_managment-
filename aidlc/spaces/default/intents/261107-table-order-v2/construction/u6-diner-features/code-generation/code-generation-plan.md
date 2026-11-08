@@ -26,61 +26,61 @@ Standard strategy, scope `dpl-workshop`, methodology test-after (Testing Contrac
 
 ### Project structure and configuration
 
-- [ ] **Step 1: Project structure and production configuration skeleton** (BR7.1; US1.1)
+- [x] **Step 1: Project structure and production configuration skeleton** (BR7.1; US1.1)
   - In the worktree run `npm ci` (no new package), then confirm `npx tsc --noEmit` is clean before any change.
   - Create the test folders `src/client/diner/features/**/__tests__/`, `src/server/__tests__/u6/` and `e2e/u6-diner-features/`.
   - No other configuration changes: `package.json`, `vite.config.ts`, `vitest.config.ts`, `playwright*.ts` and `tsconfig.json` are U5's and are not edited. The Unit's tests are found by folder.
 
 ### Verify the test runner
 
-- [ ] **Step 2: Verify the existing test runner and record the exact unit-scoped commands** (Testing Contract runner step)
+- [x] **Step 2: Verify the existing test runner and record the exact unit-scoped commands** (Testing Contract runner step)
   - Run v1 and U5's suite once before any change (`npx vitest run src/server src/client --coverage.enabled=false`) and record the number of passing tests as the baseline in `code-summary.md`.
   - Confirm `E2E_PORT=4100 npx playwright test e2e/u1-walking-skeleton` starts its server on port 4100 with an in-memory database. The exact commands are in `unit-test-instructions.md`.
 
 ### Data model and database behaviour
 
-- [ ] **Step 3: Data model** (none)
+- [x] **Step 3: Data model** (none)
   - U6 changes no table, column or seed (contract 5 is U5's). This step records that, and the test that proves it: the schema after U6's changes equals the schema on `main` (checked in Step 4's test file by reading `PRAGMA table_info` of the tables the route option reads).
 
 ### Repository and data access
 
-- [ ] **Step 4: The orders route option, implemented and tested** (BR10.1; US18.1)
+- [x] **Step 4: The orders route option, implemented and tested** (BR10.1; US18.1)
   - `src/server/routes/orders.ts` (and a small read function beside the existing order reads in `orderRepo.ts`): `visit=last_closed` returns `{ orders }` for the table's most recently closed visit (chosen by parsed time, as U5 does), in the same shape as `visit=current`, and `{ orders: [] }` when the table was never closed or the visit value is unknown. Cancelled orders stay in the body (the screen leaves them out). The route stays open to every diner.
   - `src/server/__tests__/u6/lastClosedOrders.test.ts`: closed visit returns its orders with lines and options; a table never closed returns an empty list; `visit=current` and a missing `visit` behave as before; two closed visits return the latest; a table that does not exist answers 404 UNKNOWN_TABLE as v1 does.
 
 ### Business logic
 
-- [ ] **Step 5: Screen logic, implemented** (BR1.1 to BR1.6, BR2.1, BR2.2, BR3.1 to BR3.3, BR5.1 to BR5.3, BR6.1, BR6.2, BR8.1, BR8.2, BR9.1, BR9.2; US8.1, US9.1, US10.1, US11.1, US16.1, US17.1, US18.1)
+- [x] **Step 5: Screen logic, implemented** (BR1.1 to BR1.6, BR2.1, BR2.2, BR3.1 to BR3.3, BR5.1 to BR5.3, BR6.1, BR6.2, BR8.1, BR8.2, BR9.1, BR9.2; US8.1, US9.1, US10.1, US11.1, US16.1, US17.1, US18.1)
   - `src/client/hooks/useCart.ts`: the line model of BR1.1 and BR1.2 (`lineId`, `optionChoices`, `basePriceCents`, `priceCents`, `specialId`, `quantity`), add, quantity (1 to 20, a special line also capped at its stock left), remove, clear, and the cart refresh of BR1.4 (menu and current special: removed lines named, repriced lines, a special that ended falls back to the regular price and merges, a special over the stock left is capped); v1's saved carts load unchanged.
   - `diner/features/options/`: `useOptionChoice` (choices per group, the live line price never below zero, the first missing required group named); `diner/features/allergies/`: `allergyHits(item, set)` and the guidance text; `diner/features/same-again/`: `buildSameAgain(order, menu)` (match options by label among the item's current choices, skip ambiguous or missing, cap 20, notice text); `diner/features/estimate/`: `useEstimate`; `diner/features/help-card/`: `useCalls`; `diner/features/special-card/`: `useCurrentSpecial` with its countdown; `diner/features/rating/`: `useRatings`; the order-sending code that builds `{ menu_item_id, quantity, option_ids, special_id }` per line and handles `dropped_lines`, `400 EMPTY_ORDER` and `400 INVALID_OPTIONS` as BR1.5 and BR1.6 say.
-- [ ] **Step 6: Screen logic: write and run its tests** (same rules)
+- [x] **Step 6: Screen logic: write and run its tests** (same rules)
   - Tests next to each feature (`__tests__/`): cart identity and v1 cart migration (a v1-shaped cart loads, and the same plain item added joins its line); price preview; required-group rule; refresh cases (item gone, option gone, newly required group, repriced, special ended, special over stock, merge into an existing line); allergy hits (set allergen marked, not set never safe, empty list none); same-again matching (label matched, label in two groups skipped, missing option, hidden or sold out item, cap 20, special line added at menu price); estimate states; call states (ready, sent, answered, no open visit); rating states (change until Done, locked); order-send results (`dropped_lines`, EMPTY_ORDER, INVALID_OPTIONS, a network failure keeps the placement key).
 
 ### API and endpoint layer
 
-- [ ] **Step 7: Client calls to U5's routes, implemented and tested** (contract 1)
+- [x] **Step 7: Client calls to U5's routes, implemented and tested** (contract 1)
   - The small fetch wrappers each feature uses (`/api/estimate`, `/api/specials/current`, `/api/tables/{id}/calls`, `/api/tables/{id}/ratings`, `/api/tables/{id}/orders?visit=last_closed`) with v1's error handling and the "try again" messages of the design; tests mock `fetch` for success, a 4xx with the error shape, and a network error for each.
 
 ### Frontend
 
-- [ ] **Step 8: Components and screen changes, implemented** (BR1.x to BR9.x; US1.1, US2.1, US4.1 and the stories above)
+- [x] **Step 8: Components and screen changes, implemented** (BR1.x to BR9.x; US1.1, US2.1, US4.1 and the stories above)
   - Features, each from U5's shared components and tokens with `data-testid`s: `OptionsSheet`, `AllergyMark`, `AllergyWarning`, `EstimateBanner`, `OrderTracker`, `ReadyBanner`, `SameAgainButton`, `HelpCard`, `SpecialCard`, `RatingList`, `SettingsSheet` and `SettingsButton` (allergy chips, theme control, sound control).
   - Screen edits (diner files only): `MenuScreen` (the "Make it yours" badge, "+ Add" opens the sheet for items with options and adds straight otherwise, allergy marks and "Allergens not set", the special card, the guidance line), `CartScreen` (option lines, the estimate banner, the allergy warning before Place order, the cart refresh notice, the in-flight guard, dropped-line and EMPTY_ORDER notices), `MyOrdersScreen` (the tracker and wait text per order, "Same again", the call card), `TableView` (the Settings button, the ready banner, the thumbs on the closed message).
-- [ ] **Step 9: Components and screens: write and run their tests** (same rules)
+- [x] **Step 9: Components and screens: write and run their tests** (same rules)
   - Component tests for each feature (render, interaction, keyboard and focus for the two sheets, reduced motion, words with colour) and screen tests for the changed screens; v1's screen tests stay green except the ones named under "v1 tests changed".
 
 ### Browser tests and test helpers
 
-- [ ] **Step 10: Playwright tests for the main flows** (project rule; Testing Standards)
+- [x] **Step 10: Playwright tests for the main flows** (project rule; Testing Standards)
   - `e2e/u6-diner-features/diner-features.spec.ts`, using U5's helpers for the staff side: (1) choose options with a price change, add, place, and see the options on My orders; (2) a required group blocks Add and names the group; (3) allergy chips from Settings mark an item and the warning blocks Place order until confirmed; (4) the estimate shows in the Cart and "Running late" shows for an overdue order; (5) the tracker follows an order moved to Preparing and Completed, animation off under reduced motion; (6) the ready banner shows once, not after a reload; (7) "Same again" adds the items and opens the Cart with a notice; (8) the call buttons and "Help is on the way."; (9) a launched special shows its card, can be ordered, and disappears when it ends; (10) after Close table the thumbs show, change until Done, and are locked after; (11) a live menu change reaches an open Menu and the cart refresh notice shows; (12) the Settings sheet saves allergies, theme and sound across a reload.
-- [ ] **Step 11: Mockup-match spec** (BR7.1; project rule)
+- [x] **Step 11: Mockup-match spec** (BR7.1; project rule)
   - `e2e/u6-diner-features/mockup-match.spec.ts`: for `diner-item-options`, `diner-settings`, `diner-closed-rate` and the U6 parts of `diner-menu`, `diner-cart` and `diner-orders`, set up the same state in both themes and check the headings, labels, buttons, messages and status words; save the mockup and app screenshots side by side in `test-results/mockup-match/u6-diner-features/`; list the parts U5 and U7 own that are left out.
 
 ### Environment, build and documentation
 
-- [ ] **Step 12: Environment and build configuration** (BR7.1)
+- [x] **Step 12: Environment and build configuration** (BR7.1)
   - `npm run build` succeeds; no threshold or time limit is lowered; the Unit's browser tests read `E2E_PORT` and never start anything on port 3000.
-- [ ] **Step 13: Documentation and traceability**
+- [x] **Step 13: Documentation and traceability**
   - `code-summary.md` (files, decisions, test summary, tests not run and why, deviations, "v1 tests changed" with reasons, the one U5 file edited (`orders.ts`) and why, and "Bugs found by the tests and fixed" with each bug's regression test), `source-manifest.json`, and `traceability.json` from `aidlc engine sensor-traceability`. Inline comments on every new module name the rule ids (BR numbers) it implements.
 
 ## Story-to-Step Traceability

@@ -124,6 +124,25 @@ describe('useCart: lines with options', () => {
     });
   });
 
+  it('regression: storage that can be read but not written keeps the newest cart from memory, not the older stored one', () => {
+    // Storage already holds an older cart (one line); writes now fail (storage full).
+    localStorage.setItem('cart:table:full-1', JSON.stringify([{ menuItemId: 'i-01', name: 'Garlic Bread', priceCents: 650, quantity: 1 }]));
+    const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    try {
+      const adder = renderHook(() => useCart('full-1'));
+      act(() => adder.result.current.addItem('i-02', 'House Salad', 850));
+      // A screen opened next (the Cart tab after "Same again") must see both lines, not only the stored one.
+      const cartScreen = renderHook(() => useCart('full-1'));
+      expect(cartScreen.result.current.items.map((i) => i.lineId)).toEqual(['i-01', 'i-02']);
+      act(() => cartScreen.result.current.removeLines(['i-01']));
+      expect(adder.result.current.items.map((i) => i.lineId)).toEqual(['i-02']);
+    } finally {
+      set.mockRestore();
+    }
+  });
+
   it('removeLines takes line ids', () => {
     const { result } = renderHook(() => useCart('7'));
     act(() => result.current.addItem('i-04', 'Classic Burger', 1750, 1, { optionChoices: [large], basePriceCents: 1450 }));

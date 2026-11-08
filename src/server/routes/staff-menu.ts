@@ -5,7 +5,7 @@
  */
 import { Router } from 'express';
 import { getStaffMenu } from '../repositories/menuRepo.js';
-import { publishMenuChange } from '../menuEvents.js';
+import { publishMenuChange, watchSpecial } from '../menuEvents.js';
 import { createCategory, createItem, replaceOptions, updateCategory, updateItem } from './u7/menuAdmin.js';
 import { sendU7Error } from './u7/errors.js';
 
@@ -34,7 +34,7 @@ router.post('/staff/menu/items', (req, res) => {
 // PATCH /api/staff/menu/items/:id
 router.patch('/staff/menu/items/:id', (req, res) => {
   try {
-    const item = updateItem(req.params.id, req.body);
+    const item = watchSpecial(() => updateItem(req.params.id, req.body));
     publishMenuChange('item', [item.id]);
     res.json(item);
   } catch (err) {
@@ -45,7 +45,7 @@ router.patch('/staff/menu/items/:id', (req, res) => {
 // PUT /api/staff/menu/items/:id/options
 router.put('/staff/menu/items/:id/options', (req, res) => {
   try {
-    const options = replaceOptions(req.params.id, req.body);
+    const options = watchSpecial(() => replaceOptions(req.params.id, req.body));
     publishMenuChange('options', [req.params.id]);
     res.json({ item_id: req.params.id, options });
   } catch (err) {
@@ -67,7 +67,7 @@ router.post('/staff/menu/categories', (req, res) => {
 // PATCH /api/staff/menu/categories/:id
 router.patch('/staff/menu/categories/:id', (req, res) => {
   try {
-    const category = updateCategory(req.params.id, req.body);
+    const category = watchSpecial(() => updateCategory(req.params.id, req.body));
     publishMenuChange('category', [category.id]);
     res.json(category);
   } catch (err) {

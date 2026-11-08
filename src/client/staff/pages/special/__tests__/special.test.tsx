@@ -65,13 +65,15 @@ describe('the live special (BR6.1)', () => {
   it('shows the live special with its name, price, stock left and a countdown', async () => {
     current = { special: live() };
     render(<SpecialPage />);
-    const card = await screen.findByTestId('special-live');
-    expect(card).toHaveTextContent('Live now');
-    expect(card).toHaveTextContent('Classic Burger');
-    expect(card).toHaveTextContent('$10.00');
+    // Wait on the text itself and look the card up afresh each time: under a loaded machine the page can replace the
+    // card element once more while its reads settle, and a node found earlier would then be a stale one.
+    await waitFor(() => expect(screen.getByTestId('special-live')).toHaveTextContent('Live now'));
+    const card = () => screen.getByTestId('special-live');
+    expect(card()).toHaveTextContent('Classic Burger');
+    expect(card()).toHaveTextContent('$10.00');
     expect(screen.getByTestId('special-stock-left')).toHaveTextContent('6');
     expect(screen.getByTestId('special-countdown')).toHaveTextContent(/Ends in 12:[34]\d/);
-    expect(card).toHaveTextContent('It disappears when the stock reaches 0 or the time runs out.');
+    expect(card()).toHaveTextContent('It disappears when the stock reaches 0 or the time runs out.');
   });
 
   it('counts down every second', async () => {

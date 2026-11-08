@@ -10,13 +10,16 @@ export interface SpecialCardProps extends DinerFeatureProps {
   /** "+ Add" on the card (through the options sheet when the item has options). */
   onAdd?: (special: ChefSpecial) => void;
   /** The item's picture (an emoji or an address) and description, from the menu the screen already has. */
-  itemInfo?: (itemId: string) => { image?: string; description?: string } | undefined;
+  itemInfo?: (itemId: string) => { image?: string; description?: string; available?: boolean } | undefined;
 }
 
 export default function SpecialCardFeature({ events, onAdd, itemInfo }: SpecialCardProps) {
   const { special, remainingMs } = useCurrentSpecial(events);
   if (!special) return null;
   const info = itemInfo?.(special.item_id);
+  // Integration fix: a special for an item that is not on the diner's menu (hidden, in a hidden category) or is
+  // sold out is not offered: no card, so there is no "+ Add" that cannot work.
+  if (itemInfo && (!info || info.available === false)) return null;
   // amber while there is time, red in the last two minutes (the words carry the meaning: "Ends in mm:ss")
   const tone = remainingMs < 2 * 60_000 ? 'red' : 'amber';
   const image = info?.image ?? '';

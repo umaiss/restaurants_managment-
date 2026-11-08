@@ -40,7 +40,9 @@ export interface DroppedInfo {
 export type SendResult =
   | { kind: 'placed'; orderNumber: number; dropped: DroppedInfo[] }
   | { kind: 'empty' }
-  | { kind: 'invalid_options' }
+  /** `menuItemId` is the item the server named, when it did. */
+  | { kind: 'invalid_options'; menuItemId?: string }
+  | { kind: 'unknown_item' }
   | { kind: 'error'; message: string };
 
 /** Names each dropped line from the cart lines that were sent (a line is used once). */
@@ -78,8 +80,13 @@ export async function sendOrder(tableId: string, placementKey: string, items: Ca
     return { kind: 'placed', orderNumber: data.order_number, dropped: nameDroppedLines(items, data.dropped_lines ?? []) };
   }
 
-  const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string }; message?: string };
+  const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string; details?: { menu_item_id?: unknown } }; message?: string };
   if (res.status === 400 && body.error?.code === 'EMPTY_ORDER') return { kind: 'empty' };
-  if (res.status === 400 && body.error?.code === 'INVALID_OPTIONS') return { kind: 'invalid_options' };
+  if (res.status === 400 && body.error?.code === 'INVALID_OPTIONS') {
+    const id = body.error.details?.menu_item_id;
+    return typeof id === 'string' ? { kind: 'invalid_options', menuItemId: id } : { kind: 'invalid_options' };
+  }
+  // An item hidden or removed while the order was on its way: the cart is checked again, like INVALID_OPTIONS.
+  if (res.status === 400 && body.error?.code === 'UNKNOWN_ITEM') return { kind: 'unknown_item' };
   return { kind: 'error', message: body.error?.message ?? body.message ?? 'We could not place your order. Please try again.' };
 }

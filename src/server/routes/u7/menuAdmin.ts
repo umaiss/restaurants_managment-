@@ -7,6 +7,7 @@
 import crypto from 'crypto';
 import { getDb } from '../../db.js';
 import { AppError } from '../../errors.js';
+import { getCurrentSpecial } from '../../repositories/specialsRepo.js';
 import { getStaffMenu, type OptionGroup, type StaffCategory, type StaffMenuItem } from '../../repositories/menuRepo.js';
 import { invalid } from './errors.js';
 import {
@@ -63,11 +64,20 @@ export function createItem(body: unknown): StaffMenuItem {
 
 /** BR5.2: PATCH changes only the fields sent. Throws UNKNOWN_ITEM for an item that does not exist. */
 export function updateItem(id: string, body: unknown): StaffMenuItem {
-  if (!readItem(id)) throw new AppError('UNKNOWN_ITEM', `Item ${id} not found`);
+  const before = readItem(id);
+  if (!before) throw new AppError('UNKNOWN_ITEM', `Item ${id} not found`);
   const f = validateItemBody(body, true);
   if (f.category_id !== undefined) assertCategoryExists(f.category_id);
-  // A lower price must not make a line that already has options cost less than nothing (BR5.4).
-  if (f.price_cents !== undefined && cheapestLinePrice(f.price_cents, groupsOfItem(id)) < 0) {
+
+  // Integration fix: an edit may carry the new option groups ("options", the groups of PUT .../options). The new
+  // price is then checked against the NEW options, and price and options are saved together or not at all.
+  const rawOptions = (body as { options?: unknown }).options;
+  let newGroups: GroupInput[] | undefined;
+  if (rawOptions !== undefined) {
+    const list = Array.isArray(rawOptions) ? rawOptions : (rawOptions as { groups?: unknown } | null)?.groups;
+    newGroups = validateOptionGroups({ groups: list }, lowestPriceWithSpecial(id, f.price_cents ?? before.price_cents));
+  } else if (f.price_cents !== undefined && cheapestLinePrice(f.price_cents, groupsOfItem(id)) < 0) {
+    // A lower price must not make a line that already has options cost less than nothing (BR5.4).
     throw invalid('price_cents', 'With its current options the cheapest possible price of this item would be below $0.00.');
   }
   const columns: Record<string, string | number | null> = {};
@@ -80,12 +90,25 @@ export function updateItem(id: string, body: unknown): StaffMenuItem {
   if (f.allergens !== undefined) columns.allergens = f.allergens === null ? null : JSON.stringify(f.allergens);
   if (f.hidden !== undefined) columns.hidden = f.hidden ? 1 : 0;
   const keys = Object.keys(columns);
-  if (keys.length > 0) {
-    getDb()
-      .prepare(`UPDATE items SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`)
-      .run(...keys.map((k) => columns[k]), id);
-  }
+  // One transaction: the fields and the option groups are saved together or not at all.
+  getDb().transaction(() => {
+    if (keys.length > 0) {
+      getDb()
+        .prepare(`UPDATE items SET ${keys.map((k) => `${k} = ?`).join(', ')} WHERE id = ?`)
+        .run(...keys.map((k) => columns[k]), id);
+    }
+    if (newGroups) writeOptions(id, before, newGroups);
+  })();
   return readItem(id) as StaffMenuItem;
+}
+
+/**
+ * The price the cheapest-option check starts from: the item's regular price, or the live special's price for the
+ * item when that is lower (a special line is priced from the special, so its options must not take it below zero).
+ */
+function lowestPriceWithSpecial(itemId: string, regularCents: number): number {
+  const special = getCurrentSpecial();
+  return special && special.item_id === itemId ? Math.min(regularCents, special.special_price_cents) : regularCents;
 }
 
 /**
@@ -95,10 +118,16 @@ export function updateItem(id: string, body: unknown): StaffMenuItem {
 export function replaceOptions(itemId: string, body: unknown): OptionGroup[] {
   const item = readItem(itemId);
   if (!item) throw new AppError('UNKNOWN_ITEM', `Item ${itemId} not found`);
-  const groups = validateOptionGroups(body, item.price_cents);
-  const db = getDb();
+  // Integration fix: the cheapest price is checked against the lowest of the regular price and a live special's price.
+  const groups = validateOptionGroups(body, lowestPriceWithSpecial(itemId, item.price_cents));
+  getDb().transaction(() => writeOptions(itemId, item, groups))();
+  return (readItem(itemId) as StaffMenuItem).options;
+}
 
-  db.transaction(() => {
+/** Writes a checked list of option groups for an item (inside the caller's transaction). */
+function writeOptions(itemId: string, item: StaffMenuItem, groups: GroupInput[]): void {
+  const db = getDb();
+  {
     const existingGroups = new Map(item.options.map((g) => [g.id, new Set(g.choices.map((c) => c.id))]));
     const keptGroups = new Set<string>();
     const keptChoices = new Set<string>();
@@ -132,9 +161,7 @@ export function replaceOptions(itemId: string, body: unknown): OptionGroup[] {
       }
       if (!keptGroups.has(g.id)) db.prepare('DELETE FROM option_groups WHERE id = ?').run(g.id);
     }
-  })();
-
-  return (readItem(itemId) as StaffMenuItem).options;
+  }
 }
 
 function readCategory(id: string): StaffCategory | undefined {

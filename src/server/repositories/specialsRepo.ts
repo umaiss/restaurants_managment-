@@ -68,6 +68,15 @@ export function launchSpecial(input: LaunchInput, now: Date = new Date()): ChefS
     if (!item) throw invalid('item_id', `Item ${itemId} not found`);
     if (item.hidden === 1 || item.category_hidden === 1) throw invalid('item_id', `Item ${itemId} is hidden`);
     if (item.available !== 1) throw invalid('item_id', `Item ${itemId} is sold out`);
+    // Integration fix: the special price plus the item's cheapest options must not cost less than nothing, or the
+    // server would refuse every order that takes the special with its cheapest options (INVALID_OPTIONS).
+    const cheapest = price + lowestOptionTotal(itemId);
+    if (cheapest < 0) {
+      throw invalid(
+        'special_price_cents',
+        'With the item\'s current options this special price could make the item cost less than $0.00. Raise the special price.'
+      );
+    }
 
     const nowIso = toIso(now);
     // At most one special is live: end every special that is not ended yet.
@@ -87,10 +96,38 @@ export function launchSpecial(input: LaunchInput, now: Date = new Date()): ChefS
 
 /** The live special, or null: not ended, its time not passed and stock left (BR5.2). */
 export function getCurrentSpecial(now: Date = new Date()): ChefSpecial | null {
+  // Integration fix: a special whose item is hidden, whose category is hidden, or whose item is sold out is not
+  // live (the diner cannot order it), whatever its time and stock say. It is live again when the item is back.
   const row = getDb()
-    .prepare(`${SPECIAL_SELECT} WHERE s.ended_at IS NULL AND s.ends_at > ? AND s.stock_left > 0 ORDER BY s.ends_at DESC LIMIT 1`)
+    .prepare(
+      `${SPECIAL_SELECT} JOIN categories c ON c.id = i.category_id
+       WHERE s.ended_at IS NULL AND s.ends_at > ? AND s.stock_left > 0
+         AND i.hidden = 0 AND c.hidden = 0 AND i.available = 1
+       ORDER BY s.ends_at DESC LIMIT 1`
+    )
     .get(toIso(now)) as ChefSpecial | undefined;
   return row ?? null;
+}
+
+/**
+ * The lowest the options of an item can add to a line: a required choose-one group adds its cheapest choice, an
+ * optional one its cheapest or 0, choose-any and leave-out groups the sum of their negative changes (same rule as BR5.4).
+ */
+export function lowestOptionTotal(itemId: string): number {
+  const db = getDb();
+  const groups = db.prepare('SELECT id, kind, required FROM option_groups WHERE item_id = ?').all(itemId) as Array<{ id: string; kind: string; required: number }>;
+  let total = 0;
+  for (const g of groups) {
+    const deltas = (db.prepare('SELECT price_delta_cents AS d FROM option_choices WHERE group_id = ?').all(g.id) as Array<{ d: number }>).map((r) => r.d);
+    if (deltas.length === 0) continue;
+    if (g.kind === 'one') {
+      const cheapest = Math.min(...deltas);
+      total += g.required ? cheapest : Math.min(0, cheapest);
+    } else {
+      total += deltas.filter((d) => d < 0).reduce((s, d) => s + d, 0);
+    }
+  }
+  return total;
 }
 
 /** A special by id, live or not (used to price and check a special line). */

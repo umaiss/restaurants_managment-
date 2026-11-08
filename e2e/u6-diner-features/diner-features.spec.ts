@@ -421,13 +421,27 @@ for (const theme of ['dark', 'light'] as const) {
     await moveOrder(request, done.order_number, 'Preparing');
     await moveOrder(request, done.order_number, 'Completed');
     const live = await placeOrderWithOptions(request, TABLE, [{ menu_item_id: 'i-01', quantity: 1 }]);
+    // The page posts its presence heartbeat as soon as its live stream is open: wait for that, not for a fixed time.
+    const streamOpen = page.waitForResponse((r) => r.url().includes('/presence'));
     await openTable(page, 'orders');
-    await page.waitForTimeout(300);
+    await streamOpen;
     await moveOrder(request, live.order_number, 'Preparing');
     await moveOrder(request, live.order_number, 'Completed');
     await expect(page.getByTestId('ready-banner')).toBeVisible({ timeout: 3000 });
 
+    // Measure at rest: a control that is still sliding or scaling in has a box that is a hair under its size.
+    // Only finite animations are waited for: a looping one (a pulse, a spinner) never finishes.
+    const settle = () =>
+      page.evaluate(() =>
+        Promise.all(
+          document
+            .getAnimations()
+            .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+            .map((a) => a.finished.catch(() => undefined)),
+        ),
+      );
     const expectTouchArea = async (testId: string) => {
+      await settle();
       for (const el of await page.getByTestId(testId).all()) {
         const box = await el.boundingBox();
         expect(box, `${testId} has no box`).not.toBeNull();
@@ -449,3 +463,19 @@ for (const theme of ['dark', 'light'] as const) {
     }
   });
 }
+
+test('19. regression: hiding or selling out the special\'s item takes the card off an open Menu within 2 seconds, and it returns when the item does', async ({ page, request }) => {
+  await launchSpecial(request, { item_id: 'i-02', special_price_cents: 500, stock: 3, minutes: 10 });
+  await openTable(page);
+  await expect(page.getByTestId('chef-special')).toBeVisible({ timeout: 3000 });
+
+  expect((await request.patch('/api/staff/menu/items/i-02', { data: { hidden: true } })).ok()).toBe(true);
+  await expect(page.getByTestId('chef-special')).toHaveCount(0, { timeout: 2000 });
+  expect((await request.patch('/api/staff/menu/items/i-02', { data: { hidden: false } })).ok()).toBe(true);
+  await expect(page.getByTestId('chef-special')).toBeVisible({ timeout: 2000 });
+
+  await changeMenuDirectly(request, 'i-02', { available: false }); // the sold-out switch
+  await expect(page.getByTestId('chef-special')).toHaveCount(0, { timeout: 2000 });
+  await changeMenuDirectly(request, 'i-02', { available: true });
+  await expect(page.getByTestId('chef-special')).toBeVisible({ timeout: 2000 });
+});

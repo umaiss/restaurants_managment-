@@ -202,9 +202,11 @@ describe('the item form (BR5.2, BR5.7)', () => {
     await waitFor(() => expect(screen.queryByTestId('item-form')).toBeNull());
     const patch = body(calledWith(fetchMock, '/api/staff/menu/items/i-04', 'PATCH')[0][1] as RequestInit);
     expect(patch).toMatchObject({ name: 'Classic Burger', price_cents: 1525, category_id: 'c-02', station: 'Grill', allergens: ['gluten', 'dairy'] });
-    const put = body(calledWith(fetchMock, '/api/staff/menu/items/i-04/options', 'PUT')[0][1] as RequestInit);
-    expect(put.groups[0]).toMatchObject({ id: 'og-size', name: 'Size', kind: 'one', required: true });
-    expect(put.groups[0].choices[1]).toEqual({ id: 'oc-l', label: 'Large', price_delta_cents: 300 });
+    // Changed with the integration fixes: an edit is ONE request, the option groups ride in the PATCH (no PUT)
+    expect(calledWith(fetchMock, '/api/staff/menu/items/i-04/options', 'PUT')).toHaveLength(0);
+    expect(calledWith(fetchMock, '/api/staff/menu/items/i-04', 'PATCH')).toHaveLength(1);
+    expect(patch.options[0]).toMatchObject({ id: 'og-size', name: 'Size', kind: 'one', required: true });
+    expect(patch.options[0].choices[1]).toEqual({ id: 'oc-l', label: 'Large', price_delta_cents: 300 });
   });
 
   it('an invalid save shows the server\'s message beside the named field and keeps everything typed', async () => {
@@ -361,8 +363,8 @@ describe('option groups (BR5.4)', () => {
   });
 
   it('shows the server\'s message beside the choice it names (the cheapest-line rule)', async () => {
-    handlers['PATCH /api/staff/menu/items/i-04'] = () => ok(menu.items[1]);
-    handlers['PUT /api/staff/menu/items/i-04/options'] = () => failed(400, { error: { code: 'INVALID_REQUEST', message: 'With these choices the cheapest possible price of this item would be below $0.00.', details: { field: 'groups[1].choices[0].price_delta_cents' } } });
+    // Changed with the integration fixes: the options error now comes from the one PATCH of the edit
+    handlers['PATCH /api/staff/menu/items/i-04'] = () => failed(400, { error: { code: 'INVALID_REQUEST', message: 'With these choices the cheapest possible price of this item would be below $0.00.', details: { field: 'groups[1].choices[0].price_delta_cents' } } });
     await open();
     fireEvent.change(within(screen.getByTestId('option-choice-1-0')).getByLabelText('Price change ($)'), { target: { value: '-99' } });
     fireEvent.click(screen.getByTestId('save-item'));

@@ -4,7 +4,7 @@
 // U5 Step 14: the live-event hooks as extended by U5: every event name registered once, the diner page's
 // page id and heartbeat, and the staff stream's way back to the PIN screen (BR8.1, BR9.2, BR1.7).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, cleanup } from '@testing-library/react';
 import { useTableSSE } from '../useTableSSE.js';
 import { useStaffSSE } from '../useStaffSSE.js';
 import { EVENT_NAMES, STAFF_EVENT_NAMES, HEARTBEAT_INTERVAL_MS, makePageId } from '../eventNames.js';
@@ -42,6 +42,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
 });
 afterEach(() => {
+  cleanup(); // unmount the hooks, so the shared staff stream closes and the next test opens its own
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });

@@ -38,7 +38,7 @@ function formatPrice(cents: number): string {
 type OrderStatus = 'idle' | 'posting' | 'error';
 
 export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu, events, notice }: CartScreenProps) {
-  const { items, totalCents, removeItem, updateQuantity, clearCart, refreshCart, ensurePlacementKey } =
+  const { items, totalCents, removeItem, updateQuantity, clearCart, refreshCart, removeLines, ensurePlacementKey } =
     useCart(tableId);
   const allergies = useAllergyList();
 
@@ -50,6 +50,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu, event
   const [warning, setWarning] = useState<{ hits: CartHit[]; unchecked: boolean } | null>(null);
   const menuRef = useRef<DinerMenuItem[] | null>(null);
   const sending = useRef(false); // W2 step 5: one tap sends one order
+  const refreshChanged = useRef(false); // the last cart refresh changed something (and said so)
   const checking = useRef(false); // the allergy check is running (the menu may still be loading)
   const [checkingUi, setCheckingUi] = useState(false);
 
@@ -74,6 +75,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu, event
         special = undefined;
       }
       const text = refreshNotice(refreshCart(list, special));
+      refreshChanged.current = text !== null;
       if (text) setRefreshNote(text);
       return true;
     } catch {
@@ -147,8 +149,27 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu, event
       }
       if (result.kind === 'invalid_options') {
         // BR1.5: nothing is lost; the refresh brings the lines in line.
+        refreshChanged.current = false;
         await refresh();
-        setRefreshNote((prev) => `An option needed attention, so your cart was checked again. ${prev ?? ''}`.trim());
+        const named = result.menuItemId ? items.filter((i) => i.menuItemId === result.menuItemId) : [];
+        if (!refreshChanged.current && named.length > 0) {
+          // Integration fix: the refresh found nothing to change, so the same cart would be refused again and again.
+          // The line the server named is taken out (and named), so the diner can always place the rest.
+          removeLines(named.map((l) => l.lineId));
+          setRefreshNote(
+            `${Array.from(new Set(named.map((l) => l.name))).join(', ')} could not be ordered as chosen, so it was taken out of your cart. You can add it again from the menu.`
+          );
+        } else {
+          setRefreshNote((prev) => `An option needed attention, so your cart was checked again. ${prev ?? ''}`.trim());
+        }
+        setOrderStatus('idle');
+        return;
+      }
+      if (result.kind === 'unknown_item') {
+        // An item was hidden or removed while the order was on its way: the cart is checked again and the item is
+        // removed and named, as for an option that is gone.
+        await refresh();
+        setRefreshNote((prev) => `Something on the menu changed while you were ordering, so your cart was checked again. ${prev ?? 'Please look over your cart.'}`.trim());
         setOrderStatus('idle');
         return;
       }

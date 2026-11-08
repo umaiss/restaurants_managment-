@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act, waitFor, cleanup } from '@testing-library/react';
 import { useBill, type Bill } from '../useBill';
 
 class MockEventSource {
@@ -55,6 +55,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
 });
 afterEach(() => {
+  cleanup(); // unmount the hooks, so the shared staff stream closes and the next test opens its own
   vi.unstubAllGlobals();
 });
 

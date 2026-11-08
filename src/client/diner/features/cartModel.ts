@@ -183,6 +183,23 @@ export function computeRefresh(
       }
     }
 
+    // Integration fix: a price below zero (a special, or the regular price, plus the chosen options) is never
+    // clamped to $0.00 and sent: the server refuses the whole order for it. A special line falls back to the
+    // regular price first; a line that is still below zero is removed and named.
+    const raw = (b: number) => b + choices.reduce((sum, c) => sum + c.priceDeltaCents, 0);
+    if (raw(base) < 0 && specialId) {
+      specialId = undefined;
+      maxQuantity = undefined;
+      base = item.price_cents;
+      const label = item.name ?? line.name;
+      if (!result.reset.includes(label)) result.reset.push(label);
+    }
+    if (raw(base) < 0) {
+      result.removed.push(line.name);
+      changed = true;
+      continue;
+    }
+
     const priceCents = linePrice(base, choices);
     if (priceCents !== line.priceCents) result.repriced = true;
 

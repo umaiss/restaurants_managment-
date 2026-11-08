@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getMenu, updateItemAvailability } from '../repositories/menuRepo.js';
 import { publish } from '../sse.js';
+import { watchSpecial } from '../menuEvents.js';
 import { getDb } from '../db.js';
 import { requireStaff } from '../staffAccess.js';
 
@@ -28,7 +29,8 @@ router.post('/menu/items/:id/availability', requireStaff(), (req, res) => {
     return;
   }
 
-  const item = updateItemAvailability(id, available);
+  // A sold-out item cannot carry a live special: SPECIAL_CHANGED follows when that changes which special is live.
+  const item = watchSpecial(() => updateItemAvailability(id, available));
   if (!item) {
     res.status(404).json({ error: { code: 'UNKNOWN_ITEM', message: `Item ${id} not found` } });
     return;

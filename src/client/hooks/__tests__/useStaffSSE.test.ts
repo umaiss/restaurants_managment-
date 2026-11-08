@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, cleanup } from '@testing-library/react';
 import { useStaffSSE } from '../useStaffSSE';
 
 type EventMap = Record<string, ((e: MessageEvent) => void)[]>;
@@ -54,6 +54,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup(); // unmount the hooks, so the shared staff stream closes and the next test opens its own
   vi.unstubAllGlobals();
 });
 

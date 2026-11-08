@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act, waitFor, cleanup } from '@testing-library/react';
 import { useBoardOrders } from '../useBoardOrders';
 
 // --- MockEventSource ---
@@ -101,6 +101,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup(); // unmount the hooks, so the shared staff stream closes and the next test opens its own
   vi.unstubAllGlobals();
 });
 

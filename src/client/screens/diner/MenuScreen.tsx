@@ -52,6 +52,7 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
   const allergies = useAllergyList();
   // The item whose options sheet is open (BR1.1, W1), with the special when it was opened from the card
   const [optionsFor, setOptionsFor] = useState<{ item: MenuItem; special: ChefSpecial | null } | null>(null);
+  const [menuNotice, setMenuNotice] = useState<string | null>(null);
   const itemsRef = useRef<MenuItem[]>([]);
   const specialRef = useRef<RefreshSpecial | null | undefined>(undefined);
 
@@ -164,7 +165,13 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
 
   function addSpecialFromCard(special: ChefSpecial) {
     const item = itemsRef.current.find((i) => i.id === special.item_id);
-    if (item && item.available !== false) startAdd(item, special);
+    if (item && item.available !== false) {
+      setMenuNotice(null);
+      startAdd(item, special);
+    } else {
+      // Never silently nothing: say why the special cannot be added.
+      setMenuNotice(`${special.name} is not available right now.`);
+    }
   }
 
   // IntersectionObserver to highlight the active category pill
@@ -289,9 +296,14 @@ export default function MenuScreen({ tableId, events = [] }: MenuScreenProps) {
         onAdd={addSpecialFromCard}
         itemInfo={(id) => {
           const it = items.find((i) => i.id === id);
-          return it ? { image: it.image_url ?? it.image, description: it.description } : undefined;
+          return it ? { image: it.image_url ?? it.image, description: it.description, available: it.available } : undefined;
         }}
       />
+      {menuNotice && (
+        <p className="help" role="status" data-testid="menu-notice" style={{ margin: 'var(--space-2) var(--space-4) 0' }}>
+          {menuNotice}
+        </p>
+      )}
       <AllergiesFeature tableId={tableId} events={events} />
       <OptionsFeature
         tableId={tableId}
