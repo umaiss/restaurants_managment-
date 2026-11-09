@@ -9,6 +9,8 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Extra content between the message and the buttons, for example a choice to make before confirming. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -23,6 +25,7 @@ export default function ConfirmModal({
   cancelLabel = 'Cancel',
   onConfirm,
   onCancel,
+  children,
 }: ConfirmModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCancelRef = useRef(onCancel);
@@ -34,8 +37,8 @@ export default function ConfirmModal({
     if (!open) return;
     const opener = document.activeElement as HTMLElement | null;
     const focusable = () =>
-      Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])') ?? []);
-    focusable()[0]?.focus();
+      Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])') ?? []);
+    (dialogRef.current?.querySelector<HTMLElement>('[data-testid="confirm-modal-cancel"]') ?? focusable()[0])?.focus();
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
@@ -128,6 +131,7 @@ export default function ConfirmModal({
             {message}
           </p>
         )}
+        {children}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             data-testid="confirm-modal-cancel"

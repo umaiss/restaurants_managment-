@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SSEEvent } from '../../../hooks/useTableSSE.js';
-import { ApiError, fetchCalls, postCall, type CallKind, type ServiceCallRow } from '../api.js';
+import { ApiError, fetchCalls, postCall, type CallKind, type PaymentMethod, type ServiceCallRow } from '../api.js';
 import { useNewEvents } from '../liveHelpers.js';
 
 export type CallState = 'ready' | 'sent' | 'answered';
@@ -15,7 +15,7 @@ export interface CallsView {
   visible: boolean;
   /** A press that failed to reach the server (BR5.1). */
   error: string | null;
-  press: (kind: CallKind) => Promise<void>;
+  press: (kind: CallKind, paymentMethod?: PaymentMethod, wantsReceipt?: boolean) => Promise<void>;
 }
 
 /** The state of one kind from a list of requests: the newest one decides. */
@@ -66,13 +66,13 @@ export function useCalls(tableId: string, events?: SSEEvent[]): CallsView {
   });
 
   const press = useCallback(
-    async (kind: CallKind) => {
+    async (kind: CallKind, paymentMethod?: PaymentMethod, wantsReceipt?: boolean) => {
       if (busy.current[kind]) return; // a double tap makes one request
       busy.current[kind] = true;
       version.current += 1;
       setError(null);
       try {
-        await postCall(tableId, kind);
+        await postCall(tableId, kind, paymentMethod, wantsReceipt);
         version.current += 1;
         setStates((s) => ({ ...s, [kind]: 'sent' }));
       } catch (e) {

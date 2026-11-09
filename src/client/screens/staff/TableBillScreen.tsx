@@ -40,6 +40,10 @@ export default function TableBillScreen() {
   const [confirming, setConfirming] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
+  // "Show a receipt": chosen in the Close table step, starts on when the diner asked for one.
+  const [showReceipt, setShowReceipt] = useState(false);
+  // True while a close that goes on to the receipt page runs, so the "table closed" event does not send staff to the board first.
+  const goingToReceipt = useRef(false);
 
   // The Close table button is disabled while the request runs, so after a failed close keyboard
   // focus goes to the error message, where the person lands on what went wrong.
@@ -50,13 +54,14 @@ export default function TableBillScreen() {
 
   // Closed from another session (or by this one): the bill has nothing left to show.
   useEffect(() => {
-    if (closed) navigate('/staff');
+    if (closed && !goingToReceipt.current) navigate('/staff');
   }, [closed, navigate]);
 
   async function handleClose() {
     setConfirming(false);
     setClosing(true);
     setCloseError(null);
+    goingToReceipt.current = showReceipt;
     try {
       const res = await staffFetch(`/api/tables/${tableId}/close`, {
         method: 'POST',
@@ -64,9 +69,18 @@ export default function TableBillScreen() {
         body: '{}',
       });
       if (res.ok) {
-        navigate('/staff');
+        let visitId = '';
+        if (showReceipt) {
+          try {
+            visitId = ((await res.json()) as { archived_visit_id?: string }).archived_visit_id ?? '';
+          } catch {
+            // no visit id to show: fall back to the board
+          }
+        }
+        navigate(visitId ? `/staff/receipt/${visitId}` : '/staff');
         return;
       }
+      goingToReceipt.current = false;
       let code = '';
       try {
         const body = (await res.json()) as { error?: { code?: string } };
@@ -86,6 +100,7 @@ export default function TableBillScreen() {
         setCloseError('We could not close the table. Please try again.');
       }
     } catch {
+      goingToReceipt.current = false;
       setCloseError('We could not close the table. Please check the connection and try again.');
     } finally {
       setClosing(false);
@@ -195,7 +210,10 @@ export default function TableBillScreen() {
             blockingOrders={bill.blocking_orders}
             empty={empty}
             busy={closing}
-            onClose={() => setConfirming(true)}
+            onClose={() => {
+              setShowReceipt(bill.receipt_requested === true);
+              setConfirming(true);
+            }}
           />
         </>
       )}
@@ -208,7 +226,30 @@ export default function TableBillScreen() {
         cancelLabel="Cancel"
         onConfirm={handleClose}
         onCancel={() => setConfirming(false)}
-      />
+      >
+        {bill && (
+          <div className="stack" style={{ marginBottom: '1rem', gap: '0.5rem' }}>
+            <p data-testid="close-payment" style={{ margin: 0, fontSize: '0.9rem' }}>
+              Payment: {bill.payment_method === 'cash' ? 'Cash' : bill.payment_method === 'card' ? 'Card' : 'not chosen yet'}
+            </p>
+            {bill.receipt_requested && (
+              <p data-testid="close-receipt-asked" style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                The diner asked for a receipt.
+              </p>
+            )}
+            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', minHeight: 'var(--touch)', fontSize: '0.9rem' }}>
+              <input
+                type="checkbox"
+                data-testid="close-receipt"
+                checked={showReceipt}
+                onChange={(e) => setShowReceipt(e.target.checked)}
+                style={{ width: 22, height: 22 }}
+              />
+              <span>Show a receipt to print</span>
+            </label>
+          </div>
+        )}
+      </ConfirmModal>
     </div>
   );
 }

@@ -11,6 +11,7 @@ export { default as SameAgainFeature } from './same-again/index.js';
 export { default as HelpCardFeature } from './help-card/index.js';
 export { default as SpecialCardFeature } from './special-card/index.js';
 export { default as RatingFeature } from './rating/index.js';
+export { default as ReceiptFeature } from './receipt/index.js';
 export { default as SettingsFeature } from './settings/index.js';
 
 /** The folder names, for tests. */
@@ -24,5 +25,6 @@ export const DINER_FEATURE_FOLDERS = [
   'help-card',
   'special-card',
   'rating',
+  'receipt',
   'settings',
 ] as const;

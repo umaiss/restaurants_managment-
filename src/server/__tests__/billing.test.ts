@@ -107,7 +107,7 @@ describe('billing rules', () => {
 
     it('a table with no open visit has an empty bill and close_available false', () => {
       const bill = buildBill(2);
-      expect(bill).toEqual({ table_id: 2, orders: [], combined_total_cents: 0, close_available: false, blocking_orders: [] });
+      expect(bill).toEqual({ table_id: 2, orders: [], combined_total_cents: 0, close_available: false, blocking_orders: [], payment_method: null, receipt_requested: false });
     });
 
     it('an unknown table throws UNKNOWN_TABLE', () => {

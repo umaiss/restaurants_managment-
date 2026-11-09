@@ -50,6 +50,18 @@
 .field label { font-size: var(--text-sm); color: var(--text-2); font-weight: var(--weight-medium); }
 .input { min-height: var(--touch); padding: 0 var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font: inherit; width: 100%; }
 .input:focus-visible { outline: 2px solid var(--accent); }
+/* Dropdowns: the arrow is drawn here so it sits inside the border with room on its right, in both themes. */
+select.input {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: var(--space-8);
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+select.input:disabled { cursor: not-allowed; }
 .help { font-size: var(--text-xs); color: var(--text-muted); }
 .error-text { font-size: var(--text-xs); color: var(--danger); }
 .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-pill); overflow: hidden; }
@@ -66,6 +78,12 @@
 .tracker .step.done::before { background: var(--accent); }
 .tracker .step.done::after { background: var(--accent); border-color: var(--accent); }
 .tracker .step.current { color: var(--text); font-weight: var(--weight-semibold); }
+/* The bar runs up to the current dot: the half of the current step before its dot is filled, the half after is not.
+   The first step has nothing before its dot; the last step (Completed) is filled all the way and stops pulsing. */
+.tracker .step.current::before { background: linear-gradient(to right, var(--accent) 50%, var(--border) 50%); }
+.tracker .step:first-child.current::before { background: var(--border); }
+.tracker .step:last-child.current::before { background: var(--accent); }
+.tracker .step:last-child.current::after { animation: none; box-shadow: none; }
 .tracker .step.current::after { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 6px var(--accent-soft); animation: pulse 2s infinite; }
 .timer { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: var(--radius-pill); font-size: var(--text-xs); font-weight: var(--weight-bold); background: var(--completed-soft); color: var(--completed); }
 .timer.amber { background: var(--pending-soft); color: var(--warn-amber); }
@@ -95,6 +113,15 @@
 /* the staff PIN keypad: 64 px keys with big touch targets */
 .pin-pad { display: grid; grid-template-columns: repeat(3, 64px); gap: var(--space-2); }
 .pin-pad .btn { padding: 0; }
+/* The "Open" label is white in the dark theme (--pin-open-fg). */
+.pin-pad .btn-primary { color: var(--pin-open-fg); }
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
 
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--accent-soft); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* Printing a receipt: only the receipt is on the paper, wherever it is shown. Other pages print as they are. */
+@media print {
+  body:has(.receipt-print) * { visibility: hidden !important; }
+  body:has(.receipt-print) .receipt-print, body:has(.receipt-print) .receipt-print * { visibility: visible !important; }
+  .receipt-print { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
+}

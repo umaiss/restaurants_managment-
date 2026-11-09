@@ -121,6 +121,53 @@ describe('TableBillScreen', () => {
     expect(post?.[0]).toBe('/api/tables/5/close');
   });
 
+  it('the Close table step shows how the table pays and whether it asked for a receipt; a receipt is off unless asked for', async () => {
+    renderScreen();
+    await openConfirm();
+    expect(screen.getByTestId('close-payment')).toHaveTextContent('Payment: not chosen yet');
+    expect(screen.queryByTestId('close-receipt-asked')).toBeNull();
+    expect(screen.getByTestId('close-receipt')).not.toBeChecked();
+    await userEvent.click(screen.getByTestId('confirm-modal-confirm'));
+    expect(await screen.findByTestId('board-page')).toBeInTheDocument(); // no receipt chosen: back to the board
+  });
+
+  it('when the diner asked for a receipt the box starts ticked, and closing goes to that visit\'s receipt page', async () => {
+    billResponse = () => json(200, { ...closableBill, payment_method: 'card', receipt_requested: true });
+    render(
+      <MemoryRouter initialEntries={['/staff/tables/5']}>
+        <Routes>
+          <Route path="/staff/tables/:id" element={<TableBillScreen />} />
+          <Route path="/staff/receipt/:visitId" element={<div data-testid="receipt-page">Receipt</div>} />
+          <Route path="/staff" element={<div data-testid="board-page">Board</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await screen.findByTestId('bill-order-15');
+    await userEvent.click(screen.getByTestId('btn-close-table'));
+    await screen.findByTestId('confirm-modal');
+    expect(screen.getByTestId('close-payment')).toHaveTextContent('Payment: Card');
+    expect(screen.getByTestId('close-receipt-asked')).toBeInTheDocument();
+    expect(screen.getByTestId('close-receipt')).toBeChecked();
+    await userEvent.click(screen.getByTestId('confirm-modal-confirm'));
+    expect(await screen.findByTestId('receipt-page')).toBeInTheDocument();
+  });
+
+  it('staff can tick the receipt box themselves even when the diner did not ask', async () => {
+    render(
+      <MemoryRouter initialEntries={['/staff/tables/5']}>
+        <Routes>
+          <Route path="/staff/tables/:id" element={<TableBillScreen />} />
+          <Route path="/staff/receipt/:visitId" element={<div data-testid="receipt-page">Receipt</div>} />
+          <Route path="/staff" element={<div data-testid="board-page">Board</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await openConfirm();
+    await userEvent.click(screen.getByTestId('close-receipt'));
+    await userEvent.click(screen.getByTestId('confirm-modal-confirm'));
+    expect(await screen.findByTestId('receipt-page')).toBeInTheDocument();
+  });
+
   it('Cancel in the confirmation sends nothing', async () => {
     renderScreen();
     await openConfirm();

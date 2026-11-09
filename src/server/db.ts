@@ -211,6 +211,8 @@ export function upgradeSchema(db: Database.Database): void {
         responded_at TEXT NULL
       )`),
     ],
+    ['service_calls.payment_method', () => addColumnIfMissing(db, 'service_calls', 'payment_method', 'TEXT NULL')],
+    ['service_calls.wants_receipt', () => addColumnIfMissing(db, 'service_calls', 'wants_receipt', 'INTEGER NOT NULL DEFAULT 0')],
     [
       'dish_ratings',
       () =>
@@ -223,6 +225,17 @@ export function upgradeSchema(db: Database.Database): void {
         rated_at TEXT NOT NULL,
         locked INTEGER NOT NULL DEFAULT 0,
         UNIQUE (visit_id, item_id)
+      )`),
+    ],
+    [
+      'visit_feedback',
+      () =>
+        db.exec(`
+      CREATE TABLE IF NOT EXISTS visit_feedback (
+        visit_id TEXT PRIMARY KEY REFERENCES visits(id),
+        comment TEXT NOT NULL,
+        saved_at TEXT NOT NULL,
+        locked INTEGER NOT NULL DEFAULT 0
       )`),
     ],
     [

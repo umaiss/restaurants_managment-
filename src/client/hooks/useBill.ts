@@ -28,6 +28,10 @@ export interface Bill {
   combined_total_cents: number;
   close_available: boolean;
   blocking_orders: number[];
+  /** How the table said it will pay when it asked for the bill. */
+  payment_method?: 'cash' | 'card' | null;
+  /** True when the table asked for a receipt along with the bill. */
+  receipt_requested?: boolean;
 }
 
 export interface UseBill {

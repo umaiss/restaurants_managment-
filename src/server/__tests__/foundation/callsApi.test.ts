@@ -35,6 +35,46 @@ describe('service call API', () => {
     resetDb();
   });
 
+  it('asking for the bill keeps the payment method (cash or card), in the answer, the list and the event', async () => {
+    await order();
+    published.length = 0;
+    const res = await request(app).post('/api/tables/1/calls').send({ kind: 'bill', payment_method: 'card' });
+    expect(res.status).toBe(201);
+    expect(res.body.payment_method).toBe('card');
+    expect(callEvents('SERVICE_CALL_OPENED')[0].data.payment_method).toBe('card');
+    const list = await request(app).get('/api/tables/1/calls');
+    expect(list.body.calls[0]).toMatchObject({ kind: 'bill', payment_method: 'card' });
+  });
+
+  it('a bill request with no payment method is still accepted and keeps none; a waiter call never keeps one', async () => {
+    await order();
+    const bill = await call(1, 'bill');
+    expect(bill.status).toBe(201);
+    expect(bill.body.payment_method).toBeNull();
+    const waiter = await request(app).post('/api/tables/1/calls').send({ kind: 'waiter', payment_method: 'cash' });
+    expect(waiter.body.payment_method).toBeNull();
+  });
+
+  it('wants_receipt is kept for a bill request, defaults to false, and must be true or false', async () => {
+    await order();
+    const res = await request(app).post('/api/tables/1/calls').send({ kind: 'bill', payment_method: 'cash', wants_receipt: true });
+    expect(res.body.wants_receipt).toBe(true);
+    expect(callEvents('SERVICE_CALL_OPENED').at(-1)?.data.wants_receipt).toBe(true);
+    expect((await request(app).get('/api/tables/1/calls')).body.calls[0].wants_receipt).toBe(true);
+
+    const bad = await request(app).post('/api/tables/1/calls').send({ kind: 'waiter', wants_receipt: 'yes' });
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.code).toBe('INVALID_WANTS_RECEIPT');
+  });
+
+  it('a payment method other than cash or card is refused with 400 INVALID_PAYMENT_METHOD and opens nothing', async () => {
+    await order();
+    const res = await request(app).post('/api/tables/1/calls').send({ kind: 'bill', payment_method: 'cheque' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_PAYMENT_METHOD');
+    expect((await request(app).get('/api/tables/1/calls')).body.calls).toEqual([]);
+  });
+
   it('a press opens a request: 201, and SERVICE_CALL_OPENED goes to staff and that table only', async () => {
     await order();
     published.length = 0;

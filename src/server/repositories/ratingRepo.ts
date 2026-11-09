@@ -9,6 +9,9 @@ import { getLastClosedVisitId } from './tableRepo.js';
 
 export type Thumb = 'up' | 'down';
 
+/** The longest written comment a diner can leave with their ratings. */
+export const MAX_COMMENT_LENGTH = 500;
+
 export interface RatingInput {
   item_id: unknown;
   thumb: unknown;
@@ -20,13 +23,16 @@ export interface RatingInput {
  * (2) every thumb is up or down, else INVALID_RATING; (3) every dish is on a non-cancelled order of
  * that visit, else ITEM_NOT_IN_VISIT; (4) no rating being changed is locked, else RATING_LOCKED.
  * `done` locks every rating the visit has (only ratings that exist; a dish never rated stays open).
+ * A written `comment` (optional, up to 500 characters) is kept once per visit with the same lock: it is
+ * changeable until Done, and a different comment after Done is refused with RATING_LOCKED.
  */
 export function saveRatings(
   tableId: number,
   visitId: string,
   ratings: unknown,
   done: boolean,
-  now: Date = new Date()
+  now: Date = new Date(),
+  comment?: unknown
 ): { saved: number } {
   const db = getDb();
 
@@ -52,6 +58,15 @@ export function saveRatings(
       wanted.set(r.item_id, r.thumb); // a later entry for the same dish replaces the earlier one
     }
 
+    // (2b) the comment
+    let note: string | null = null;
+    if (comment !== undefined && comment !== null) {
+      if (typeof comment !== 'string' || comment.length > MAX_COMMENT_LENGTH) {
+        throw new AppError('INVALID_COMMENT', `comment must be text of at most ${MAX_COMMENT_LENGTH} characters`);
+      }
+      note = comment.trim();
+    }
+
     // (3) the dishes
     const onVisit = db.prepare(
       `SELECT 1 FROM order_items oi JOIN orders o ON o.id = oi.order_id
@@ -72,6 +87,13 @@ export function saveRatings(
       }
     }
 
+    const keptComment = db.prepare('SELECT comment, locked FROM visit_feedback WHERE visit_id = ?').get(visitId) as
+      | { comment: string; locked: number }
+      | undefined;
+    if (note !== null && keptComment && keptComment.locked === 1 && keptComment.comment !== note) {
+      throw new AppError('RATING_LOCKED', 'The comment is locked');
+    }
+
     const nowIso = toIso(now);
     const upsert = db.prepare(
       `INSERT INTO dish_ratings (visit_id, item_id, thumb, rated_at, locked) VALUES (?, ?, ?, ?, 0)
@@ -80,7 +102,19 @@ export function saveRatings(
     );
     for (const [itemId, thumb] of wanted) upsert.run(visitId, itemId, thumb, nowIso);
 
-    if (done) db.prepare('UPDATE dish_ratings SET locked = 1 WHERE visit_id = ?').run(visitId);
+    if (note !== null && !(keptComment && keptComment.locked === 1)) {
+      if (note === '') db.prepare('DELETE FROM visit_feedback WHERE visit_id = ?').run(visitId);
+      else {
+        db.prepare(
+          `INSERT INTO visit_feedback (visit_id, comment, saved_at, locked) VALUES (?, ?, ?, 0)
+           ON CONFLICT (visit_id) DO UPDATE SET comment = excluded.comment, saved_at = excluded.saved_at`
+        ).run(visitId, note, nowIso);
+      }
+    }
+    if (done) {
+      db.prepare('UPDATE dish_ratings SET locked = 1 WHERE visit_id = ?').run(visitId);
+      db.prepare('UPDATE visit_feedback SET locked = 1 WHERE visit_id = ?').run(visitId);
+    }
     return { saved: wanted.size };
   });
   return run.immediate();

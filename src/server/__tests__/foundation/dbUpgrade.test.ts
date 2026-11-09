@@ -24,6 +24,7 @@ const NEW_TABLES = [
   'chef_specials',
   'service_calls',
   'dish_ratings',
+  'visit_feedback',
 ];
 
 function columns(db: Database.Database, table: string): string[] {

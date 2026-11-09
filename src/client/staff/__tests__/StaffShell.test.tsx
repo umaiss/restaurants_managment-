@@ -35,7 +35,7 @@ afterEach(() => {
 
 describe('the page registry (BR14.2)', () => {
   it('lists every staff page once, each with a route, a label and a page', () => {
-    expect(STAFF_PAGES.map((p) => p.key)).toEqual(['board', 'floor', 'menu', 'special', 'sales', 'qr', 'stations', 'bill']);
+    expect(STAFF_PAGES.map((p) => p.key)).toEqual(['board', 'floor', 'menu', 'special', 'sales', 'qr', 'stations', 'bill', 'receipt']);
     expect(new Set(STAFF_PAGES.map((p) => p.path)).size).toBe(STAFF_PAGES.length);
     for (const p of STAFF_PAGES) {
       expect(p.label).toBeTruthy();
@@ -57,7 +57,7 @@ describe('the page registry (BR14.2)', () => {
       'Past visits and sales',
       'QR codes',
     ]);
-    expect(STAFF_PAGES.filter((p) => !p.inNav).map((p) => p.key)).toEqual(['stations', 'bill']);
+    expect(STAFF_PAGES.filter((p) => !p.inNav).map((p) => p.key)).toEqual(['stations', 'bill', 'receipt']);
   });
 });
 

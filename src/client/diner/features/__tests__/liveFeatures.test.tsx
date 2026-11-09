@@ -213,10 +213,45 @@ describe('call card (BR5.1 to BR5.3)', () => {
     expect(screen.getByTestId('call-waiter')).not.toBeDisabled();
   });
 
+  it('"Ask for the bill" opens the pay sheet; Cash or Card sends the request with that choice', async () => {
+    const mock = stubRoutes((url, init) => (init?.method === 'POST' ? { status: 201, body: { id: 'c2', kind: 'bill', status: 'open', payment_method: 'card' } } : { body: { calls: [] } }));
+    render(<HelpCardFeature tableId="5" events={[]} />);
+    expect(screen.queryByTestId('pay-sheet')).toBeNull();
+    fireEvent.click(screen.getByTestId('ask-bill'));
+    expect(screen.getByTestId('pay-sheet')).toBeInTheDocument();
+    expect(screen.getByTestId('pay-cash')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('pay-receipt'));
+    fireEvent.click(screen.getByTestId('pay-card'));
+    await waitFor(() => expect(screen.getByTestId('ask-bill')).toHaveTextContent('Request sent'));
+    expect(screen.queryByTestId('pay-sheet')).toBeNull();
+    const posts = mock.mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === 'POST');
+    expect(posts).toHaveLength(1);
+    expect(JSON.parse((posts[0][1] as RequestInit).body as string)).toEqual({ kind: 'bill', payment_method: 'card', wants_receipt: true });
+  });
+
+  it('Cancel on the pay sheet sends nothing and leaves the bill button ready', async () => {
+    const mock = stubRoutes(() => ({ body: { calls: [] } }));
+    render(<HelpCardFeature tableId="5" events={[]} />);
+    fireEvent.click(screen.getByTestId('ask-bill'));
+    fireEvent.click(screen.getByTestId('pay-cancel'));
+    expect(screen.queryByTestId('pay-sheet')).toBeNull();
+    expect(screen.getByTestId('ask-bill')).not.toBeDisabled();
+    expect(mock.mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === 'POST')).toHaveLength(0);
+  });
+
+  it('"Ask for the bill" is disabled, with a line saying why, while an order is not completed', async () => {
+    stubRoutes(() => ({ body: { calls: [] } }));
+    render(<HelpCardFeature tableId="5" events={[]} canAskBill={false} />);
+    expect(screen.getByTestId('ask-bill')).toBeDisabled();
+    expect(screen.getByTestId('bill-wait')).toBeInTheDocument();
+    expect(screen.getByTestId('call-waiter')).not.toBeDisabled();
+  });
+
   it('a 409 NO_OPEN_VISIT hides the card', async () => {
     stubRoutes((url, init) => (init?.method === 'POST' ? { status: 409, body: { error: { code: 'NO_OPEN_VISIT', message: 'x' } } } : { body: { calls: [] } }));
     render(<HelpCardFeature tableId="5" events={[]} />);
     fireEvent.click(screen.getByTestId('ask-bill'));
+    fireEvent.click(screen.getByTestId('pay-cash'));
     await waitFor(() => expect(screen.queryByTestId('help-card')).toBeNull());
   });
 
@@ -224,6 +259,7 @@ describe('call card (BR5.1 to BR5.3)', () => {
     stubRoutes((url, init) => (init?.method === 'POST' ? { status: 409, body: { error: { code: 'NO_OPEN_VISIT', message: 'x' } } } : { body: { calls: [] } }));
     const { rerender } = render(<HelpCardFeature tableId="5" events={[]} />);
     fireEvent.click(screen.getByTestId('ask-bill'));
+    fireEvent.click(screen.getByTestId('pay-cash'));
     await waitFor(() => expect(screen.queryByTestId('help-card')).toBeNull());
     rerender(<HelpCardFeature tableId="5" events={[ev(1, 'ORDER_PLACED', { order_number: 4, table_id: 5 })]} />);
     await waitFor(() => expect(screen.getByTestId('help-card')).toBeInTheDocument());

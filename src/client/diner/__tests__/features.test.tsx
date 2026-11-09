@@ -17,6 +17,7 @@ const COMPONENTS: Array<[string, string]> = [
   ['help-card', 'HelpCardFeature'],
   ['special-card', 'SpecialCardFeature'],
   ['rating', 'RatingFeature'],
+  ['receipt', 'ReceiptFeature'],
   ['settings', 'SettingsFeature'],
 ];
 
@@ -122,7 +123,7 @@ describe('the screens mount them', () => {
     expect(mounted.map((m) => m.name)).toEqual(expect.arrayContaining(['HelpCardFeature', 'TrackerFeature', 'SameAgainFeature']));
   });
 
-  it('the diner page mounts Settings and the ready banner, and Rating only once the table is closed', async () => {
+  it('the diner page mounts Settings and the ready banner, and Rating and the receipt only once the table is closed', async () => {
     await renderWithRecorders();
     const { MemoryRouter, Route, Routes } = await import('react-router-dom');
     const { default: TableView } = await import('../../views/TableView.js');
@@ -150,11 +151,13 @@ describe('the screens mount them', () => {
     render(view);
     expect(mounted.map((m) => m.name)).toEqual(expect.arrayContaining(['SettingsFeature', 'ReadyBannerFeature']));
     expect(mounted.map((m) => m.name)).not.toContain('RatingFeature');
+    expect(mounted.map((m) => m.name)).not.toContain('ReceiptFeature');
 
     // The table is closed from the staff side: Rate your meal is mounted
     act(() => {
       streams[0].handlers.TABLE_CLOSED(new MessageEvent('TABLE_CLOSED', { data: JSON.stringify({ table_id: 5, archived_visit_id: 'v-1' }) }));
     });
     expect(mounted).toContainEqual({ name: 'RatingFeature', tableId: '5' });
+    expect(mounted).toContainEqual({ name: 'ReceiptFeature', tableId: '5' });
   });
 });

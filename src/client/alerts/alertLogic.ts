@@ -25,6 +25,27 @@ export class AlertGate {
   }
 }
 
+// Whether the person has tapped or pressed a key on this page yet. Browsers only let a page make sound after that,
+// so it is noted from the moment the page loads: a tap on the PIN screen counts for the board that opens after it.
+let sawInteraction = false;
+if (typeof document !== 'undefined') {
+  const mark = () => {
+    sawInteraction = true;
+  };
+  document.addEventListener('pointerdown', mark, true);
+  document.addEventListener('keydown', mark, true);
+}
+
+/** True once the person has tapped or pressed a key on this page. */
+export function hasInteracted(): boolean {
+  return sawInteraction;
+}
+
+/** For tests: forget that the person has interacted. */
+export function _resetInteractionForTest(): void {
+  sawInteraction = false;
+}
+
 export interface AlertEffects {
   /** Show the banner: always. */
   banner: true;
@@ -60,6 +81,50 @@ export function playAlertSound(): boolean {
     osc.start();
     osc.stop(ctx.currentTime + 0.18);
     osc.onended = () => void ctx.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A bell ring for staff: three strikes of a bell (a low note with two overtones that fade out), about two seconds
+ * in all and clearly louder than the diner's beep. Never throws: a device or browser without audio stays silent.
+ */
+export function playRingSound(): boolean {
+  try {
+    const Ctx: typeof AudioContext | undefined =
+      typeof window !== 'undefined'
+        ? (window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
+        : undefined;
+    if (!Ctx) return false;
+    const ctx = new Ctx();
+    void ctx.resume?.();
+    const strikes = 3;
+    const spacing = 0.75; // seconds between strikes
+    const notes: Array<[number, number]> = [
+      [880, 0.3],
+      [1320, 0.18],
+      [1760, 0.1],
+    ];
+    const start = ctx.currentTime + 0.02;
+    for (let s = 0; s < strikes; s++) {
+      const at = start + s * spacing;
+      for (const [hz, peak] of notes) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = hz;
+        gain.gain.setValueAtTime(0.0001, at);
+        gain.gain.exponentialRampToValueAtTime(peak, at + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.7);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(at);
+        osc.stop(at + 0.72);
+      }
+    }
+    setTimeout(() => void ctx.close(), (strikes * spacing + 0.5) * 1000);
     return true;
   } catch {
     return false;

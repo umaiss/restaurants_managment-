@@ -5,7 +5,7 @@
 import React from 'react';
 import fs from 'fs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import QRCode from 'qrcode';
 import QrPage from '../index';
 import TableQr, { qrPath, tableAddress } from '../TableQr';
@@ -29,6 +29,48 @@ afterEach(() => {
 function cellsOf(d: string): Set<string> {
   return new Set([...d.matchAll(/M(\d+) (\d+)h1v1h-1z/g)].map((m) => `${m[1]},${m[2]}`));
 }
+
+describe('adding a table (a new QR code)', () => {
+  it('"+ Add table" posts to the server, shows the new table\'s code and says so', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith('/api/staff/tables') && init?.method === 'POST') {
+        tables = [...tables, { id: 11, label: 'Table 11' }];
+        return ok({ id: 11, label: 'Table 11' }, 201);
+      }
+      return url.startsWith('/api/staff/tables') ? ok({ tables }) : failed(404);
+    });
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-10');
+    expect(screen.queryByTestId('qr-table-11')).toBeNull();
+    fireEvent.click(screen.getByTestId('add-table'));
+    expect(await screen.findByTestId('qr-table-11')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-code-11')).toHaveAttribute('data-qr-text', `${window.location.origin}/table/11`);
+    expect(screen.getByTestId('add-table-done')).toHaveTextContent('Table 11 added. Its QR code is below.');
+    expect(fetchMock.mock.calls.filter((c) => c[1]?.method === 'POST')).toHaveLength(1);
+  });
+
+  it('says so when the table could not be added, and when the limit is reached', async () => {
+    let status = 500;
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith('/api/staff/tables') ? (init?.method === 'POST' ? failed(status) : ok({ tables })) : failed(404)
+    );
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-10');
+    fireEvent.click(screen.getByTestId('add-table'));
+    expect(await screen.findByTestId('add-table-error')).toHaveTextContent('The table could not be added. Try again.');
+    status = 409;
+    fireEvent.click(screen.getByTestId('add-table'));
+    await waitFor(() => expect(screen.getByTestId('add-table-error')).toHaveTextContent('most tables'));
+    expect(screen.queryByTestId('add-table-done')).toBeNull();
+  });
+
+  it('the button is not printed with the codes', async () => {
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-10');
+    expect(screen.getByTestId('add-table').closest('.no-print')).not.toBeNull();
+  });
+});
 
 describe('the address in each code (BR8.1)', () => {
   it('is the origin the page was opened on followed by /table/<n>, with no trailing slash', () => {

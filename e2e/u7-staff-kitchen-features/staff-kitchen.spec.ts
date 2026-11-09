@@ -24,7 +24,7 @@ import {
   E2E_PORT, closeTableAndRate, endSpecial, launchSpecial, moveOrder, openCall, placeOrderWithOptions, resetTableState,
   setPresence, signInAsStaff,
 } from '../helpers';
-import { makeTwoDays, startOwnServer, type OwnServer } from './ownServer';
+import { makeTwoDays, moveOldVisitToEarlierMonth, startOwnServer, type OwnServer } from './ownServer';
 
 const MY_TABLES = [1, 6, 8, 9, 10];
 
@@ -658,6 +658,26 @@ test.describe.serial('Flow 10: past visits and sales', () => {
     await expect(page.getByTestId('ratings-best')).toContainText('👍 100% · 2 ratings');
     await expect(page.getByTestId('ratings-worst')).toContainText('👎 100% thumbs down · 1 rating');
     await expect(page.getByTestId('ratings-card')).toContainText('Ties go to the dish with more ratings');
+    await context.close();
+  });
+
+  test('the month filter: an earlier month shows only its own days and totals, and All months brings every day back', async ({ browser }) => {
+    // the visit that closed "yesterday" is moved two months back, so the page holds today's visits and one old month
+    const olderMonth = moveOldVisitToEarlierMonth(server, 2);
+    const { page, context } = await openSales(browser);
+    const select = page.getByTestId('sales-month');
+    await expect(select).toHaveValue('all');
+    await expect(page.getByTestId('sales-day-today')).toBeVisible();
+    await expect(page.locator('[data-testid^="sales-day-"]')).toHaveCount(2);
+
+    await select.selectOption(olderMonth);
+    await expect(page.getByTestId('sales-day-today')).toHaveCount(0);
+    await expect(page.locator('[data-testid^="sales-day-"]')).toHaveCount(1);
+    await expect(page.getByTestId('sales-month-total')).toContainText('1 visit · 1 order · $19.00 in sales');
+
+    await select.selectOption('all');
+    await expect(page.locator('[data-testid^="sales-day-"]')).toHaveCount(2);
+    await expect(page.getByTestId('sales-month-total')).toHaveCount(0);
     await context.close();
   });
 });

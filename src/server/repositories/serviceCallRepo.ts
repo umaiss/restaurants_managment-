@@ -8,6 +8,8 @@ import { AppError } from '../errors.js';
 import { toIso } from '../time.js';
 
 export type CallKind = 'waiter' | 'bill';
+/** How the table will pay, chosen when it asks for the bill. */
+export type PaymentMethod = 'cash' | 'card';
 
 export interface ServiceCall {
   id: string;
@@ -16,6 +18,9 @@ export interface ServiceCall {
   status: 'open' | 'responded';
   opened_at: string;
   responded_at: string | null;
+  payment_method: PaymentMethod | null;
+  /** True when the table asked for a receipt along with the bill. */
+  wants_receipt: boolean;
 }
 
 interface Row {
@@ -24,16 +29,22 @@ interface Row {
   kind: CallKind;
   opened_at: string;
   responded_at: string | null;
+  payment_method: PaymentMethod | null;
+  wants_receipt: number;
 }
 
-const COLUMNS = 'id, table_id, kind, opened_at, responded_at';
+const COLUMNS = 'id, table_id, kind, opened_at, responded_at, payment_method, wants_receipt';
 
 function toCall(row: Row): ServiceCall {
-  return { ...row, status: row.responded_at === null ? 'open' : 'responded' };
+  return { ...row, wants_receipt: row.wants_receipt === 1, status: row.responded_at === null ? 'open' : 'responded' };
 }
 
 export function isCallKind(value: unknown): value is CallKind {
   return value === 'waiter' || value === 'bill';
+}
+
+export function isPaymentMethod(value: unknown): value is PaymentMethod {
+  return value === 'cash' || value === 'card';
 }
 
 function findOpen(visitId: string, kind: CallKind): Row | undefined {
@@ -47,7 +58,12 @@ function findOpen(visitId: string, kind: CallKind): Row | undefined {
  * also the answer to two presses at the same moment: the unique index lets only one row in, and the
  * loser is given the existing request, never an error (BR6.1).
  */
-export function openCall(tableId: number, kind: CallKind, now: Date = new Date()): { call: ServiceCall; created: boolean } {
+export function openCall(
+  tableId: number,
+  kind: CallKind,
+  now: Date = new Date(),
+  extras: { paymentMethod?: PaymentMethod | null; wantsReceipt?: boolean } = {}
+): { call: ServiceCall; created: boolean } {
   const db = getDb();
   const table = db.prepare('SELECT id FROM tables WHERE id = ?').get(tableId);
   if (!table) throw new AppError('UNKNOWN_TABLE', `Table ${tableId} not found`);
@@ -59,10 +75,11 @@ export function openCall(tableId: number, kind: CallKind, now: Date = new Date()
   if (existing) return { call: toCall(existing), created: false };
 
   const id = crypto.randomUUID();
+  const isBill = kind === 'bill';
   try {
     db.prepare(
-      'INSERT INTO service_calls (id, visit_id, table_id, kind, opened_at, responded_at) VALUES (?, ?, ?, ?, ?, NULL)'
-    ).run(id, visit.id, tableId, kind, toIso(now));
+      'INSERT INTO service_calls (id, visit_id, table_id, kind, opened_at, responded_at, payment_method, wants_receipt) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)'
+    ).run(id, visit.id, tableId, kind, toIso(now), isBill ? extras.paymentMethod ?? null : null, isBill && extras.wantsReceipt ? 1 : 0);
   } catch (err) {
     // The one-open-call index refused a second row: another press got in first.
     const winner = findOpen(visit.id, kind);
@@ -88,6 +105,14 @@ export function respondCall(id: string, now: Date = new Date()): { call: Service
     .run(toIso(now), id);
   const updated = db.prepare(`SELECT ${COLUMNS} FROM service_calls WHERE id = ?`).get(id) as Row;
   return { call: toCall(updated), changed: result.changes === 1 };
+}
+
+/** The visit's newest "Ask for the bill" request: how the table said it will pay, and whether it wants a receipt. */
+export function getBillRequest(visitId: string): { payment_method: PaymentMethod | null; wants_receipt: boolean } {
+  const row = getDb()
+    .prepare(`SELECT ${COLUMNS} FROM service_calls WHERE visit_id = ? AND kind = 'bill' ORDER BY opened_at DESC, rowid DESC LIMIT 1`)
+    .get(visitId) as Row | undefined;
+  return { payment_method: row?.payment_method ?? null, wants_receipt: row?.wants_receipt === 1 };
 }
 
 /** Open and answered requests of the table's current visit, oldest first. No open visit means none. */

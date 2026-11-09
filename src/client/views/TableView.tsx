@@ -7,7 +7,7 @@ import TableClosedTakeover from '../components/diner/TableClosedTakeover.js';
 import MenuScreen from '../screens/diner/MenuScreen.js';
 import CartScreen, { type PlacedOrder } from '../screens/diner/CartScreen.js';
 import MyOrdersScreen from '../screens/diner/MyOrdersScreen.js';
-import { SettingsFeature, ReadyBannerFeature, RatingFeature } from '../diner/features/registry.js';
+import { SettingsFeature, ReadyBannerFeature, RatingFeature, ReceiptFeature } from '../diner/features/registry.js';
 import { useTheme } from '../hooks/useTheme.js';
 
 export default function TableView() {
@@ -119,6 +119,13 @@ export default function TableView() {
     const timer = setTimeout(() => setShowReconnectBanner(true), 3000);
     return () => clearTimeout(timer);
   }, [connected]);
+
+  // Feedback submitted: leave the closed screen and start again from the Menu.
+  const backToMenu = useCallback(() => {
+    setTableClosed(false);
+    setPlacedOrder(null);
+    setActiveTab('menu');
+  }, []);
 
   const cartCount = items.reduce((sum, i) => sum + i.quantity, 0);
   // The Menu shows a sticky "View cart" summary above the tab bar while the cart has items.
@@ -369,7 +376,8 @@ export default function TableView() {
       {/* Table closed overlay */}
       {/* U6 BR6.2: Rate your meal sits below the closed message, once the table is closed */}
       <TableClosedTakeover visible={tableClosed}>
-        {tableClosed && <RatingFeature tableId={tableId} events={events} />}
+        {tableClosed && <ReceiptFeature tableId={tableId} events={events} />}
+        {tableClosed && <RatingFeature tableId={tableId} events={events} onDone={backToMenu} />}
       </TableClosedTakeover>
     </div>
   );

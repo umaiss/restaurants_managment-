@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { buildBill, closeTable, BillingError } from '../repositories/billingRepo.js';
+import { buildBill, buildReceipt, closeTable, BillingError } from '../repositories/billingRepo.js';
 import { publish } from '../sse.js';
 import { requireStaff } from '../staffAccess.js';
+import { getLastClosedVisitId } from '../repositories/tableRepo.js';
 import { parseTableId, unknownTable } from './tableId.js';
 
 const router = Router();
@@ -21,6 +22,44 @@ router.get('/tables/:id/bill', requireStaff(), (req, res) => {
       return;
     }
     console.error('GET /api/tables/:id/bill error:', err);
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  }
+});
+
+// GET /api/visits/:visitId/receipt — staff only; the receipt of a closed visit
+router.get('/visits/:visitId/receipt', requireStaff(), (req, res) => {
+  try {
+    res.json(buildReceipt(req.params.visitId));
+  } catch (err) {
+    if (err instanceof BillingError && err.code === 'UNKNOWN_VISIT') {
+      res.status(404).json({ error: { code: err.code, message: err.message } });
+      return;
+    }
+    if (err instanceof BillingError && err.code === 'VISIT_NOT_CLOSED') {
+      res.status(409).json({ error: { code: err.code, message: err.message } });
+      return;
+    }
+    console.error('GET /api/visits/:visitId/receipt error:', err);
+    res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+  }
+});
+
+// GET /api/tables/:id/receipt — the diner's own receipt: the table's most recently closed visit (open to the table, like visit=last_closed)
+router.get('/tables/:id/receipt', (req, res) => {
+  const tableId = parseTableId(req.params.id);
+  if (tableId === null) {
+    unknownTable(res, req.params.id);
+    return;
+  }
+  try {
+    const visitId = getLastClosedVisitId(tableId);
+    if (!visitId) {
+      res.status(404).json({ error: { code: 'NO_CLOSED_VISIT', message: `Table ${tableId} has no closed visit` } });
+      return;
+    }
+    res.json(buildReceipt(visitId));
+  } catch (err) {
+    console.error('GET /api/tables/:id/receipt error:', err);
     res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
   }
 });

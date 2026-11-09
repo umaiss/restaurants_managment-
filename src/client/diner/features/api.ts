@@ -4,6 +4,7 @@
  * ApiError with status 0 when the request never got an answer, so a screen can tell the two apart.
  */
 import type { ChefSpecial, DinerOrder } from './menuTypes.js';
+import type { Receipt } from '../../components/ReceiptCard.js';
 
 export class ApiError extends Error {
   constructor(
@@ -48,12 +49,15 @@ export async function fetchCurrentSpecial(): Promise<ChefSpecial | null> {
 }
 
 export type CallKind = 'waiter' | 'bill';
+export type PaymentMethod = 'cash' | 'card';
 export interface ServiceCallRow {
   id: string;
   kind: CallKind;
   status: 'open' | 'responded';
   opened_at?: string;
   responded_at?: string | null;
+  payment_method?: PaymentMethod | null;
+  wants_receipt?: boolean;
 }
 
 export async function fetchCalls(tableId: string): Promise<ServiceCallRow[]> {
@@ -61,19 +65,22 @@ export async function fetchCalls(tableId: string): Promise<ServiceCallRow[]> {
   return body.calls ?? [];
 }
 
-export const postCall = (tableId: string, kind: CallKind) =>
+export const postCall = (tableId: string, kind: CallKind, paymentMethod?: PaymentMethod, wantsReceipt?: boolean) =>
   call<ServiceCallRow>(`/api/tables/${tableId}/calls`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ kind }),
+    body: JSON.stringify(paymentMethod ? { kind, payment_method: paymentMethod, wants_receipt: wantsReceipt === true } : { kind }),
   });
+
+/** The receipt of the table's most recently closed visit. */
+export const fetchLastReceipt = (tableId: string) => call<Receipt>(`/api/tables/${tableId}/receipt`);
 
 export async function fetchLastClosedOrders(tableId: string): Promise<DinerOrder[]> {
   const body = await call<{ orders: DinerOrder[] }>(`/api/tables/${tableId}/orders?visit=last_closed`);
   return body.orders ?? [];
 }
 
-export const postRatings = (tableId: string, body: { visit_id: string; ratings: Array<{ item_id: string; thumb: 'up' | 'down' }>; done: boolean }) =>
+export const postRatings = (tableId: string, body: { visit_id: string; ratings: Array<{ item_id: string; thumb: 'up' | 'down' }>; done: boolean; comment?: string }) =>
   call<{ saved: number }>(`/api/tables/${tableId}/ratings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

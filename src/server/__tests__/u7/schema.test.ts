@@ -17,7 +17,7 @@ describe('the schema U7 reads is U5\'s (contract 5)', () => {
     expect(columns('items')).toEqual(expect.arrayContaining(['hidden', 'station', 'allergens']));
     expect(columns('categories')).toEqual(expect.arrayContaining(['hidden', 'sort_order']));
     expect(columns('orders')).toEqual(expect.arrayContaining(['completed_at']));
-    expect(columns('service_calls')).toEqual(['id', 'visit_id', 'table_id', 'kind', 'opened_at', 'responded_at']);
+    expect(columns('service_calls')).toEqual(['id', 'visit_id', 'table_id', 'kind', 'opened_at', 'responded_at', 'payment_method', 'wants_receipt']);
     expect(columns('dish_ratings')).toEqual(expect.arrayContaining(['visit_id', 'item_id', 'thumb', 'rated_at']));
     expect(columns('option_groups')).toEqual(['id', 'item_id', 'name', 'kind', 'required', 'sort_order']);
   });

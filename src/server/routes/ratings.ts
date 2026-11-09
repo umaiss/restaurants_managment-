@@ -17,7 +17,7 @@ router.post('/tables/:id/ratings', (req, res) => {
     unknownTable(res, req.params.id);
     return;
   }
-  const body = (req.body ?? {}) as { visit_id?: unknown; done?: unknown; ratings?: unknown };
+  const body = (req.body ?? {}) as { visit_id?: unknown; done?: unknown; ratings?: unknown; comment?: unknown };
   if (typeof body.visit_id !== 'string' || body.visit_id === '') {
     sendApiError(res, 400, 'INVALID_REQUEST', 'visit_id is required and must be a string', { field: 'visit_id' });
     return;
@@ -27,7 +27,7 @@ router.post('/tables/:id/ratings', (req, res) => {
     return;
   }
   try {
-    res.json(saveRatings(tableId, body.visit_id, body.ratings, body.done === true));
+    res.json(saveRatings(tableId, body.visit_id, body.ratings, body.done === true, new Date(), body.comment));
   } catch (err) {
     if (sendIfAppError(res, err)) return;
     sendInternalError(res, 'POST /api/tables/:id/ratings', err);

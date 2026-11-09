@@ -4,7 +4,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor, within, act } from '@testing-library/react';
-import SalesPage, { todayText } from '../index';
+import SalesPage, { monthLabel, monthOf, todayText } from '../index';
 import { averageText, dayHeading } from '../DayCard';
 import { bestLine, worstLine } from '../RatedDishes';
 import { calledWith, emitAll, failed, ok, stubStream } from '../../../__tests__/u7Mocks';
@@ -36,6 +36,59 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+describe('the month filter', () => {
+  const older = [day('2026-10-30', { visits: 4, orders: 9, total_cents: 20000 }), day('2026-10-02', { visits: 2, orders: 3, total_cents: 5000 }), day('2026-09-15', { visits: 7, orders: 15, total_cents: 40000 })];
+  const monthsOf = (select: HTMLElement) => within(select).getAllByRole('option').map((o) => o.textContent);
+
+  it('lists All months, this month and every earlier month with a closed visit, newest first, and starts on All months', async () => {
+    sales = { days: [day(today), ...older] };
+    render(<SalesPage />);
+    const select = await screen.findByTestId('sales-month');
+    expect(select).toHaveValue('all');
+    expect(monthsOf(select)).toEqual(['All months', ...[monthOf(today), '2026-10', '2026-09'].filter((m, i, a) => a.indexOf(m) === i).map(monthLabel)]);
+    // with everything selected every day is shown, as before
+    expect(screen.getAllByTestId(/^sales-day-/)).toHaveLength(4);
+  });
+
+  it('shows only the days of the chosen month, with that month\'s totals, and All months brings the rest back', async () => {
+    sales = { days: [day(today), ...older] };
+    render(<SalesPage />);
+    fireEvent.change(await screen.findByTestId('sales-month'), { target: { value: '2026-10' } });
+    expect(screen.getAllByTestId(/^sales-day-/).map((c) => c.getAttribute('data-testid'))).toEqual(['sales-day-2026-10-30', 'sales-day-2026-10-02']);
+    expect(screen.getByTestId('sales-month-total')).toHaveTextContent('October 2026: 6 visits · 12 orders · $250.00 in sales');
+    fireEvent.change(screen.getByTestId('sales-month'), { target: { value: 'all' } });
+    expect(screen.getAllByTestId(/^sales-day-/)).toHaveLength(4);
+    expect(screen.queryByTestId('sales-month-total')).toBeNull();
+  });
+
+  it('a month with no closed visits says so, and this month does too before the first visit closes', async () => {
+    sales = { days: older };
+    render(<SalesPage />);
+    const select = await screen.findByTestId('sales-month');
+    fireEvent.change(select, { target: { value: monthOf(today) } });
+    expect(screen.getByTestId('sales-month-empty')).toHaveTextContent(`No closed visits in ${monthLabel(monthOf(today))}.`);
+    expect(screen.queryByTestId('sales-empty')).toBeNull();
+  });
+
+  it('today\'s ratings card only shows for All months or this month', async () => {
+    sales = { days: older };
+    render(<SalesPage />);
+    const select = await screen.findByTestId('sales-month');
+    expect(screen.getByTestId('ratings-today')).toBeInTheDocument();
+    fireEvent.change(select, { target: { value: '2026-09' } });
+    expect(screen.queryByTestId('ratings-today')).toBeNull();
+    fireEvent.change(select, { target: { value: monthOf(today) } });
+    expect(screen.getByTestId('ratings-today')).toBeInTheDocument();
+  });
+
+  it('has no month picker while there are no closed visits at all', async () => {
+    sales = { days: [] };
+    render(<SalesPage />);
+    expect(await screen.findByTestId('sales-empty')).toBeInTheDocument();
+    expect(screen.queryByTestId('sales-month')).toBeNull();
+  });
 });
 
 describe('one card per day (BR7.1 to BR7.4)', () => {

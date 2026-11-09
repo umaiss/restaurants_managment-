@@ -7,6 +7,9 @@ import { ApiError, fetchLastClosedOrders, postRatings } from '../api.js';
 
 export type Thumb = 'up' | 'down';
 
+/** The longest comment the server keeps. */
+export const MAX_COMMENT_LENGTH = 500;
+
 export interface Dish {
   itemId: string;
   name: string;
@@ -33,6 +36,10 @@ export function useRatings(tableId: string) {
   const [thumbs, setThumbs] = useState<Record<string, Thumb>>({});
   const [done, setDone] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const savedComment = useRef('');
+  const commentRef = useRef(comment);
+  commentRef.current = comment;
   const [loaded, setLoaded] = useState(false);
   const thumbsRef = useRef(thumbs);
   thumbsRef.current = thumbs;
@@ -84,6 +91,18 @@ export function useRatings(tableId: string) {
     [tableId, visitId, done]
   );
 
+  // The comment is kept when the diner leaves the box, so it is not lost if they never press Done.
+  const saveComment = useCallback(async () => {
+    const text = commentRef.current.trim();
+    if (done || !visitId || text === savedComment.current) return;
+    try {
+      await postRatings(tableId, { visit_id: visitId, ratings: [], done: false, comment: text });
+      savedComment.current = text;
+    } catch (e) {
+      explain(e, 'Could not save your comment. Try again.');
+    }
+  }, [tableId, visitId, done]);
+
   const finish = useCallback(async () => {
     if (done || !visitId) return;
     setMessage(null);
@@ -92,6 +111,8 @@ export function useRatings(tableId: string) {
         visit_id: visitId,
         ratings: Object.entries(thumbsRef.current).map(([item_id, thumb]) => ({ item_id, thumb })),
         done: true,
+        // sent when there is a comment, or when one that was kept is being cleared
+        ...(commentRef.current.trim() !== '' || savedComment.current !== '' ? { comment: commentRef.current.trim() } : {}),
       });
       setDone(true);
       setMessage('Thank you for your feedback!');
@@ -100,5 +121,5 @@ export function useRatings(tableId: string) {
     }
   }, [tableId, visitId, done]);
 
-  return { dishes, thumbs, done, message, loaded, rate, finish };
+  return { dishes, thumbs, done, message, loaded, comment, setComment, saveComment, rate, finish };
 }

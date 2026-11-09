@@ -6,6 +6,7 @@
 import React from 'react';
 import KitchenBoardScreen from '../../screens/staff/KitchenBoardScreen.js';
 import TableBillScreen from '../../screens/staff/TableBillScreen.js';
+import ReceiptScreen from '../../screens/staff/ReceiptScreen.js';
 import FloorPage from './floor/index.js';
 import MenuManagementPage from './menu/index.js';
 import SpecialPage from './special/index.js';
@@ -34,4 +35,5 @@ export const STAFF_PAGES: StaffPage[] = [
   { key: 'qr', path: 'qr', label: 'QR codes', icon: '🔳', element: <QrPage />, inNav: true },
   { key: 'stations', path: 'stations/:station', label: 'Station', icon: '🔥', element: <StationPage />, inNav: false },
   { key: 'bill', path: 'tables/:id', label: 'Table bill', icon: '🧾', element: <TableBillScreen />, inNav: false },
+  { key: 'receipt', path: 'receipt/:visitId', label: 'Receipt', icon: '🧾', element: <ReceiptScreen />, inNav: false },
 ];

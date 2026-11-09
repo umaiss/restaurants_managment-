@@ -41,6 +41,23 @@ export async function makeTwoDays(server: OwnServer): Promise<void> {
   }
 }
 
+/** Moves the one visit that closed "yesterday" (see makeTwoDays) to the same day of an earlier month, for the month filter. */
+export function moveOldVisitToEarlierMonth(server: OwnServer, monthsBack = 2): string {
+  const db = new Database(server.dbFile);
+  try {
+    const when = new Date();
+    when.setDate(15);
+    when.setMonth(when.getMonth() - monthsBack);
+    const sqlite = when.toISOString().replace('T', ' ').slice(0, 19);
+    const day = `${when.getFullYear()}-${String(when.getMonth() + 1).padStart(2, '0')}`;
+    const old = db.prepare("SELECT id FROM visits WHERE closed_at IS NOT NULL AND closed_at LIKE '% %' ORDER BY closed_at LIMIT 1").get() as { id: string };
+    db.prepare('UPDATE visits SET closed_at = ? WHERE id = ?').run(sqlite, old.id);
+    return day;
+  } finally {
+    db.close();
+  }
+}
+
 export interface OwnServer {
   origin: string;
   dbFile: string;

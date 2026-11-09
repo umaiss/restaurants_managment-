@@ -170,10 +170,14 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent, events, onSameAg
     );
   }
 
+  // The bill can be asked for once every order that is not cancelled is completed.
+  const live = orders.filter((o) => o.status !== 'Cancelled');
+  const canAskBill = live.length > 0 && live.every((o) => o.status === 'Completed');
+
   return (
     <div data-testid="orders-screen" style={{ padding: '1rem', paddingBottom: '5rem' }}>
       {/* Mount points U6 fills (BR14.2): the call card, the tracker and "Same again" */}
-      <HelpCardFeature tableId={tableId} events={events} />
+      <HelpCardFeature tableId={tableId} events={events} canAskBill={canAskBill} />
       {cancelNotice && (
         <div
           data-testid="cancel-notice"

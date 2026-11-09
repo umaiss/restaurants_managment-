@@ -62,6 +62,8 @@ table.u7-data td.r, table.u7-data th.r { text-align: right; font-variant-numeric
   .staff-shell { display: block !important; }
   .staff-main { padding: 0 !important; background: none !important; }
   .u7-qr-sheet { grid-template-columns: repeat(3, 1fr); gap: 12mm; }
-  .u7-qr-card { border: 1px solid black; box-shadow: none; }
+  .u7-qr-card { border: 1px solid black; box-shadow: none; background: white; }
+  /* whatever the theme, the label and the path print dark on white */
+  .u7-qr-card strong, .u7-qr-card .url { color: black; }
   body { background: white !important; color: black !important; }
 }

@@ -1,7 +1,7 @@
 // U5 Step 12: alert logic (BR9.3, BR9.4).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { AlertGate, decideEffects, playAlertSound, vibrateDevice } from '../alertLogic.js';
+import { AlertGate, _resetInteractionForTest, decideEffects, playAlertSound, playRingSound, vibrateDevice } from '../alertLogic.js';
 import { useAlerts } from '../useAlerts.js';
 
 const LOADED = 1_000_000;
@@ -86,6 +86,7 @@ describe('useAlerts', () => {
   beforeEach(() => {
     sound.mockClear();
     vibrate.mockClear();
+    _resetInteractionForTest();
   });
   const tap = () => document.dispatchEvent(new Event('pointerdown'));
 
@@ -174,5 +175,59 @@ describe('useAlerts', () => {
     expect(result.current.alerts.map((a) => a.id)).toEqual(['a', 'b']);
     act(() => result.current.dismiss('a'));
     expect(result.current.alerts).toEqual([{ id: 'b', title: 'B', message: 'from Table 3' }]);
+  });
+});
+
+describe('playRingSound', () => {
+  it('returns false and stays silent when the browser has no audio', () => {
+    vi.stubGlobal('AudioContext', undefined);
+    Object.defineProperty(window, 'AudioContext', { value: undefined, configurable: true });
+    expect(playRingSound()).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('never throws when the audio fails', () => {
+    class Broken {
+      constructor() {
+        throw new Error('no audio device');
+      }
+    }
+    Object.defineProperty(window, 'AudioContext', { value: Broken, configurable: true });
+    expect(() => playRingSound()).not.toThrow();
+    expect(playRingSound()).toBe(false);
+  });
+
+  it('strikes a three-note bell three times, then closes the audio', () => {
+    vi.useFakeTimers();
+    const notes: number[] = [];
+    let closed = 0;
+    const ramps: number[] = [];
+    class Ctx {
+      destination = {};
+      currentTime = 10;
+      resume() {
+        return Promise.resolve();
+      }
+      createOscillator() {
+        const osc = { type: '', frequency: { value: 0 }, connect() {}, start(at: number) { notes.push(at); }, stop() {} };
+        return osc;
+      }
+      createGain() {
+        return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime(peak: number) { ramps.push(peak); } }, connect() {} };
+      }
+      close() {
+        closed++;
+        return Promise.resolve();
+      }
+    }
+    Object.defineProperty(window, 'AudioContext', { value: Ctx, configurable: true });
+    expect(playRingSound()).toBe(true);
+    expect(notes).toHaveLength(9);
+    expect(new Set(notes.map((n) => n.toFixed(2))).size).toBe(3); // three strikes, 0.75 s apart
+    expect(Math.max(...ramps)).toBeLessThan(0.5); // loud enough to hear, never clipping
+    expect(closed).toBe(0);
+    vi.advanceTimersByTime(3000);
+    expect(closed).toBe(1);
+    vi.useRealTimers();
   });
 });

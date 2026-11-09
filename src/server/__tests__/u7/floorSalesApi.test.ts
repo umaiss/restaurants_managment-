@@ -10,6 +10,48 @@ import { addRating, cleanup, freshApp, localIso, makeClosedVisit } from './setup
 
 const get = (url: string) => request(app).get(url).set('Cookie', staffCookie());
 
+describe('POST /api/staff/tables (a new table and its QR code)', () => {
+  beforeEach(freshApp);
+  afterEach(cleanup);
+  const post = (body: object = {}) => request(app).post('/api/staff/tables').set('Cookie', staffCookie()).send(body);
+
+  it('adds the next table, "Table 11", which then shows in the table list and can be ordered from', async () => {
+    const res = await post();
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual({ id: 11, label: 'Table 11' });
+    const list = await get('/api/staff/tables');
+    expect(list.body.tables).toHaveLength(11);
+    expect(list.body.tables[10]).toMatchObject({ id: 11, label: 'Table 11', state: 'empty' });
+    expect((await post()).body).toEqual({ id: 12, label: 'Table 12' });
+    const order = await request(app).post('/api/tables/11/orders').send({ placement_key: 'k', lines: [{ menu_item_id: 'i-04', quantity: 1 }] });
+    expect(order.status).toBe(201);
+  });
+
+  it('keeps a label the staff give it, trimmed', async () => {
+    expect((await post({ label: '  Terrace 1  ' })).body).toEqual({ id: 11, label: 'Terrace 1' });
+  });
+
+  it('refuses a label that is not text or is over 30 characters (400 INVALID_LABEL) and adds nothing', async () => {
+    for (const label of [7, 'x'.repeat(31)]) {
+      const res = await post({ label });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_LABEL');
+    }
+    expect((await get('/api/staff/tables')).body.tables).toHaveLength(10);
+  });
+
+  it('stops at 50 tables with 409 TOO_MANY_TABLES', async () => {
+    for (let i = 0; i < 40; i++) expect((await post()).status).toBe(201);
+    const res = await post();
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('TOO_MANY_TABLES');
+  });
+
+  it('401 without a session', async () => {
+    expect((await request(app).post('/api/staff/tables').send({})).status).toBe(401);
+  });
+});
+
 describe('GET /api/staff/tables', () => {
   beforeEach(freshApp);
   afterEach(cleanup);

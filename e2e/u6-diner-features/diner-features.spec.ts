@@ -169,10 +169,19 @@ test.describe('5. the order tracker', () => {
     await expect(steps.nth(0)).toHaveAttribute('data-state', 'done');
     const animation = await steps.nth(1).evaluate((el) => getComputedStyle(el, '::after').animationName);
     expect(animation).toBe('none');
+    // regression: the bar runs all the way to the current dot, not half way (the part before the dot is filled)
+    const before = (i: number) => steps.nth(i).evaluate((el) => ({ image: getComputedStyle(el, '::before').backgroundImage, color: getComputedStyle(el, '::before').backgroundColor }));
+    expect((await before(1)).image).toContain('linear-gradient');
 
     await moveOrder(request, order.order_number, 'Completed');
     await expect(steps.nth(2)).toHaveAttribute('data-state', 'current', { timeout: 4000 });
     await expect(page.getByTestId(`order-estimate-${order.order_number}`)).toHaveCount(0);
+    // regression: Completed fills the bar to the last dot in the same colour as the finished steps, and stops pulsing
+    const first = await before(0);
+    const last = await before(2);
+    expect(last.image).toBe('none');
+    expect(last.color).toBe(first.color);
+    expect(await steps.nth(2).evaluate((el) => getComputedStyle(el, '::after').animationName)).toBe('none');
   });
 
   test('a Cancelled order shows the word and no bar', async ({ page, request }) => {
@@ -222,19 +231,39 @@ test('7. "Same again" adds what it can to the Cart at today\'s prices and opens 
 });
 
 test('8. the call buttons: "Request sent", then "Help is on the way." when staff respond', async ({ page, request }) => {
-  await placeOrderWithOptions(request, TABLE, [{ menu_item_id: 'i-01', quantity: 1 }]);
+  const order = await placeOrderWithOptions(request, TABLE, [{ menu_item_id: 'i-01', quantity: 1 }]);
   await openTable(page, 'orders');
   const waiter = page.getByTestId('call-waiter');
   await waiter.dblclick(); // a double tap makes one request
   await expect(waiter).toHaveText('Request sent');
   await expect(waiter).toBeDisabled();
-  await expect(page.getByTestId('ask-bill')).toBeEnabled();
+  // "Ask for the bill" waits until the order is completed.
+  await expect(page.getByTestId('ask-bill')).toBeDisabled();
+  await expect(page.getByTestId('bill-wait')).toBeVisible();
   const calls = (await (await request.get(`/api/tables/${TABLE}/calls`)).json()) as { calls: Array<{ id: string; kind: string }> };
   expect(calls.calls.filter((c) => c.kind === 'waiter')).toHaveLength(1);
 
   await request.post(`/api/service-calls/${calls.calls[0].id}/respond`);
   await expect(page.getByTestId('help-status')).toHaveText('Help is on the way.', { timeout: 4000 });
   await expect(waiter).toBeEnabled();
+
+  await moveOrder(request, order.order_number, 'Preparing');
+  await expect(page.getByTestId('ask-bill')).toBeDisabled();
+  await moveOrder(request, order.order_number, 'Completed');
+  await expect(page.getByTestId('ask-bill')).toBeEnabled({ timeout: 4000 });
+  await expect(page.getByTestId('bill-wait')).toHaveCount(0);
+
+  // Tapping it asks how the table will pay; the choice goes with the request.
+  await page.getByTestId('ask-bill').click();
+  await expect(page.getByTestId('pay-sheet')).toBeVisible();
+  await page.getByTestId('pay-cancel').click();
+  await expect(page.getByTestId('pay-sheet')).toHaveCount(0);
+  await expect(page.getByTestId('ask-bill')).toBeEnabled();
+  await page.getByTestId('ask-bill').click();
+  await page.getByTestId('pay-card').click();
+  await expect(page.getByTestId('ask-bill')).toHaveText('Request sent');
+  const after = (await (await request.get(`/api/tables/${TABLE}/calls`)).json()) as { calls: Array<{ kind: string; payment_method: string | null }> };
+  expect(after.calls.find((c) => c.kind === 'bill')?.payment_method).toBe('card');
 });
 
 test('8b. there is no call card while the table has no orders', async ({ page }) => {
@@ -287,14 +316,24 @@ test('10. after Close table the thumbs show, change until Done, and are locked a
   await expect(page.getByTestId('rate-down-i-04')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('rate-up-i-04')).toHaveAttribute('aria-pressed', 'false');
   await page.getByTestId('rate-up-i-02').click();
+  await page.getByTestId('rate-comment').fill('Lovely burger, quick service');
   await page.getByTestId('rate-done').click();
   await expect(page.getByTestId('rate-message')).toContainText('Thank you');
   await expect(page.getByTestId('rate-up-i-04')).toBeDisabled();
+  await expect(page.getByTestId('rate-comment')).toBeDisabled();
+  // the tick is a true circle, and after the thank-you the diner is back on the Menu
+  const ring = await page.locator('.check-ring').boundingBox();
+  expect(ring && Math.abs(ring.width - ring.height) < 1).toBe(true);
+  await expect(takeover).toHaveCount(0, { timeout: 5000 });
+  await expect(page.getByTestId('menu-screen')).toBeVisible();
 
   // locked on the server too: a change is refused, the same thumb is accepted
   const changed = await request.post(`/api/tables/${TABLE}/ratings`, { data: { visit_id: visitId, ratings: [{ item_id: 'i-04', thumb: 'up' }], done: false } });
   expect(changed.status()).toBe(409);
   expect(((await changed.json()) as { error: { code: string } }).error.code).toBe('RATING_LOCKED');
+  // the comment is locked too
+  const reworded = await request.post(`/api/tables/${TABLE}/ratings`, { data: { visit_id: visitId, ratings: [], done: false, comment: 'Something else' } });
+  expect(reworded.status()).toBe(409);
 });
 
 test('11. a live menu change reaches an open Menu, and the Cart says what happened to the line', async ({ page, request }) => {

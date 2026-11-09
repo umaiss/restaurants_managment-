@@ -9,7 +9,7 @@ vi.hoisted(() => {
 import { requestAsStaff as request } from './helpers/staff.js';
 import type { Response } from 'express';
 import { app } from '../index.js';
-import { resetDb, seedIfEmpty } from '../db.js';
+import { getDb, resetDb, seedIfEmpty } from '../db.js';
 import { subscribe, _resetForTest } from '../sse.js';
 
 /** Places an order and checks it really was created (201 and a numeric order_number). */
@@ -74,7 +74,7 @@ describe('billing API', () => {
     await place(1, 'b', 'i-10', 1);
     const res = await request(app).get('/api/tables/1/bill');
     expect(res.status).toBe(200);
-    expect(Object.keys(res.body).sort()).toEqual(['blocking_orders', 'close_available', 'combined_total_cents', 'orders', 'table_id']);
+    expect(Object.keys(res.body).sort()).toEqual(['blocking_orders', 'close_available', 'combined_total_cents', 'orders', 'payment_method', 'receipt_requested', 'table_id']);
     const lineSum = res.body.orders.reduce(
       (sum: number, o: { lines: Array<{ subtotal_cents: number }> }) => sum + o.lines.reduce((s, l) => s + l.subtotal_cents, 0),
       0,
@@ -95,7 +95,59 @@ describe('billing API', () => {
   it('GET /bill for an unused table is 200 with an empty bill and close_available false', async () => {
     const res = await request(app).get('/api/tables/2/bill');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ table_id: 2, orders: [], combined_total_cents: 0, close_available: false, blocking_orders: [] });
+    expect(res.body).toEqual({ table_id: 2, orders: [], combined_total_cents: 0, close_available: false, blocking_orders: [], payment_method: null, receipt_requested: false });
+  });
+
+  it('the bill carries the payment method and the receipt request from the table\'s bill request', async () => {
+    const n = await place(1, 'a');
+    await transition(n, 'Preparing');
+    await transition(n, 'Completed');
+    expect((await request(app).get('/api/tables/1/bill')).body).toMatchObject({ payment_method: null, receipt_requested: false });
+    const ask = await request(app).post('/api/tables/1/calls').send({ kind: 'bill', payment_method: 'cash', wants_receipt: true });
+    expect(ask.status).toBe(201);
+    expect((await request(app).get('/api/tables/1/bill')).body).toMatchObject({ payment_method: 'cash', receipt_requested: true });
+  });
+
+  it('GET /visits/:id/receipt gives a closed visit its lines, total and payment method; cancelled orders are left out', async () => {
+    const a = await place(1, 'a', 'i-04', 2);
+    const b = await place(1, 'b', 'i-10', 1);
+    await transition(a, 'Preparing');
+    await transition(a, 'Completed');
+    await transition(b, 'Cancelled');
+    await request(app).post('/api/tables/1/calls').send({ kind: 'bill', payment_method: 'card', wants_receipt: true });
+    const closed = await request(app).post('/api/tables/1/close').send({});
+    expect(closed.status).toBe(200);
+    const res = await request(app).get(`/api/visits/${closed.body.archived_visit_id}/receipt`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ visit_id: closed.body.archived_visit_id, table_id: 1, total_cents: 2900, payment_method: 'card' });
+    expect(res.body.table_label).toBeTruthy();
+    expect(res.body.closed_at).toBeTruthy();
+    expect(res.body.orders.map((o: { order_number: number }) => o.order_number)).toEqual([a]);
+  });
+
+  it('GET /tables/:id/receipt gives the diner the table\'s last closed visit, without a staff session, and carries the receipt request', async () => {
+    const plain = (await import('supertest')).default;
+    expect((await plain(app).get('/api/tables/1/receipt')).status).toBe(404); // nothing closed yet
+    const n = await place(1, 'a', 'i-04', 1);
+    await transition(n, 'Preparing');
+    await transition(n, 'Completed');
+    await request(app).post('/api/tables/1/calls').send({ kind: 'bill', payment_method: 'cash', wants_receipt: true });
+    await request(app).post('/api/tables/1/close').send({});
+    const res = await plain(app).get('/api/tables/1/receipt');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ table_id: 1, total_cents: 1450, payment_method: 'cash', receipt_requested: true });
+    expect((await plain(app).get('/api/tables/99/receipt')).status).toBe(404);
+  });
+
+  it('GET /visits/:id/receipt is 404 for an unknown visit, 409 while the visit is still open, and needs a staff session', async () => {
+    expect((await request(app).get('/api/visits/nope/receipt')).status).toBe(404);
+    await place(1, 'a');
+    const open = (await request(app).get('/api/tables/1/orders?visit=current')).body.orders[0];
+    expect(open).toBeTruthy();
+    const visitId = (getDb().prepare('SELECT id FROM visits WHERE table_id = 1 AND closed_at IS NULL').get() as { id: string }).id;
+    expect((await request(app).get(`/api/visits/${visitId}/receipt`)).status).toBe(409);
+    const plain = (await import('supertest')).default;
+    expect((await plain(app).get(`/api/visits/${visitId}/receipt`)).status).toBe(401);
   });
 
   it('POST /close is 422 CLOSE_BLOCKED while an order is Pending, then 200 once it is Completed', async () => {

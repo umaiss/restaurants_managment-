@@ -250,6 +250,8 @@ a {
 .check-ring {
   width: 88px;
   height: 88px;
+  /* the closed screen is a scrolling column: never let a tall page squash the circle into an oval */
+  flex: none;
   border-radius: 50%;
   display: grid;
   place-items: center;

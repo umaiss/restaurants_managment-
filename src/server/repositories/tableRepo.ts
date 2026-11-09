@@ -1,4 +1,5 @@
 import { getDb, openVisit as dbOpenVisit, getCurrentVisit } from '../db.js';
+import { AppError } from '../errors.js';
 import { parseStoredTime, toIso } from '../time.js';
 
 export interface TableStatus {
@@ -111,4 +112,26 @@ export function hasClosedVisit(tableId: number): boolean {
 export function closeVisit(visitId: string, tableId: number): void {
   const db = getDb();
   db.prepare('UPDATE visits SET closed_at = ? WHERE id = ? AND table_id = ?').run(toIso(), visitId, tableId);
+}
+
+/** The most tables the restaurant can have: a guard against a runaway button, far above any real floor. */
+export const MAX_TABLES = 50;
+/** The longest label a table can be given. */
+export const MAX_TABLE_LABEL = 30;
+
+/**
+ * Adds the next table (its number is one more than the highest) with its label, "Table <n>" when none is given.
+ * Its QR code is the page's address plus /table/<n>, so nothing else needs setting up.
+ */
+export function addTable(label?: string): { id: number; label: string } {
+  const db = getDb();
+  const run = db.transaction((): { id: number; label: string } => {
+    const row = db.prepare('SELECT COUNT(*) AS n, COALESCE(MAX(id), 0) AS top FROM tables').get() as { n: number; top: number };
+    if (row.n >= MAX_TABLES) throw new AppError('TOO_MANY_TABLES', `A restaurant can have at most ${MAX_TABLES} tables`);
+    const id = row.top + 1;
+    const name = label && label.trim() !== '' ? label.trim() : `Table ${id}`;
+    db.prepare("INSERT INTO tables (id, label, status) VALUES (?, ?, 'open')").run(id, name);
+    return { id, label: name };
+  });
+  return run.immediate();
 }

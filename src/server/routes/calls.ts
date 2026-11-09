@@ -4,7 +4,7 @@
  */
 import { Router } from 'express';
 import { sendApiError, sendIfAppError, sendInternalError } from '../errors.js';
-import { isCallKind, listCalls, openCall, respondCall } from '../repositories/serviceCallRepo.js';
+import { isCallKind, isPaymentMethod, listCalls, openCall, respondCall } from '../repositories/serviceCallRepo.js';
 import { tableExists } from '../repositories/tableRepo.js';
 import { publish } from '../sse.js';
 import { requireStaff } from '../staffAccess.js';
@@ -26,6 +26,8 @@ router.get('/tables/:id/calls', (req, res) => {
       status: c.status,
       opened_at: c.opened_at,
       responded_at: c.responded_at,
+      payment_method: c.payment_method,
+      wants_receipt: c.wants_receipt,
     }));
     res.json({ calls });
   } catch (err) {
@@ -41,19 +43,41 @@ router.post('/tables/:id/calls', (req, res) => {
     unknownTable(res, req.params.id);
     return;
   }
-  const { kind } = (req.body ?? {}) as { kind?: unknown };
+  const { kind, payment_method, wants_receipt } = (req.body ?? {}) as { kind?: unknown; payment_method?: unknown; wants_receipt?: unknown };
   if (!isCallKind(kind)) {
     sendApiError(res, 400, 'INVALID_KIND', 'kind must be "waiter" or "bill"');
     return;
   }
+  if (payment_method !== undefined && payment_method !== null && !isPaymentMethod(payment_method)) {
+    sendApiError(res, 400, 'INVALID_PAYMENT_METHOD', 'payment_method must be "cash" or "card"');
+    return;
+  }
+  if (wants_receipt !== undefined && typeof wants_receipt !== 'boolean') {
+    sendApiError(res, 400, 'INVALID_WANTS_RECEIPT', 'wants_receipt must be true or false');
+    return;
+  }
   try {
-    const { call, created } = openCall(tableId, kind);
+    const { call, created } = openCall(tableId, kind, new Date(), { paymentMethod: payment_method ?? null, wantsReceipt: wants_receipt === true });
     if (created) {
-      const payload = { call_id: call.id, table_id: tableId, kind: call.kind, opened_at: call.opened_at };
+      const payload = {
+        call_id: call.id,
+        table_id: tableId,
+        kind: call.kind,
+        opened_at: call.opened_at,
+        ...(call.payment_method ? { payment_method: call.payment_method } : {}),
+        ...(call.wants_receipt ? { wants_receipt: true } : {}),
+      };
       publish('staff', 'SERVICE_CALL_OPENED', payload);
       publish(`table:${tableId}`, 'SERVICE_CALL_OPENED', payload);
     }
-    res.status(created ? 201 : 200).json({ id: call.id, kind: call.kind, status: call.status, opened_at: call.opened_at });
+    res.status(created ? 201 : 200).json({
+      id: call.id,
+      kind: call.kind,
+      status: call.status,
+      opened_at: call.opened_at,
+      payment_method: call.payment_method,
+      wants_receipt: call.wants_receipt,
+    });
   } catch (err) {
     if (sendIfAppError(res, err)) return;
     sendInternalError(res, 'POST /api/tables/:id/calls', err);

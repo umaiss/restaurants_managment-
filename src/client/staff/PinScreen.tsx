@@ -107,7 +107,11 @@ export default function PinScreen({ onSubmit }: PinScreenProps) {
           </p>
           <div className="row" role="group" aria-label="PIN digits" data-testid="pin-dots">
             {Array.from({ length: PIN_LENGTH }, (_, i) => (
-              <span key={i} className="input" style={{ width: 48, textAlign: 'center', padding: '10px 0', minHeight: 0 }}>
+              <span
+                key={i}
+                className="input"
+                style={{ width: 48, height: 48, padding: 0, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
                 {i < digits.length ? '●' : ''}
               </span>
             ))}

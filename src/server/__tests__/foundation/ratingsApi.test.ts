@@ -56,6 +56,36 @@ describe('rating API', () => {
     expect((await rate(visit, [{ item_id: 'i-12', thumb: 'up' }])).status).toBe(200);
   });
 
+  it('keeps a written comment with the ratings: changeable until Done, then locked (RATING_LOCKED)', async () => {
+    const visit = await closedTable();
+    expect((await rate(visit, [], { comment: '  Lovely evening  ' })).status).toBe(200);
+    expect(getDb().prepare('SELECT comment, locked FROM visit_feedback').get()).toEqual({ comment: 'Lovely evening', locked: 0 });
+    await rate(visit, [{ item_id: 'i-04', thumb: 'up' }], { comment: 'Lovely evening, great burger' });
+    expect(getDb().prepare('SELECT comment FROM visit_feedback').get()).toEqual({ comment: 'Lovely evening, great burger' });
+    expect((await rate(visit, [], { done: true })).status).toBe(200);
+    expect(getDb().prepare('SELECT locked FROM visit_feedback').get()).toEqual({ locked: 1 });
+
+    const locked = await rate(visit, [], { comment: 'Changed my mind' });
+    expect(locked.status).toBe(409);
+    expect(locked.body.error.code).toBe('RATING_LOCKED');
+    expect(getDb().prepare('SELECT comment FROM visit_feedback').get()).toEqual({ comment: 'Lovely evening, great burger' });
+    // the same comment sent again after Done is not a change
+    expect((await rate(visit, [], { comment: 'Lovely evening, great burger' })).status).toBe(200);
+  });
+
+  it('an empty comment clears the kept one; a comment that is not text or is over 500 characters is 400 INVALID_COMMENT and saves nothing', async () => {
+    const visit = await closedTable();
+    await rate(visit, [], { comment: 'Nice' });
+    await rate(visit, [], { comment: '   ' });
+    expect(getDb().prepare('SELECT COUNT(*) AS n FROM visit_feedback').get()).toEqual({ n: 0 });
+    for (const bad of [42, 'x'.repeat(501)]) {
+      const res = await rate(visit, [{ item_id: 'i-04', thumb: 'up' }], { comment: bad });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_COMMENT');
+    }
+    expect(getDb().prepare('SELECT COUNT(*) AS n FROM dish_ratings').get()).toEqual({ n: 0 });
+  });
+
   it('answers each rule with its code: VISIT_NOT_CLOSED 409, INVALID_RATING 400, ITEM_NOT_IN_VISIT 400', async () => {
     const visit = await closedTable();
     const wrongVisit = await rate('not-a-visit', []);

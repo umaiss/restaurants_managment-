@@ -94,6 +94,53 @@ describe('Rate your meal (BR6.1, BR6.2)', () => {
     expect(screen.queryByTestId('rate-done')).toBeNull();
   });
 
+  it('shows a comment box; it is saved when the diner leaves it, and sent again with Done', async () => {
+    const { posts } = stubRatingServer();
+    render(<RatingFeature tableId="5" />);
+    const box = await screen.findByTestId('rate-comment');
+    fireEvent.change(box, { target: { value: '  Great food  ' } });
+    expect(screen.getByText('14/500')).toBeInTheDocument();
+    fireEvent.blur(box);
+    await waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]).toEqual({ visit_id: 'v-1', ratings: [], done: false, comment: 'Great food' });
+    fireEvent.blur(box); // nothing new to save
+    await act(async () => {});
+    expect(posts).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('rate-done'));
+    await waitFor(() => expect(screen.getByTestId('rate-message')).toHaveTextContent('Thank you'));
+    expect(posts[posts.length - 1]).toMatchObject({ done: true, comment: 'Great food' });
+    expect(box).toBeDisabled();
+  });
+
+  it('moves on to the Menu a moment after Done, once the thank-you has been shown', async () => {
+    stubRatingServer();
+    const onDone = vi.fn();
+    render(<RatingFeature tableId="5" onDone={onDone} />);
+    fireEvent.click(await screen.findByTestId('rate-up-i-04'));
+    fireEvent.click(screen.getByTestId('rate-done'));
+    await waitFor(() => expect(screen.getByTestId('rate-message')).toHaveTextContent('Thank you'));
+    expect(onDone).not.toHaveBeenCalled(); // the thank-you stays readable first
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
+  });
+
+  it('does not move on before Done', async () => {
+    stubRatingServer();
+    const onDone = vi.fn();
+    render(<RatingFeature tableId="5" onDone={onDone} />);
+    fireEvent.click(await screen.findByTestId('rate-up-i-04'));
+    await new Promise((r) => setTimeout(r, 1700));
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it('a diner who writes nothing sends no comment with Done', async () => {
+    const { posts } = stubRatingServer();
+    render(<RatingFeature tableId="5" />);
+    fireEvent.click(await screen.findByTestId('rate-up-i-04'));
+    fireEvent.click(screen.getByTestId('rate-done'));
+    await waitFor(() => expect(screen.getByTestId('rate-message')).toHaveTextContent('Thank you'));
+    expect(posts[posts.length - 1]).not.toHaveProperty('comment');
+  });
+
   it('a refused change (RATING_LOCKED) says "Your ratings are saved." and locks the thumbs', async () => {
     stubRatingServer({ post: () => ({ status: 409, code: 'RATING_LOCKED' }) });
     render(<RatingFeature tableId="5" />);
