@@ -31,9 +31,11 @@ export interface TableQrProps {
   tableId: number;
   label: string;
   origin: string;
+  /** Screen-only controls under the label (Remove); they never print. */
+  actions?: React.ReactNode;
 }
 
-export default function TableQr({ tableId, label, origin }: TableQrProps) {
+export default function TableQr({ tableId, label, origin, actions }: TableQrProps) {
   const text = tableAddress(origin, tableId);
   const drawn = useMemo(() => {
     try {
@@ -56,6 +58,7 @@ export default function TableQr({ tableId, label, origin }: TableQrProps) {
       </div>
       <strong>{label}</strong>
       <span className="url">/table/{tableId}</span>
+      {actions && <div className="u7-qr-actions no-print">{actions}</div>}
     </div>
   );
 }

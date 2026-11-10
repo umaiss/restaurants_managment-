@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useTableSSE } from '../hooks/useTableSSE.js';
 import { useCart, storedCartLineIds, readClosedMarker, writeClosedMarker } from '../hooks/useCart.js';
 import DinerTabBar, { type DinerTab } from '../components/diner/DinerTabBar.js';
+import { BrandMark } from '../components/ui/Icon.js';
 import TableClosedTakeover from '../components/diner/TableClosedTakeover.js';
 import MenuScreen from '../screens/diner/MenuScreen.js';
 import CartScreen, { type PlacedOrder } from '../screens/diner/CartScreen.js';
@@ -164,6 +165,7 @@ export default function TableView() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <BrandMark size={40} />
           <div style={{ flex: 1 }}>
             <h1
               style={{

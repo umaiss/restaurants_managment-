@@ -20,6 +20,9 @@ export default function QrPage() {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
+  // Removing asks once first: the id of the table waiting for its "Remove" confirmation, and the one being removed.
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   // A new QR code is a new table: the server numbers it, and its code appears in the list below.
   async function addTable() {
@@ -44,6 +47,28 @@ export default function QrPage() {
       setAddError('The table could not be added. Try again.');
     } finally {
       setAdding(false);
+    }
+  }
+
+  // Removing a table takes it off the floor and the QR sheet; its past orders stay in the reports.
+  async function removeTable(table: TableRow) {
+    setRemovingId(table.id);
+    setAdded(null);
+    setAddError(null);
+    try {
+      const res = await staffFetch(`/api/staff/tables/${table.id}`, { method: 'DELETE' });
+      if (res.status === 409) {
+        setAddError(`${table.label} still has guests with orders. Close the table first, then remove it.`);
+        return;
+      }
+      if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+      setAdded(`${table.label} removed.`);
+      reload();
+    } catch {
+      setAddError('The table could not be removed. Try again.');
+    } finally {
+      setRemovingId(null);
+      setConfirmId(null);
     }
   }
 
@@ -98,7 +123,28 @@ export default function QrPage() {
       {data && (
         <div className="u7-qr-sheet" data-testid="qr-sheet">
           {data.tables.map((t) => (
-            <TableQr key={t.id} tableId={t.id} label={t.label} origin={origin} />
+            <TableQr
+              key={t.id}
+              tableId={t.id}
+              label={t.label}
+              origin={origin}
+              actions={
+                confirmId === t.id ? (
+                  <>
+                    <Button small variant="danger" data-testid={`remove-table-confirm-${t.id}`} disabled={removingId === t.id} onClick={() => void removeTable(t)}>
+                      Remove {t.label}
+                    </Button>
+                    <Button small variant="ghost" data-testid={`remove-table-cancel-${t.id}`} onClick={() => setConfirmId(null)}>
+                      Keep
+                    </Button>
+                  </>
+                ) : (
+                  <Button small variant="ghost" data-testid={`remove-table-${t.id}`} onClick={() => setConfirmId(t.id)}>
+                    Remove
+                  </Button>
+                )
+              }
+            />
           ))}
         </div>
       )}

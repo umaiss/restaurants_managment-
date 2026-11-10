@@ -147,22 +147,22 @@ test.describe('Flow 3: the theme control and its saved choice', () => {
     // Follow device: no attribute, and the device's light setting decides
     await expect(page.getByTestId('staff-theme-device')).toHaveAttribute('aria-pressed', 'true');
     expect(await page.evaluate(() => document.documentElement.hasAttribute('data-theme'))).toBe(false);
-    expect(await token(page, '--bg')).toBe('#F6F4EF');
+    expect(await token(page, '--bg')).toBe('#F6F7F9');
 
     await page.getByTestId('staff-theme-dark').click();
     expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark');
-    expect(await token(page, '--bg')).toBe('#0F1216');
+    expect(await token(page, '--bg')).toBe('#0B0D12');
     expect(await page.evaluate(() => localStorage.getItem('table-order.theme'))).toBe('dark');
 
     // Remembered after a reload, even though the device says light
     await page.reload();
     await expect(page.getByTestId('staff-theme-dark')).toHaveAttribute('aria-pressed', 'true');
     expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark');
-    expect(await token(page, '--bg')).toBe('#0F1216');
+    expect(await token(page, '--bg')).toBe('#0B0D12');
 
     await page.getByTestId('staff-theme-light').click();
     await page.emulateMedia({ colorScheme: 'dark' }); // the device now says dark; the saved choice wins
-    expect(await token(page, '--bg')).toBe('#F6F4EF');
+    expect(await token(page, '--bg')).toBe('#F6F7F9');
     await page.reload();
     expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('light');
 
@@ -170,7 +170,7 @@ test.describe('Flow 3: the theme control and its saved choice', () => {
     await page.getByTestId('staff-theme-device').click();
     expect(await page.evaluate(() => localStorage.getItem('table-order.theme'))).toBeNull();
     expect(await page.evaluate(() => document.documentElement.hasAttribute('data-theme'))).toBe(false);
-    expect(await token(page, '--bg')).toBe('#0F1216');
+    expect(await token(page, '--bg')).toBe('#0B0D12');
   });
 
   test('the saved choice also themes the diner page, and the page background really changes', async ({ page }) => {
@@ -191,7 +191,7 @@ test.describe('Flow 3: the theme control and its saved choice', () => {
     await page.reload();
     const dark = await page.evaluate(() => getComputedStyle(document.querySelector('main')!.parentElement!).backgroundColor);
     expect(light).not.toBe(dark);
-    expect(dark).toBe('rgb(15, 18, 22)'); // v1's dark background, kept
+    expect(dark).toBe('rgb(11, 13, 18)'); // the dark background of the new design system
   });
 });
 
@@ -342,8 +342,8 @@ for (const theme of ['dark', 'light'] as const) {
       await page.addInitScript((t) => localStorage.setItem('table-order.theme', t), theme);
       await page.goto('/table/5');
       await expect(page.getByTestId('menu-screen')).toBeVisible({ timeout: 8000 });
-      expect(await token(page, '--bg')).toBe(theme === 'dark' ? '#0F1216' : '#F6F4EF');
-      expect(await token(page, '--accent')).toBe(theme === 'dark' ? '#FFB04A' : '#F29A1F');
+      expect(await token(page, '--bg')).toBe(theme === 'dark' ? '#0B0D12' : '#F6F7F9');
+      expect(await token(page, '--accent')).toBe(theme === 'dark' ? '#FF7A3D' : '#CF430E');
 
       // The tab bar is fixed at the bottom of the screen, never at the top, with a word under every icon
       const bar = (await page.getByTestId('tab-bar').boundingBox())!;
@@ -370,19 +370,19 @@ for (const theme of ['dark', 'light'] as const) {
       expect(Math.abs(after.y - before.y)).toBeLessThan(1.5);
       // exactly one pill is filled in (the category on screen), with the accent colour
       const fills = await pills.locator('button').evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
-      const filled = fills.filter((c) => c !== 'rgba(0, 0, 0, 0)');
+      const accent = theme === 'dark' ? 'rgb(255, 122, 61)' : 'rgb(207, 67, 14)';
+      const filled = fills.filter((c) => c === accent);
       expect(fills).toHaveLength(4);
       expect(filled).toHaveLength(1);
-      expect(filled[0]).toBe(theme === 'dark' ? 'rgb(255, 176, 74)' : 'rgb(242, 154, 31)');
     });
 
-    test('regression: the + Add pill looks 32 px tall and its touch area is 44 px, even with its border', async ({ page }) => {
+    test('regression: the + Add pill looks 36 px tall and its touch area is 44 px, even with its border', async ({ page }) => {
       await page.addInitScript((t) => localStorage.setItem('table-order.theme', t), theme);
       await page.goto('/table/5');
       await expect(page.getByTestId('menu-screen')).toBeVisible({ timeout: 8000 });
       for (const id of ['add-item-i-01', 'add-item-i-04']) {
         const add = page.getByTestId(id);
-        expect((await add.boundingBox())!.height).toBeCloseTo(32, 0);
+        expect((await add.boundingBox())!.height).toBeCloseTo(36, 0);
         const touch = await add.evaluate((el) => {
           const after = getComputedStyle(el, '::after');
           const pill = el.getBoundingClientRect();

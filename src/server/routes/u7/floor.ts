@@ -39,7 +39,7 @@ export function decideFloorState(input: {
 
 export function getFloorTables(now: number = Date.now()): FloorTable[] {
   const db = getDb();
-  const tables = db.prepare('SELECT id, label FROM tables ORDER BY id').all() as Array<{ id: number; label: string }>;
+  const tables = db.prepare('SELECT id, label FROM tables WHERE removed_at IS NULL ORDER BY id').all() as Array<{ id: number; label: string }>;
   const orderStatuses = db.prepare('SELECT status FROM orders WHERE visit_id = ?');
   const callRows = db.prepare(
     'SELECT id, kind, opened_at FROM service_calls WHERE visit_id = ? AND responded_at IS NULL ORDER BY opened_at, rowid'

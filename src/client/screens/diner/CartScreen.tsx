@@ -11,6 +11,7 @@ import { useNewEvents } from '../../diner/features/liveHelpers.js';
 import type { DinerMenuItem } from '../../diner/features/menuTypes.js';
 import { sendOrder } from '../../diner/features/orderSend.js';
 import type { SSEEvent } from '../../hooks/useTableSSE.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 export interface PlacedOrder {
   orderNumber: number;
@@ -248,9 +249,7 @@ export default function CartScreen({ tableId, onOrderPlaced, onBackToMenu, event
             padding: '3rem 1rem',
           }}
         >
-          <span className="float" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>
-            🛒
-          </span>
+          <span className="empty-ico float" aria-hidden="true"><Icon name="cart" size={30} /></span>
           <p style={{ fontWeight: 500 }}>Your cart is empty</p>
           <p style={{ fontSize: '0.875rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>
             Browse the menu to get started

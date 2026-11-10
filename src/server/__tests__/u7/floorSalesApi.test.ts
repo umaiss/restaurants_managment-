@@ -52,6 +52,65 @@ describe('POST /api/staff/tables (a new table and its QR code)', () => {
   });
 });
 
+describe('DELETE /api/staff/tables/:id (remove a table)', () => {
+  beforeEach(freshApp);
+  afterEach(cleanup);
+  const del = (id: number | string) => request(app).delete(`/api/staff/tables/${id}`).set('Cookie', staffCookie());
+  const post = () => request(app).post('/api/staff/tables').set('Cookie', staffCookie()).send({});
+
+  it('removes the table from the list and from diners, and the next table never reuses its number', async () => {
+    const res = await del(10);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 10, label: 'Table 10' });
+    const list = await get('/api/staff/tables');
+    expect(list.body.tables).toHaveLength(9);
+    expect(list.body.tables.map((t: { id: number }) => t.id)).not.toContain(10);
+    expect((await request(app).post('/api/tables/10/orders').send({ placement_key: 'k', lines: [{ menu_item_id: 'i-04', quantity: 1 }] })).status).toBe(404);
+    expect((await post()).body).toEqual({ id: 11, label: 'Table 11' });
+  });
+
+  it('keeps the table\'s past orders in the database (it is archived, not deleted)', async () => {
+    const { getDb } = await import('../../db.js');
+    placeOrderWithOptions(3, [{ menu_item_id: 'i-04', quantity: 1 }]);
+    getDb().prepare("UPDATE visits SET closed_at = '2026-11-05T12:00:00.000Z' WHERE table_id = 3").run();
+    expect((await del(3)).status).toBe(200);
+    expect((getDb().prepare('SELECT COUNT(*) AS n FROM orders WHERE table_id = 3').get() as { n: number }).n).toBe(1);
+    expect((getDb().prepare('SELECT removed_at FROM tables WHERE id = 3').get() as { removed_at: string | null }).removed_at).not.toBeNull();
+  });
+
+  it('refuses a table whose guests have orders (409 TABLE_IN_USE) and removes nothing', async () => {
+    placeOrderWithOptions(5, [{ menu_item_id: 'i-04', quantity: 1 }]);
+    const res = await del(5);
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('TABLE_IN_USE');
+    expect((await get('/api/staff/tables')).body.tables).toHaveLength(10);
+  });
+
+  it('removes a table a diner only opened (no orders) by closing that empty visit', async () => {
+    const { openVisit, getCurrentVisit } = await import('../../db.js');
+    openVisit(4);
+    expect((await del(4)).status).toBe(200);
+    expect(getCurrentVisit(4)).toBeNull();
+  });
+
+  it('404 UNKNOWN_TABLE for a table that is not there or already removed, 400 for a bad id, 401 without a session', async () => {
+    expect((await del(99)).status).toBe(404);
+    await del(9);
+    const again = await del(9);
+    expect(again.status).toBe(404);
+    expect(again.body.error.code).toBe('UNKNOWN_TABLE');
+    expect((await del('abc')).status).toBe(400);
+    expect((await request(app).delete('/api/staff/tables/1')).status).toBe(401);
+  });
+
+  it('frees a place under the 50-table limit', async () => {
+    for (let i = 0; i < 40; i++) await post();
+    expect((await post()).status).toBe(409);
+    await del(50);
+    expect((await post()).status).toBe(201);
+  });
+});
+
 describe('GET /api/staff/tables', () => {
   beforeEach(freshApp);
   afterEach(cleanup);

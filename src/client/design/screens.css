@@ -1,0 +1,188 @@
+/* Screen-level styling: the look of the diner and staff screens, built from the tokens only (no colour value is
+   written here). Several screens style themselves inline, so their rules here use attribute selectors and
+   !important; the background COLOUR of a filled control is never overridden, so a filled pill is exactly --accent.
+   Every animation stops under reduced motion (tokens.css). */
+
+/* ------------------------------------------------------------------ brand */
+.brand-mark {
+  flex: none; display: inline-grid; place-items: center; border-radius: 30%;
+  background: var(--accent-gradient); color: var(--accent-fg); box-shadow: var(--accent-glow);
+}
+.banner-ico { flex: none; display: inline-flex; margin-top: 1px; }
+
+/* ------------------------------------------------------------------ buttons and controls */
+.btn-primary { background-image: var(--accent-gradient); box-shadow: var(--accent-glow); }
+.btn-primary:disabled, .btn-primary[disabled] { background-image: none; background: var(--border); color: var(--text-disabled); box-shadow: none; opacity: 1; }
+@media (hover: hover) {
+  .btn:not([disabled]):hover { transform: translateY(-1px); }
+  .btn-ghost:not([disabled]):hover { transform: none; }
+}
+.btn:not([disabled]):active { transform: translateY(0) scale(.97); }
+.btn:focus-visible, .add-pill:focus-visible, .pill:focus-visible, .chip:focus-visible, .seg button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 6px var(--focus-glow);
+}
+.pill { transition: background 200ms ease, color 200ms ease, border-color 200ms ease, transform 160ms var(--ease-out); }
+.pill:hover { border-color: var(--accent); color: var(--text); }
+.add-pill { background-image: var(--accent-gradient); box-shadow: var(--accent-glow); transition: transform 180ms var(--ease-spring), box-shadow 200ms ease; }
+@media (hover: hover) { .add-pill:hover { transform: translateY(-1px) scale(1.04); } }
+.add-pill:active { transform: scale(.94); }
+.chip { transition: background 180ms ease, border-color 180ms ease, transform 160ms var(--ease-spring); }
+.chip:active { transform: scale(.95); }
+.seg button { transition: background 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+.input { transition: border-color 160ms ease, box-shadow 200ms ease; }
+.input:hover { border-color: var(--text-disabled); }
+.card, .banner { animation: fadeUp 360ms var(--ease-out-expo) backwards; }
+.banner { animation-name: bannerIn; }
+.scrim { animation: fadeIn 200ms ease-out; }
+.sheet { animation: sheetIn 420ms var(--ease-out-expo) backwards; }
+
+/* ------------------------------------------------------------------ the order tracker: the bar fills in step by step */
+.tracker .step.done::before, .tracker .step.current::before { transform-origin: left; animation: growBar 700ms var(--ease-out-expo) backwards; }
+.tracker .step:nth-child(2).done::before, .tracker .step:nth-child(2).current::before { animation-delay: 160ms; }
+.tracker .step:nth-child(3).current::before { animation-delay: 320ms; }
+.tracker .step::after { transition: background 300ms ease, border-color 300ms ease, box-shadow 300ms ease; }
+.tracker .step.done::after { animation: dotPop 520ms var(--ease-spring) backwards; }
+.tracker .step.current::after { animation: dotPop 520ms var(--ease-spring) backwards, pulse 2s 520ms infinite; }
+.tracker .step:last-child.current::after { animation: dotPop 520ms var(--ease-spring) 320ms backwards; }
+
+/* ------------------------------------------------------------------ the diner screens */
+.diner-shell > header {
+  padding: var(--space-4) var(--space-4) var(--space-3) !important;
+  background: var(--bg-bar) !important;
+  -webkit-backdrop-filter: var(--glass) !important; backdrop-filter: var(--glass) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.diner-shell > header h1 { font-size: var(--text-xl) !important; letter-spacing: var(--tracking-tight) !important; line-height: 1.1 !important; }
+.diner-shell > header > div { gap: var(--space-3) !important; }
+.diner-shell > header [data-testid="live-status"] { margin-top: 3px; font-weight: var(--weight-medium); }
+
+[data-testid="category-pill-bar"] {
+  background: var(--bg-bar) !important;
+  -webkit-backdrop-filter: var(--glass) !important; backdrop-filter: var(--glass) !important;
+  padding: var(--space-3) var(--space-4) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+button[data-testid^="category-pill-"] {
+  padding: 0 var(--space-4) !important; min-height: 36px;
+  font-size: var(--text-sm) !important; font-weight: var(--weight-semibold) !important; letter-spacing: var(--tracking-snug);
+  border-width: 1px !important; border-radius: var(--radius-pill) !important;
+}
+button[data-testid^="category-pill-"][style*="background: var(--accent)"] { box-shadow: var(--accent-glow) !important; }
+button[data-testid^="category-pill-"]:not([style*="background: var(--accent)"]) { background: var(--bg-raised) !important; border-color: var(--border) !important; }
+button[data-testid^="category-pill-"]:not([style*="background: var(--accent)"]):hover { border-color: var(--accent) !important; color: var(--text) !important; }
+
+[data-testid="menu-screen"] section > h2 {
+  font-size: var(--text-lg) !important; letter-spacing: var(--tracking-tight) !important; margin: var(--space-3) 0 var(--space-3) !important;
+}
+[data-testid="menu-screen"] > div:last-of-type { padding: var(--space-2) var(--space-4) var(--space-4) !important; }
+
+[data-testid^="menu-item-"] {
+  gap: var(--space-4) !important; padding: var(--space-4) !important;
+  border-radius: var(--radius-lg) !important; border-color: var(--border) !important;
+  background: var(--bg-raised) !important; box-shadow: var(--shadow-card) !important;
+}
+[data-testid^="menu-item-"] > img, [data-testid^="item-emoji-"] {
+  width: 84px !important; height: 84px !important; border-radius: var(--radius-md) !important;
+}
+[data-testid^="item-emoji-"] {
+  font-size: 46px !important; background: radial-gradient(circle at 30% 20%, var(--accent-soft), var(--bg-card) 72%) !important;
+  box-shadow: inset 0 0 0 1px var(--hairline); transition: transform 320ms var(--ease-spring);
+}
+[data-testid^="menu-item-"] > div:last-child { display: flex; flex-direction: column; }
+[data-testid^="menu-item-"] > div:last-child > div:first-child { font-size: var(--text-md) !important; font-weight: var(--weight-semibold) !important; letter-spacing: var(--tracking-snug); }
+[data-testid^="menu-item-"] > div:last-child > div:nth-child(2) { font-size: var(--text-sm) !important; line-height: 1.4; }
+[data-testid^="menu-item-"] > div:last-child > div:last-child { margin-top: auto !important; padding-top: var(--space-2); }
+[data-testid^="menu-item-"] > div:last-child > div:last-child > span:first-child { font-size: var(--text-md) !important; font-weight: var(--weight-bold) !important; letter-spacing: var(--tracking-snug); }
+@media (hover: hover) {
+  [data-testid^="menu-item-"]:hover { transform: translateY(-2px) !important; box-shadow: var(--shadow-pop) !important; border-color: var(--border-strong) !important; }
+  [data-testid^="menu-item-"]:hover [data-testid^="item-emoji-"] { transform: scale(1.08) rotate(-4deg); }
+}
+[data-testid^="menu-item-"]:active { transform: scale(.985) !important; }
+[data-testid^="add-item-"] {
+  height: 36px !important; padding: 0 var(--space-4) !important; font-size: var(--text-sm) !important; font-weight: var(--weight-bold) !important;
+}
+[data-testid^="add-item-"]:not(:disabled) { box-shadow: var(--accent-glow); }
+
+[data-testid="tab-bar"] {
+  -webkit-backdrop-filter: var(--glass) !important; backdrop-filter: var(--glass) !important;
+  border-top: 1px solid var(--border) !important; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 0 0 env(safe-area-inset-bottom);
+}
+[data-testid="tab-bar"] button {
+  background: transparent !important; border-radius: var(--radius-md) !important;
+  padding: var(--space-2) var(--space-2) var(--space-2) !important; gap: 3px !important; min-height: 58px !important;
+  font-size: 11px !important; letter-spacing: .01em;
+}
+[data-testid="tab-bar"] button[aria-pressed="true"] { color: var(--accent-text) !important; font-weight: var(--weight-semibold) !important; }
+[data-testid="tab-bar"] button:active { transform: scale(.94); }
+[data-testid="cart-badge"] {
+  top: 6px !important; right: calc(50% - 22px) !important; width: 18px !important; height: 18px !important; font-size: 10px !important;
+  box-shadow: 0 0 0 2px var(--bg-raised);
+}
+[data-testid="orders-screen"] [data-testid^="order-card-"] { border-radius: var(--radius-lg); }
+
+/* ------------------------------------------------------------------ the staff screens */
+.page-head h1 { font-size: var(--text-2xl); line-height: 1.1; }
+.staff-topbar { box-shadow: none; }
+.sidenav a::before {
+  content: ""; position: absolute; left: -12px; top: 22%; bottom: 22%; width: 4px; border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  background: var(--accent); transform: scaleY(0); transition: transform 260ms var(--ease-spring);
+}
+.sidenav a[aria-current="page"]::before { transform: scaleY(1); }
+.sidenav .brand .brand-mark { box-shadow: 0 6px 16px var(--accent-soft); }
+
+html [data-testid^="table-section-"] {
+  background: var(--bg-raised) !important; border-radius: var(--radius-lg) !important; box-shadow: var(--shadow-card) !important;
+  border-color: var(--border) !important; animation: fadeUp 420ms var(--ease-out-expo) backwards;
+}
+
+/* the PIN screen */
+[data-testid="pin-screen"] { border-radius: var(--radius-xl); padding: var(--space-8) var(--space-6); box-shadow: var(--shadow-pop); }
+[data-testid="pin-screen"] h1 { font-size: var(--text-xl); }
+.pin-pad .btn { transition: transform 160ms var(--ease-spring), background 200ms ease; }
+[data-testid="pin-dots"] { gap: var(--space-3); }
+[data-testid="pin-dots"] > span { border-radius: var(--radius-md) !important; transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms var(--ease-spring); }
+[data-testid="pin-dots"] > span:not(:empty) { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); transform: scale(1.06); }
+
+/* printing keeps the plain look: no shadows, glass or motion on paper */
+@media print {
+  .card, .u7-qr-card, .u7-stat { box-shadow: none !important; background: none !important; animation: none !important; }
+}
+
+/* Transitions that have to beat an inline transition: only when the device has not asked for reduced motion, because an
+   !important rule here would otherwise out-rank the global switch-off. */
+@media (prefers-reduced-motion: no-preference) {
+  button[data-testid^="category-pill-"] { transition: transform 180ms var(--ease-spring), background 220ms ease, box-shadow 220ms ease, color 200ms ease !important; }
+  [data-testid^="menu-item-"] { transition: transform 260ms var(--ease-out-expo), box-shadow 260ms ease, border-color 220ms ease !important; }
+  [data-testid="tab-bar"] button { transition: color 180ms ease, transform 160ms var(--ease-spring) !important; }
+  html [data-testid^="table-section-"] { transition: transform 260ms var(--ease-out-expo), box-shadow 260ms ease !important; }
+}
+
+/* ------------------------------------------------------------------ empty states and small details */
+.empty-ico {
+  display: inline-grid; place-items: center; width: 72px; height: 72px; margin-bottom: var(--space-4); border-radius: var(--radius-xl);
+  background: var(--accent-soft); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--hairline);
+}
+[data-testid="cart-empty"] > p:first-of-type, [data-testid="orders-empty"] > p:first-of-type { font-size: var(--text-md); font-weight: var(--weight-semibold) !important; color: var(--text); letter-spacing: var(--tracking-snug); }
+[data-testid="back-to-menu"] { min-height: var(--touch); padding: 0 var(--space-5) !important; font-size: var(--text-base); }
+.icon-btn { transition: transform 160ms var(--ease-spring), border-color 160ms ease, background 160ms ease; box-shadow: var(--shadow-sm); }
+@media (hover: hover) { .icon-btn:hover { border-color: var(--text-disabled); transform: translateY(-1px); } }
+
+/* ------------------------------------------------------------------ the table bill */
+[data-testid="table-bill-screen"] h1 { font-size: var(--text-2xl) !important; letter-spacing: var(--tracking-tight); }
+[data-testid="bill-back-link"] {
+  border-radius: var(--radius-md) !important; background: var(--bg-raised); box-shadow: var(--shadow-sm); font-weight: var(--weight-semibold);
+  padding: 0 var(--space-4) !important; font-size: var(--text-sm) !important; transition: transform 160ms var(--ease-out), border-color 160ms ease;
+}
+[data-testid="bill-back-link"]:hover { border-color: var(--text-disabled) !important; transform: translateY(-1px); }
+[data-testid="table-bill-screen"] div:has(> [data-testid="bill-combined-total"]) {
+  padding: var(--space-5) var(--space-5) !important; margin-top: var(--space-3) !important; font-size: var(--text-xl) !important;
+  border-radius: var(--radius-lg) !important; letter-spacing: var(--tracking-tight);
+}
+[data-testid="table-bill-screen"] div:has(> [data-testid="btn-close-table"]) { padding: var(--space-4) 0 var(--space-4) !important; }
+[data-testid="btn-close-table"] { border-radius: var(--radius-md) !important; padding: 0 var(--space-8) !important; min-height: 52px !important; font-size: var(--text-md) !important; }
+[data-testid^="bill-order-"], [data-testid^="order-card-"] { border-radius: var(--radius-lg) !important; }
+
+/* ------------------------------------------------------------------ the kitchen board */
+[data-testid="kitchen-board"] { padding: 0 0 var(--space-8) !important; }
+[data-testid="kitchen-board"] h1 { font-size: var(--text-2xl) !important; letter-spacing: var(--tracking-tight); line-height: 1.1; }

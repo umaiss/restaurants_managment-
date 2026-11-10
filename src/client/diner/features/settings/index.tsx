@@ -10,6 +10,7 @@ import { ALLERGEN_LABELS } from '../allergies/allergyLogic.js';
 import { announcePrefsChange } from '../liveHelpers.js';
 import { Portal } from '../Portal.js';
 import '../features.css';
+import { Icon } from '../../../components/ui/Icon.js';
 
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { allergies, toggle } = useAllergies();
@@ -86,7 +87,7 @@ export default function SettingsFeature(_props: DinerFeatureProps) {
   return (
     <>
       <button ref={opener} type="button" className="icon-btn" aria-label="Settings" data-testid="open-settings" onClick={() => setOpen(true)}>
-        {'⚙'}
+        <Icon name="gear" size={20} />
       </button>
       {open && <SettingsSheet onClose={() => setOpen(false)} />}
     </>

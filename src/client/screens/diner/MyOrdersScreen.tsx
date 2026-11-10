@@ -3,6 +3,7 @@ import { SSEEvent } from '../../hooks/useTableSSE.js';
 import { HelpCardFeature, TrackerFeature, SameAgainFeature } from '../../diner/features/registry.js';
 
 import type { DinerOrder, DinerOrderStatus } from '../../diner/features/menuTypes.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 type OrderStatus = DinerOrderStatus;
 type Order = DinerOrder;
@@ -159,9 +160,7 @@ export default function MyOrdersScreen({ tableId, lastSSEEvent, events, onSameAg
           padding: '3rem 1rem',
         }}
       >
-        <span className="float" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>
-          📋
-        </span>
+        <span className="empty-ico float" aria-hidden="true"><Icon name="receipt" size={30} /></span>
         <p style={{ fontWeight: 500 }}>No orders yet</p>
         <p style={{ fontSize: '0.875rem', marginTop: '0.25rem', color: 'var(--text-muted)' }}>
           Add items from the menu

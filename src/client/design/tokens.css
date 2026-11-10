@@ -1,101 +1,114 @@
-/* Table Order v2 design tokens (U5 Step 11; BR10.1, BR10.2, BR10.5, BR10.6; contract 6).
-   One place for every colour, type size, space, radius, shadow and motion value. Names are those of the
-   mockups' design-system.css. The dark theme holds v1's values. The theme is the data-theme attribute on
-   the page root: absent means follow the device, "light" or "dark" forces it.
-   Nothing outside this file may set a colour value that a token below already covers. */
+/* Table Order design tokens: the "Paprika" design system.
+   One place for every colour, type size, space, radius, shadow and motion value; every other stylesheet and
+   component reads these and sets no colour of its own. The theme is the data-theme attribute on the page root:
+   absent means follow the device, "light" or "dark" forces it. Both themes keep body text at 4.5 to 1 or better
+   (BR10.5); the design-system test checks it. */
 
 /* ---- Scales shared by both themes ---- */
 :root {
-  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  --font: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --text-xs: 12px; --text-sm: 13px; --text-base: 15px; --text-md: 17px;
-  --text-lg: 20px; --text-xl: 24px; --text-2xl: 30px; --text-3xl: 40px;
+  --text-lg: 20px; --text-xl: 24px; --text-2xl: 32px; --text-3xl: 40px;
   --weight-regular: 400; --weight-medium: 500; --weight-semibold: 600; --weight-bold: 700;
+  --tracking-tight: -0.022em; --tracking-snug: -0.011em;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
   --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
-  --radius-sm: 6px; --radius-md: 12px; --radius-lg: 16px; --radius-pill: 999px;
-  --ease-out: cubic-bezier(.2,.8,.2,1); --t-fast: 120ms; --t-normal: 220ms;
+  --radius-sm: 8px; --radius-md: 14px; --radius-lg: 20px; --radius-xl: 28px; --radius-pill: 999px;
+  --ease-out: cubic-bezier(.2,.8,.2,1); --ease-out-expo: cubic-bezier(.16,1,.3,1); --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --t-fast: 120ms; --t-normal: 220ms;
   --diner-max: 520px; --touch: 44px;
+  --glass: saturate(180%) blur(20px);
 }
 
-/* ---- Dark theme (v1's palette) ---- */
+/* ---- Dark theme ---- */
 :root, :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0F1216; --bg-raised: #171B22; --bg-card: #1F2630; --bg-bar: rgba(15,18,22,.88);
-  --border: #2A313C; --border-strong: #3A4351;
-  --text: #F1F3F6; --text-2: #A6AEB8; --text-muted: #8791A0; --text-disabled: #4E5560;
-  --accent: #FFB04A; --accent-hover: #FFC06E; --accent-fg: #0F1216; --accent-text: #FFB04A;
+  --bg: #0B0D12; --bg-raised: #12151C; --bg-card: #1A1E28; --bg-bar: rgba(11,13,18,.80);
+  --border: #232833; --border-strong: #343B4A;
+  --text: #F2F4F7; --text-2: #B0B8C4; --text-muted: #8A94A3; --text-disabled: #566070;
+  --accent: #FF7A3D; --accent-hover: #FF9560; --accent-fg: #1A0B04; --accent-text: #FF8F5C;
   --pin-open-fg: #FFFFFF;
-  --accent-soft: rgba(255,176,74,.14);
-  --pending: #FFC75A; --preparing: #4CB3FF; --completed: #5DD48E; --cancelled: #8A94A2;
-  --pending-soft: rgba(255,199,90,.14); --preparing-soft: rgba(76,179,255,.14);
-  --completed-soft: rgba(93,212,142,.14); --cancelled-soft: rgba(138,148,162,.14);
-  --danger: #FF6B6B; --danger-soft: rgba(255,107,107,.14);
-  --warn-amber: #FFB04A; --warn-red: #FF6B6B;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
-  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.25);
-  --shadow-sheet: 0 -12px 40px rgba(0,0,0,.5);
-  --shadow-bar: 0 -6px 24px rgba(0,0,0,.35);
-  --page-bg: #05070A;
-  /* extras the app needs beyond the mockup file */
-  --scrim: rgba(5,7,10,.6);
-  --overlay-strong: rgba(5,7,10,.92);
-  --highlight-new: #FFD98A;
-  --focus-glow: rgba(255,176,74,.35);
+  --accent-soft: rgba(255,122,61,.14);
+  --pending: #FDB022; --preparing: #53B1FD; --completed: #47CD89; --cancelled: #98A2B3;
+  --pending-soft: rgba(253,176,34,.14); --preparing-soft: rgba(83,177,253,.14);
+  --completed-soft: rgba(71,205,137,.14); --cancelled-soft: rgba(152,162,179,.14);
+  --danger: #F97066; --danger-soft: rgba(249,112,102,.14);
+  --warn-amber: #FDB022; --warn-red: #F97066;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.45);
+  --shadow-card: 0 1px 0 rgba(255,255,255,.04) inset, 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.28);
+  --shadow-sheet: 0 -16px 48px rgba(0,0,0,.55);
+  --shadow-bar: 0 -8px 28px rgba(0,0,0,.4);
+  --shadow-pop: 0 18px 44px rgba(0,0,0,.55);
+  --page-bg: #07080C;
+  --scrim: rgba(4,5,8,.62);
+  --overlay-strong: rgba(4,5,8,.92);
+  --highlight-new: #FFB88F;
+  --focus-glow: rgba(255,122,61,.4);
   --scrollbar: rgba(255,255,255,.14);
+  --hairline: rgba(255,255,255,.06);
+  --nav-bg: #0E1117;
+  --on-dark: #F2F4F7;
 }
 
 /* ---- Light theme ---- */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #F6F4EF; --bg-raised: #FFFFFF; --bg-card: #FFFFFF; --bg-bar: rgba(246,244,239,.9);
-  --border: #E2DDD2; --border-strong: #CFC8BA;
-  --text: #1B1F26; --text-2: #46505E; --text-muted: #5F6A78; --text-disabled: #9AA2AD;
-  --accent: #F29A1F; --accent-hover: #E08A00; --accent-fg: #1B1F26; --accent-text: #8F5200;
-  --pin-open-fg: var(--accent-fg);
-  --accent-soft: rgba(242,154,31,.16);
-  --pending: #8F5F00; --preparing: #0B64A8; --completed: #1B7A47; --cancelled: #55606E;
-  --pending-soft: rgba(143,95,0,.12); --preparing-soft: rgba(11,100,168,.1);
-  --completed-soft: rgba(27,122,71,.12); --cancelled-soft: rgba(85,96,110,.12);
-  --danger: #C62828; --danger-soft: rgba(198,40,40,.1);
-  /* #9A5B00, not the mockup's #B86E00: that one is 3.99 to 1 on white, under the 4.5 to 1 of BR10.5. */
-  --warn-amber: #9A5B00; --warn-red: #C62828;
-  --shadow-sm: 0 1px 2px rgba(27,31,38,.08);
-  --shadow-card: 0 1px 2px rgba(27,31,38,.06), 0 6px 18px rgba(27,31,38,.08);
-  --shadow-sheet: 0 -12px 40px rgba(27,31,38,.18);
-  --shadow-bar: 0 -6px 20px rgba(27,31,38,.08);
-  --page-bg: #E9E5DB;
-  --scrim: rgba(27,31,38,.45);
-  --overlay-strong: rgba(246,244,239,.95);
-  --highlight-new: #F29A1F;
-  --focus-glow: rgba(242,154,31,.35);
-  --scrollbar: rgba(27,31,38,.22);
+  --bg: #F6F7F9; --bg-raised: #FFFFFF; --bg-card: #F1F3F6; --bg-bar: rgba(255,255,255,.82);
+  --border: #E4E7EC; --border-strong: #D0D5DD;
+  --text: #101828; --text-2: #475467; --text-muted: #5F6B7C; --text-disabled: #98A2B3;
+  --accent: #CF430E; --accent-hover: #B83A0B; --accent-fg: #FFFFFF; --accent-text: #B93815;
+  --pin-open-fg: #FFFFFF;
+  --accent-soft: rgba(207,67,14,.09);
+  --pending: #B54708; --preparing: #175CD3; --completed: #067647; --cancelled: #475467;
+  --pending-soft: rgba(181,71,8,.10); --preparing-soft: rgba(23,92,211,.09);
+  --completed-soft: rgba(6,118,71,.10); --cancelled-soft: rgba(71,84,103,.10);
+  --danger: #B42318; --danger-soft: rgba(180,35,24,.09);
+  --warn-amber: #B54708; --warn-red: #B42318;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+  --shadow-card: 0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.06);
+  --shadow-sheet: 0 -16px 48px rgba(16,24,40,.18);
+  --shadow-bar: 0 -8px 28px rgba(16,24,40,.07);
+  --shadow-pop: 0 18px 44px rgba(16,24,40,.2);
+  --page-bg: #E8EAEE;
+  --scrim: rgba(16,24,40,.45);
+  --overlay-strong: rgba(246,247,249,.95);
+  --highlight-new: #CF430E;
+  --focus-glow: rgba(207,67,14,.32);
+  --scrollbar: rgba(16,24,40,.2);
+  --hairline: rgba(16,24,40,.06);
+  --nav-bg: #101828;
+  --on-dark: #F2F4F7;
 }
 
 /* No saved choice: follow the device's setting. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
     color-scheme: light;
-    --bg: #F6F4EF; --bg-raised: #FFFFFF; --bg-card: #FFFFFF; --bg-bar: rgba(246,244,239,.9);
-    --border: #E2DDD2; --border-strong: #CFC8BA;
-    --text: #1B1F26; --text-2: #46505E; --text-muted: #5F6A78; --text-disabled: #9AA2AD;
-    --accent: #F29A1F; --accent-hover: #E08A00; --accent-fg: #1B1F26; --accent-text: #8F5200;
-  --pin-open-fg: var(--accent-fg);
-    --accent-soft: rgba(242,154,31,.16);
-    --pending: #8F5F00; --preparing: #0B64A8; --completed: #1B7A47; --cancelled: #55606E;
-    --pending-soft: rgba(143,95,0,.12); --preparing-soft: rgba(11,100,168,.1);
-    --completed-soft: rgba(27,122,71,.12); --cancelled-soft: rgba(85,96,110,.12);
-    --danger: #C62828; --danger-soft: rgba(198,40,40,.1);
-    --warn-amber: #9A5B00; --warn-red: #C62828;
-    --shadow-sm: 0 1px 2px rgba(27,31,38,.08);
-    --shadow-card: 0 1px 2px rgba(27,31,38,.06), 0 6px 18px rgba(27,31,38,.08);
-    --shadow-sheet: 0 -12px 40px rgba(27,31,38,.18);
-    --shadow-bar: 0 -6px 20px rgba(27,31,38,.08);
-    --page-bg: #E9E5DB;
-    --scrim: rgba(27,31,38,.45);
-    --overlay-strong: rgba(246,244,239,.95);
-    --highlight-new: #F29A1F;
-    --focus-glow: rgba(242,154,31,.35);
-    --scrollbar: rgba(27,31,38,.22);
+    --bg: #F6F7F9; --bg-raised: #FFFFFF; --bg-card: #F1F3F6; --bg-bar: rgba(255,255,255,.82);
+    --border: #E4E7EC; --border-strong: #D0D5DD;
+    --text: #101828; --text-2: #475467; --text-muted: #5F6B7C; --text-disabled: #98A2B3;
+    --accent: #CF430E; --accent-hover: #B83A0B; --accent-fg: #FFFFFF; --accent-text: #B93815;
+    --pin-open-fg: #FFFFFF;
+    --accent-soft: rgba(207,67,14,.09);
+    --pending: #B54708; --preparing: #175CD3; --completed: #067647; --cancelled: #475467;
+    --pending-soft: rgba(181,71,8,.10); --preparing-soft: rgba(23,92,211,.09);
+    --completed-soft: rgba(6,118,71,.10); --cancelled-soft: rgba(71,84,103,.10);
+    --danger: #B42318; --danger-soft: rgba(180,35,24,.09);
+    --warn-amber: #B54708; --warn-red: #B42318;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+    --shadow-card: 0 1px 2px rgba(16,24,40,.05), 0 6px 20px rgba(16,24,40,.06);
+    --shadow-sheet: 0 -16px 48px rgba(16,24,40,.18);
+    --shadow-bar: 0 -8px 28px rgba(16,24,40,.07);
+    --shadow-pop: 0 18px 44px rgba(16,24,40,.2);
+    --page-bg: #E8EAEE;
+    --scrim: rgba(16,24,40,.45);
+    --overlay-strong: rgba(246,247,249,.95);
+    --highlight-new: #CF430E;
+    --focus-glow: rgba(207,67,14,.32);
+    --scrollbar: rgba(16,24,40,.2);
+    --hairline: rgba(16,24,40,.06);
+    --nav-bg: #101828;
+    --on-dark: #F2F4F7;
   }
 }
 
@@ -122,18 +135,12 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --live: var(--completed);
-  --accent-gradient: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
-  --accent-glow: 0 6px 18px var(--accent-soft);
-}
-
-/* ---- Polish layer values (polish.css): surfaces, shadows and easing built from the tokens above, so they follow the theme ---- */
-:root {
-  --surface-gradient: linear-gradient(180deg, color-mix(in srgb, var(--accent) 5%, var(--bg-raised)), var(--bg-raised) 70%);
+  /* the brand gradient and glow of primary actions */
+  --accent-gradient: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent) 55%, var(--accent-hover));
+  --accent-glow: 0 1px 0 rgba(255,255,255,.22) inset, 0 6px 16px var(--accent-soft), 0 2px 4px var(--accent-soft);
+  --surface-gradient: linear-gradient(180deg, var(--bg-raised), var(--bg-raised));
   --shadow-lift: var(--shadow-card), 0 14px 32px var(--accent-soft);
-  --shadow-inner: inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent);
-  --glass: saturate(160%) blur(18px);
-  --radius-xl: 22px;
-  --ease-out-expo: cubic-bezier(.16, 1, .3, 1);
+  --shadow-inner: inset 0 1px 0 var(--hairline);
 }
 
 /* All motion stops when the device asks for reduced motion; state still changes (BR10.6). */

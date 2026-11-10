@@ -119,11 +119,11 @@ describe('the stylesheet keeps what v1 got right (BR10.4)', () => {
     expect(css.indexOf("@import './design/tokens.css'")).toBeGreaterThanOrEqual(0);
     expect(css.indexOf("@import './design/components.css'")).toBeGreaterThan(css.indexOf("tokens.css"));
     // @import must come before any rule
-    expect(css.slice(0, css.indexOf("@import './design/components.css'")).replace(/\/\*[\s\S]*?\*\//g, '').trim()).toMatch(/^@import '\.\/design\/tokens\.css';$/);
+    expect(css.slice(0, css.indexOf("@import './design/components.css'")).replace(/\/\*[\s\S]*?\*\//g, '').trim()).toMatch(/^@import '@fontsource-variable\/inter\/index\.css';\s*@import '\.\/design\/tokens\.css';$/);
   });
 
-  it('the + Add pill is 32 px tall with a 44 px touch area', () => {
-    expect(components).toMatch(/\.add-pill\s*\{[^}]*height:\s*32px/);
+  it('the + Add pill is 34 px tall with a 44 px touch area', () => {
+    expect(components).toMatch(/\.add-pill\s*\{[^}]*height:\s*34px/);
     expect(components).toMatch(/\.add-pill::after\s*\{[^}]*height:\s*44px/);
   });
 
@@ -139,7 +139,8 @@ describe('the stylesheet keeps what v1 got right (BR10.4)', () => {
   });
 
   it('the frosted bars keep their blur', () => {
-    expect(components).toMatch(/\.staff-topbar\s*\{[^}]*backdrop-filter:\s*blur/);
+    expect(components).toMatch(/\.staff-topbar\s*\{[^}]*backdrop-filter:\s*var\(--glass\)/);
+    expect(fs.readFileSync(path.join(CLIENT, 'design', 'tokens.css'), 'utf8')).toMatch(/--glass:[^;]*blur\(/);
   });
 
   it('prices use tabular numbers', () => {

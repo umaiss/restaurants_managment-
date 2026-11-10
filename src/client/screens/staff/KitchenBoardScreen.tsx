@@ -11,6 +11,7 @@ import NewOrderBanner, { SoundSwitch } from '../../staff/board/NewOrderBanner';
 import { CallLabels, CallRespond } from '../../staff/board/CallPulse';
 import { ALL_STATIONS, type BoardTab, type StationName } from '../../staff/board/constants';
 import '../../staff/staff-u7.css';
+import { Icon } from '../../components/ui/Icon.js';
 
 function BoardShimmer() {
   return (
@@ -44,7 +45,7 @@ function BoardEmptyState() {
         color: 'var(--text-muted)',
       }}
     >
-      <span className="float" style={{ fontSize: '2.5rem' }}>⚪</span>
+      <span className="empty-ico float" aria-hidden="true"><Icon name="kitchen" size={30} /></span>
       <p style={{ fontSize: '0.95rem', textAlign: 'center', maxWidth: '24rem', margin: 0 }}>
         No open orders right now. Orders will appear here within 2 seconds of placement.
       </p>

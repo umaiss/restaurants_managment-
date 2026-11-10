@@ -133,6 +133,8 @@ export function upgradeSchema(db: Database.Database): void {
     ['items.station', () => addColumnIfMissing(db, 'items', 'station', "TEXT NOT NULL DEFAULT 'Grill'")],
     // BR2.3: NULL means "not set"; it is never read as "contains none".
     ['items.allergens', () => addColumnIfMissing(db, 'items', 'allergens', 'TEXT NULL')],
+    // A removed table is archived, not deleted: its visits, orders and sales stay. NULL means the table is in use.
+    ['tables.removed_at', () => addColumnIfMissing(db, 'tables', 'removed_at', 'TEXT NULL')],
     ['orders.completed_at', () => addColumnIfMissing(db, 'orders', 'completed_at', 'TEXT NULL')],
     ['orders.estimate_minutes', () => addColumnIfMissing(db, 'orders', 'estimate_minutes', 'INTEGER NULL')],
     ['order_items.station', () => addColumnIfMissing(db, 'order_items', 'station', "TEXT NOT NULL DEFAULT 'Grill'")],

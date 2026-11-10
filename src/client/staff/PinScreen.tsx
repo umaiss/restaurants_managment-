@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Banner } from '../components/ui/index.js';
+import { BrandMark } from '../components/ui/Icon.js';
 import type { SignInResult } from './useStaffSession.js';
 
 const PIN_LENGTH = 4;
@@ -96,9 +97,7 @@ export default function PinScreen({ onSubmit }: PinScreenProps) {
           data-testid="pin-screen"
           aria-labelledby="pin-title"
         >
-          <div style={{ fontSize: 'var(--text-3xl)' }} aria-hidden="true">
-            🔒
-          </div>
+          <BrandMark size={56} />
           <h1 id="pin-title" style={{ margin: 0 }}>
             Staff PIN
           </h1>

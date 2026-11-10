@@ -38,7 +38,7 @@ export function saveRatings(
 
   const run = db.transaction((): { saved: number } => {
     // (1) the visit
-    const table = db.prepare('SELECT id FROM tables WHERE id = ?').get(tableId);
+    const table = db.prepare('SELECT id FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId);
     if (!table) throw new AppError('UNKNOWN_TABLE', `Table ${tableId} not found`);
     if (getLastClosedVisitId(tableId) !== visitId) {
       throw new AppError('VISIT_NOT_CLOSED', 'visit_id is not the table\'s most recent closed visit');

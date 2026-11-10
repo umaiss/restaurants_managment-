@@ -65,7 +65,7 @@ export function openCall(
   extras: { paymentMethod?: PaymentMethod | null; wantsReceipt?: boolean } = {}
 ): { call: ServiceCall; created: boolean } {
   const db = getDb();
-  const table = db.prepare('SELECT id FROM tables WHERE id = ?').get(tableId);
+  const table = db.prepare('SELECT id FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId);
   if (!table) throw new AppError('UNKNOWN_TABLE', `Table ${tableId} not found`);
 
   const visit = getCurrentVisit(tableId);
@@ -118,7 +118,7 @@ export function getBillRequest(visitId: string): { payment_method: PaymentMethod
 /** Open and answered requests of the table's current visit, oldest first. No open visit means none. */
 export function listCalls(tableId: number): ServiceCall[] {
   const db = getDb();
-  const table = db.prepare('SELECT id FROM tables WHERE id = ?').get(tableId);
+  const table = db.prepare('SELECT id FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId);
   if (!table) throw new AppError('UNKNOWN_TABLE', `Table ${tableId} not found`);
   const visit = getCurrentVisit(tableId);
   if (!visit) return [];

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { SideNav, SegmentedControl, type SideNavItem } from '../components/ui/index.js';
+import { Icon } from '../components/ui/Icon.js';
 import { useTheme, type ThemeMode } from '../hooks/useTheme.js';
 import { STAFF_PAGES } from './pages/registry.js';
 
@@ -39,7 +40,9 @@ export default function StaffShell({ onSignOut }: StaffShellProps) {
           onNavigate={() => setNavOpen(false)}
           footer={
             <button type="button" className="nav-item" data-testid="sign-out" onClick={onSignOut}>
-              <span aria-hidden="true">🚪</span>
+              <span className="nav-ico" aria-hidden="true">
+                <Icon name="logout" />
+              </span>
               <span>Sign out</span>
             </button>
           }

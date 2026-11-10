@@ -5,7 +5,6 @@ import path from 'path';
 
 const MOCKUPS = 'aidlc/spaces/default/intents/261107-table-order-v2/inception/refined-mockups/mockups';
 const tokens = fs.readFileSync('src/client/design/tokens.css', 'utf8');
-const mockupCss = fs.readFileSync(path.join(MOCKUPS, 'design-system.css'), 'utf8');
 
 /** The text between the braces of the block that starts at `header` (nested blocks are kept). */
 function blockAfter(css: string, header: string): string {
@@ -30,10 +29,13 @@ const light = declarations(blockAfter(tokens, ':root[data-theme="light"]'));
 const deviceLight = declarations(blockAfter(blockAfter(tokens, '@media (prefers-color-scheme: light)'), ':root:not([data-theme])'));
 const shared = declarations(blockAfter(tokens, ':root {'));
 const aliases = declarations(blockAfter(tokens, ':root {\n  --bg-primary'));
-/** Light values that differ from the mockups on purpose, each for a contrast reason named in tokens.css. */
-const LIGHT_OVERRIDES: Record<string, string> = { '--warn-amber': '#9A5B00' };
 
-const THEME_TOKENS = Object.keys(declarations(blockAfter(mockupCss, ':root, :root[data-theme="dark"]')));
+const REQUIRED_THEME_TOKENS = [
+  '--bg', '--bg-raised', '--bg-card', '--bg-bar', '--border', '--border-strong', '--text', '--text-2', '--text-muted', '--text-disabled',
+  '--accent', '--accent-hover', '--accent-fg', '--accent-text', '--accent-soft', '--pending', '--preparing', '--completed', '--cancelled',
+  '--pending-soft', '--preparing-soft', '--completed-soft', '--cancelled-soft', '--danger', '--danger-soft', '--warn-amber', '--warn-red',
+  '--shadow-sm', '--shadow-card', '--shadow-sheet', '--shadow-bar', '--shadow-pop', '--page-bg', '--scrim', '--focus-glow', '--nav-bg',
+];
 
 // ---- contrast ----
 function channel(v: number): number {
@@ -64,36 +66,41 @@ function over(rgba: string, base: string): string {
 }
 
 describe('design tokens', () => {
-  it('regression: the light theme\'s amber timer text is readable (the mockup\'s #B86E00 was 3.99 to 1 on white)', () => {
+  it('regression: the light theme\'s amber timer text is readable (the old mockup\'s #B86E00 was 3.99 to 1 on white)', () => {
     expect(contrast(light['--warn-amber'], light['--bg-raised'])).toBeGreaterThanOrEqual(4.5);
     expect(contrast('#B86E00', light['--bg-raised'])).toBeLessThan(4.5); // the value the fix replaced
   });
 
-  it('every token of the mockups\' design system is defined in both themes', () => {
-    expect(THEME_TOKENS.length).toBeGreaterThan(30);
-    for (const name of THEME_TOKENS) {
+  it('every token the app needs is defined in both themes', () => {
+    expect(REQUIRED_THEME_TOKENS.length).toBeGreaterThan(30);
+    for (const name of REQUIRED_THEME_TOKENS) {
       expect(dark, `dark ${name}`).toHaveProperty(name);
       expect(light, `light ${name}`).toHaveProperty(name);
     }
   });
 
-  it('the dark theme holds exactly the mockups\' (v1\'s) values, and the light theme the mockups\' light values', () => {
-    const mockDark = declarations(blockAfter(mockupCss, ':root, :root[data-theme="dark"]'));
-    const mockLight = declarations(blockAfter(mockupCss, ':root[data-theme="light"]'));
-    for (const name of THEME_TOKENS) {
-      expect(dark[name], `dark ${name}`).toBe(mockDark[name]);
-      expect(light[name], `light ${name}`).toBe(LIGHT_OVERRIDES[name] ?? mockLight[name]);
-    }
+  it('the dark and light themes define exactly the same tokens', () => {
+    expect(Object.keys(light).sort()).toEqual(Object.keys(dark).sort());
   });
 
-  it('the scales (type, spacing, radius, motion) match the mockups', () => {
-    const mockShared = declarations(blockAfter(mockupCss, ':root {'));
-    expect(Object.keys(mockShared).length).toBeGreaterThan(25);
-    for (const [name, value] of Object.entries(mockShared)) expect(shared[name], name).toBe(value);
+  it('the brand: a deep ember accent in the light theme, a bright one in the dark theme, on the Inter typeface', () => {
+    expect(dark['--accent']).toBe('#FF7A3D');
+    expect(light['--accent']).toBe('#CF430E');
+    expect(shared['--font']).toMatch(/^"Inter Variable"/);
+  });
+
+  it('the scales (type, spacing, radius, motion) are the design system\'s', () => {
+    const expected: Record<string, string> = {
+      '--text-xs': '12px', '--text-sm': '13px', '--text-base': '15px', '--text-md': '17px', '--text-lg': '20px', '--text-xl': '24px', '--text-2xl': '32px', '--text-3xl': '40px',
+      '--space-1': '4px', '--space-2': '8px', '--space-3': '12px', '--space-4': '16px', '--space-5': '20px', '--space-6': '24px', '--space-8': '32px', '--space-12': '48px',
+      '--radius-sm': '8px', '--radius-md': '14px', '--radius-lg': '20px', '--radius-xl': '28px', '--radius-pill': '999px',
+      '--touch': '44px', '--diner-max': '520px',
+    };
+    for (const [name, value] of Object.entries(expected)) expect(shared[name], name).toBe(value);
   });
 
   it('with no saved choice the device\'s light setting gets the same values as the Light theme', () => {
-    for (const name of THEME_TOKENS) expect(deviceLight[name], name).toBe(light[name]);
+    for (const name of REQUIRED_THEME_TOKENS) expect(deviceLight[name], name).toBe(light[name]);
   });
 
   it('every token a mockup page uses exists in both themes or the shared scales', () => {

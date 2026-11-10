@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon, iconForEmoji } from '../ui/Icon.js';
 
 export type DinerTab = 'menu' | 'cart' | 'orders';
 
@@ -85,13 +86,11 @@ export default function DinerTabBar({ activeTab, cartCount, onTabChange }: Diner
               key={isActive ? 'on' : 'off'}
               className={isActive ? 'icon-hop' : undefined}
               style={{
-                fontSize: '1.25rem',
+                display: 'inline-flex',
                 lineHeight: 1,
-                filter: isActive ? 'drop-shadow(0 0 6px var(--accent-soft))' : 'none',
-                transition: 'filter 150ms ease-out',
               }}
             >
-              {tab.icon}
+              {iconForEmoji(tab.icon) ? <Icon name={iconForEmoji(tab.icon)!} size={22} /> : tab.icon}
             </span>
             <span>{tab.label}</span>
             {showBadge && (

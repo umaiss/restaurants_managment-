@@ -30,6 +30,56 @@ function cellsOf(d: string): Set<string> {
   return new Set([...d.matchAll(/M(\d+) (\d+)h1v1h-1z/g)].map((m) => `${m[1]},${m[2]}`));
 }
 
+describe('removing a table', () => {
+  it('asks once, then deletes the table on the server and says so', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === '/api/staff/tables/10' && init?.method === 'DELETE') {
+        tables = tables.filter((t) => t.id !== 10);
+        return ok({ id: 10, label: 'Table 10' });
+      }
+      return url.startsWith('/api/staff/tables') ? ok({ tables }) : failed(404);
+    });
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-10');
+    fireEvent.click(screen.getByTestId('remove-table-10'));
+    // nothing is sent until the second click
+    expect(fetchMock.mock.calls.filter((c) => c[1]?.method === 'DELETE')).toHaveLength(0);
+    fireEvent.click(screen.getByTestId('remove-table-confirm-10'));
+    await waitFor(() => expect(screen.queryByTestId('qr-table-10')).toBeNull());
+    expect(screen.getByTestId('add-table-done')).toHaveTextContent('Table 10 removed.');
+    expect(fetchMock.mock.calls.filter((c) => c[1]?.method === 'DELETE')).toHaveLength(1);
+  });
+
+  it('"Keep" backs out without a request', async () => {
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-3');
+    fireEvent.click(screen.getByTestId('remove-table-3'));
+    fireEvent.click(screen.getByTestId('remove-table-cancel-3'));
+    expect(screen.getByTestId('remove-table-3')).toBeInTheDocument();
+    expect(screen.getByTestId('qr-table-3')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter((c) => c[1]?.method === 'DELETE')).toHaveLength(0);
+  });
+
+  it('says why a table with guests cannot be removed, and keeps it', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith('/api/staff/tables') ? (init?.method === 'DELETE' ? failed(409) : ok({ tables })) : failed(404)
+    );
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-5');
+    fireEvent.click(screen.getByTestId('remove-table-5'));
+    fireEvent.click(screen.getByTestId('remove-table-confirm-5'));
+    expect(await screen.findByTestId('add-table-error')).toHaveTextContent('Table 5 still has guests with orders');
+    expect(screen.getByTestId('qr-table-5')).toBeInTheDocument();
+  });
+
+  it('the Remove controls are not printed with the codes', async () => {
+    render(<QrPage />);
+    await screen.findByTestId('qr-table-1');
+    expect(screen.getByTestId('remove-table-1').closest('.no-print')).not.toBeNull();
+  });
+});
+
 describe('adding a table (a new QR code)', () => {
   it('"+ Add table" posts to the server, shows the new table\'s code and says so', async () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {

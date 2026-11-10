@@ -45,3 +45,28 @@ test('"+ Add table" on the QR page adds Table 11 with its own QR code, which din
   await expect(page.getByTestId('add-table')).toBeHidden();
   await context.close();
 });
+
+test('"Remove" on the QR page takes a table off the floor and the sheet, after one confirmation; diners can no longer open it', async ({ browser }) => {
+  const context = await browser.newContext({ baseURL: server.origin, viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  await signInAsStaff(page, server.api);
+  await page.goto('/staff/qr');
+  await expect(page.getByTestId('qr-table-9')).toBeVisible();
+
+  await page.getByTestId('remove-table-9').click();
+  await expect(page.getByTestId('qr-table-9')).toBeVisible(); // still there until confirmed
+  await page.getByTestId('remove-table-confirm-9').click();
+  await expect(page.getByTestId('add-table-done')).toHaveText('Table 9 removed.');
+  await expect(page.getByTestId('qr-table-9')).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.getByTestId('qr-table-8')).toBeVisible();
+  await expect(page.getByTestId('qr-table-9')).toHaveCount(0);
+  await page.goto('/staff/floor');
+  await expect(page.getByText('Table 9', { exact: true })).toHaveCount(0);
+
+  const diner = await context.newPage();
+  await diner.goto('/table/9');
+  await expect(diner.getByTestId('menu-screen')).toHaveCount(0);
+  await context.close();
+});

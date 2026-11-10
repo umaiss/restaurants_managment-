@@ -61,7 +61,7 @@ export interface Receipt {
 }
 
 function assertTableExists(tableId: number): void {
-  const row = getDb().prepare('SELECT id FROM tables WHERE id = ?').get(tableId);
+  const row = getDb().prepare('SELECT id FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId);
   if (!row) {
     throw new BillingError(`Table ${tableId} not found`, 'UNKNOWN_TABLE');
   }

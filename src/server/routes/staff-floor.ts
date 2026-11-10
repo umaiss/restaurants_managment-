@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { getFloorTables } from './u7/floor.js';
 import { sendU7Error } from './u7/errors.js';
 import { sendApiError, sendIfAppError } from '../errors.js';
-import { addTable, MAX_TABLE_LABEL } from '../repositories/tableRepo.js';
+import { addTable, removeTable, MAX_TABLE_LABEL } from '../repositories/tableRepo.js';
 
 const router = Router();
 
@@ -31,6 +31,21 @@ router.post('/staff/tables', (req, res) => {
   } catch (err) {
     if (sendIfAppError(res, err)) return;
     sendU7Error(res, 'POST /api/staff/tables', err);
+  }
+});
+
+// DELETE /api/staff/tables/:id — removes a table from the floor; its history stays in the reports
+router.delete('/staff/tables/:id', (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    sendApiError(res, 400, 'INVALID_REQUEST', 'the table id must be a whole number');
+    return;
+  }
+  try {
+    res.json(removeTable(id));
+  } catch (err) {
+    if (sendIfAppError(res, err)) return;
+    sendU7Error(res, 'DELETE /api/staff/tables/:id', err);
   }
 });
 

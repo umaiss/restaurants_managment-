@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon, iconForEmoji } from './Icon.js';
 
 export type BannerTone = 'plain' | 'success' | 'warn' | 'danger' | 'info';
 
@@ -22,7 +23,11 @@ export function Banner({ tone = 'plain', title, icon, onDismiss, testId = 'ui-ba
       role={tone === 'danger' || tone === 'warn' ? 'alert' : 'status'}
       className={['banner', tone === 'plain' ? '' : `banner-${tone}`].filter(Boolean).join(' ')}
     >
-      {icon && <span aria-hidden="true">{icon}</span>}
+      {icon && (
+        <span className="banner-ico" aria-hidden="true">
+          {iconForEmoji(icon) ? <Icon name={iconForEmoji(icon)!} size={18} /> : icon}
+        </span>
+      )}
       <div style={{ flex: 1 }}>
         {title && <strong>{title}</strong>}
         {children}

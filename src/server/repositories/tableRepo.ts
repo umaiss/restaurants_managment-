@@ -14,7 +14,7 @@ export interface TableStatus {
 
 /** True when a table with this id exists. */
 export function tableExists(tableId: number): boolean {
-  return getDb().prepare('SELECT 1 FROM tables WHERE id = ?').get(tableId) !== undefined;
+  return getDb().prepare('SELECT 1 FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId) !== undefined;
 }
 
 /** The table's most recently closed visit (BR7.1 uses it for ratings), or null. */
@@ -36,7 +36,7 @@ export function getLastClosedVisitId(tableId: number): string | null {
 export function getTableStatus(tableId: number): TableStatus {
   const db = getDb();
 
-  const table = db.prepare('SELECT id, status FROM tables WHERE id = ?').get(tableId) as
+  const table = db.prepare('SELECT id, status FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId) as
     | { id: number; status: string }
     | undefined;
 
@@ -126,12 +126,41 @@ export const MAX_TABLE_LABEL = 30;
 export function addTable(label?: string): { id: number; label: string } {
   const db = getDb();
   const run = db.transaction((): { id: number; label: string } => {
-    const row = db.prepare('SELECT COUNT(*) AS n, COALESCE(MAX(id), 0) AS top FROM tables').get() as { n: number; top: number };
+    // Removed tables do not count toward the limit, but their numbers are never reused (an old QR code stays dead).
+    const row = db
+      .prepare('SELECT COALESCE(SUM(removed_at IS NULL), 0) AS n, COALESCE(MAX(id), 0) AS top FROM tables')
+      .get() as { n: number; top: number };
     if (row.n >= MAX_TABLES) throw new AppError('TOO_MANY_TABLES', `A restaurant can have at most ${MAX_TABLES} tables`);
     const id = row.top + 1;
     const name = label && label.trim() !== '' ? label.trim() : `Table ${id}`;
     db.prepare("INSERT INTO tables (id, label, status) VALUES (?, ?, 'open')").run(id, name);
     return { id, label: name };
+  });
+  return run.immediate();
+}
+
+/**
+ * Removes a table from the floor. It is archived (removed_at is set), so its past visits, orders and sales stay in
+ * the reports. A table whose guests still have orders is refused (TABLE_IN_USE); an open visit with no orders is
+ * just a diner who scanned the code, so it is closed here. The table's number is never given to a new table.
+ */
+export function removeTable(tableId: number): { id: number; label: string } {
+  const db = getDb();
+  const run = db.transaction((): { id: number; label: string } => {
+    const table = db.prepare('SELECT id, label FROM tables WHERE id = ? AND removed_at IS NULL').get(tableId) as
+      | { id: number; label: string }
+      | undefined;
+    if (!table) throw new AppError('UNKNOWN_TABLE', `Table ${tableId} not found`);
+    const visit = getCurrentVisit(tableId);
+    if (visit) {
+      const orders = (db.prepare('SELECT COUNT(*) AS n FROM orders WHERE visit_id = ?').get(visit.id) as { n: number }).n;
+      if (orders > 0) {
+        throw new AppError('TABLE_IN_USE', `${table.label} has guests with orders. Close the table first.`);
+      }
+      closeCurrentVisit(tableId);
+    }
+    db.prepare('UPDATE tables SET removed_at = ? WHERE id = ?').run(toIso(), tableId);
+    return table;
   });
   return run.immediate();
 }
