@@ -149,12 +149,20 @@ describe('server test helpers', () => {
   });
 
   it('setOrderTimes sets an order\'s placed and completed times, which the estimate reads', () => {
-    const { order_number } = placeOrderWithOptions(1, [{ menu_item_id: 'i-01', quantity: 1 }]);
-    moveOrder(order_number, 'Preparing');
-    moveOrder(order_number, 'Completed');
-    const start = new Date();
-    setOrderTimes(order_number, new Date(start.getTime() - 20 * 60_000), start);
-    expect(computeEstimate().estimate_minutes).toBe(20);
+    // The estimate reads today's orders, so the clock is held at midday: run within 20 minutes after midnight, an
+    // order placed 20 minutes ago would belong to yesterday and the test would fail for no reason.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(2026, 10, 9, 12, 0, 0));
+      const { order_number } = placeOrderWithOptions(1, [{ menu_item_id: 'i-01', quantity: 1 }]);
+      moveOrder(order_number, 'Preparing');
+      moveOrder(order_number, 'Completed');
+      const start = new Date();
+      setOrderTimes(order_number, new Date(start.getTime() - 20 * 60_000), start);
+      expect(computeEstimate().estimate_minutes).toBe(20);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

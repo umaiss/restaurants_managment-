@@ -2,6 +2,7 @@
    only: no colour value is written in this file. Every animation here stops under reduced motion (tokens.css). */
 @import './design/tokens.css';
 @import './design/components.css';
+@import './design/polish.css';
 
 *,
 *::before,
