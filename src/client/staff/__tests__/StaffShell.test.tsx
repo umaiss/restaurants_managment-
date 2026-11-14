@@ -35,7 +35,8 @@ afterEach(() => {
 
 describe('the page registry (BR14.2)', () => {
   it('lists every staff page once, each with a route, a label and a page', () => {
-    expect(STAFF_PAGES.map((p) => p.key)).toEqual(['board', 'floor', 'menu', 'special', 'sales', 'qr', 'stations', 'bill', 'receipt']);
+    // U8 (Manager TV wall) adds the 'tv' page after 'qr'.
+    expect(STAFF_PAGES.map((p) => p.key)).toEqual(['board', 'floor', 'menu', 'special', 'sales', 'qr', 'tv', 'stations', 'bill', 'receipt']);
     expect(new Set(STAFF_PAGES.map((p) => p.path)).size).toBe(STAFF_PAGES.length);
     for (const p of STAFF_PAGES) {
       expect(p.label).toBeTruthy();
@@ -56,6 +57,7 @@ describe('the page registry (BR14.2)', () => {
       "Chef's special",
       'Past visits and sales',
       'QR codes',
+      'TV wall', // U8 (Manager TV wall)
     ]);
     expect(STAFF_PAGES.filter((p) => !p.inNav).map((p) => p.key)).toEqual(['stations', 'bill', 'receipt']);
   });
@@ -189,7 +191,16 @@ describe('StaffView: the PIN screen in front of every staff address (BR1.7, BR1.
   });
 
   it('a correct PIN opens the page that was asked for, at the same address', async () => {
-    const fetchMock = vi.fn(async (url: string) => (url === '/api/staff/login' ? json(204) : json(401)));
+    // U8: the navigation's "Show takings on TV" switch reads its setting; after a correct PIN that read is answered.
+    let signedIn = false;
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === '/api/staff/login') {
+        signedIn = true;
+        return json(204);
+      }
+      if (url === '/api/staff/tv/settings' && signedIn) return json(200, { show_takings: false, updated_at: null });
+      return json(401);
+    });
     vi.stubGlobal('fetch', fetchMock);
     view('/staff/tables/7');
     await screen.findByTestId('pin-screen');
@@ -210,6 +221,8 @@ describe('StaffView: the PIN screen in front of every staff address (BR1.7, BR1.
       // request below is refused.
       if (url.startsWith('/api/staff/sales')) return json(200, { days: [] });
       if (url.startsWith('/api/staff/ratings')) return json(200, { day: '2026-11-08', best: [], worst: [], tie_rule: '' });
+      // U8: the navigation's "Show takings on TV" switch reads its setting while signed in.
+      if (url === '/api/staff/tv/settings' && signedIn) return json(200, { show_takings: false, updated_at: null });
       return json(401);
     });
     vi.stubGlobal('fetch', fetchMock);

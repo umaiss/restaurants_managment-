@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TV wall, takings hidden (default): Manager TV wall mockup</title>
+<link rel="stylesheet" href="tv-wall.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>TV wall: takings hidden, the default (US4.1, US2.1, US2.2, US3.2, US3.3)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="dark" aria-pressed="true">Dark</button><button data-mode="light" aria-pressed="false">Light</button>
+  </div>
+</div>
+<p class="mock-note">The setting has never been turned on, so both takings figures read "Takings hidden" and no amount reaches the TV. 6 open orders, no requests: the list has room for all of them.</p>
+<div class="tv" data-testid="tv-wall">
+  <header class="tv-head">
+    <div class="tv-brand"><span class="dot" aria-hidden="true"></span>Table Order · TV wall</div>
+    <div class="tv-status"><span class="tv-live" data-testid="tv-live">Live</span><span class="tv-clock" data-testid="tv-clock">12:18</span></div>
+  </header>
+  <div class="tv-body">
+    <section class="orders" aria-labelledby="orders-h">
+      <div class="orders-head"><h1 id="orders-h">Open orders</h1><span class="count" data-testid="tv-open-count">6 open</span></div>
+      <ol class="order-list" data-testid="tv-order-list">
+        <li class="order slow" data-testid="tv-order"><span class="table">Table 3</span><span class="num">#12</span><span class="items">2 items</span><span class="wait">9 min</span><span class="flag">Slow</span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 6</span><span class="num">#13</span><span class="items">4 items</span><span class="wait">7 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 1</span><span class="num">#14</span><span class="items">1 item</span><span class="wait">5 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 10</span><span class="num">#15</span><span class="items">3 items</span><span class="wait">4 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 3</span><span class="num">#16</span><span class="items">1 item</span><span class="wait">2 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 8</span><span class="num">#17</span><span class="items">2 items</span><span class="wait">0 min</span><span class="flag"></span></li>
+      </ol>
+    </section>
+    <aside class="figures" aria-label="Today's figures">
+      <div class="tile oldest" data-testid="tv-oldest"><div class="k">Oldest wait · <span class="slow">Slow</span></div><div class="v">9 min</div></div>
+      <div class="tile hidden-takings" data-testid="tv-takings">
+        <div class="k">Today's takings</div><div class="v" data-testid="tv-takings-closed">Takings hidden</div>
+        <div class="k">On open tables</div><div class="v2" data-testid="tv-takings-open">Takings hidden</div>
+      </div>
+      <div class="tile" data-testid="tv-busiest"><div class="k">Busiest table</div><div class="v">Table 3</div><div class="sub">2 orders today</div></div>
+      <div class="tile" data-testid="tv-top-dish"><div class="k">Top dish</div><div class="v dish">House Salad</div><div class="sub">5 portions today</div></div>
+    </aside>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

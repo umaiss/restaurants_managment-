@@ -68,8 +68,9 @@ describe('event names (BR9.2)', () => {
     expect(new Set(EVENT_NAMES).size).toBe(EVENT_NAMES.length);
   });
 
-  it('the staff list is the same names plus v1\'s TABLE_STATUS_CHANGED', () => {
-    expect(STAFF_EVENT_NAMES).toEqual([...EVENT_NAMES, 'TABLE_STATUS_CHANGED']);
+  // U8 (Manager TV wall): the staff list also carries TV_SETTINGS_CHANGED (contract C3), after v1's name.
+  it('the staff list is the same names plus v1\'s TABLE_STATUS_CHANGED and U8\'s TV_SETTINGS_CHANGED', () => {
+    expect(STAFF_EVENT_NAMES).toEqual([...EVENT_NAMES, 'TABLE_STATUS_CHANGED', 'TV_SETTINGS_CHANGED']);
   });
 
   it('a page id is of the form the server accepts, and differs between calls', () => {

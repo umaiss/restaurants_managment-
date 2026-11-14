@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, matchPath, useLocation } from 'react-router-dom';
 import { SideNav, SegmentedControl, type SideNavItem } from '../components/ui/index.js';
 import { Icon } from '../components/ui/Icon.js';
 import { useTheme, type ThemeMode } from '../hooks/useTheme.js';
 import { STAFF_PAGES } from './pages/registry.js';
+import TvTakingsSwitch from './TvTakingsSwitch.js';
 
 const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
   { value: 'device', label: 'Follow device' },
@@ -19,10 +20,22 @@ interface StaffShellProps {
  * The staff shell (BR14.2): the side navigation at 1024 px and wider, a top bar with a menu button below
  * that, the theme control in the header, and the pages of the registry. It is only shown after the session
  * check (BR1.8). Every page renders in place, so after a correct PIN the page that was open is still open.
+ * U8 (BR9.1, BR9.2): a fullScreen page (the TV wall) is shown alone, with no navigation and no top bar, and the
+ * "Show takings on TV" switch sits in the navigation directly under the "TV wall" link.
  */
 export default function StaffShell({ onSignOut }: StaffShellProps) {
   const [navOpen, setNavOpen] = useState(false);
   const { mode, setMode } = useTheme();
+  const { pathname } = useLocation();
+
+  const fullScreenPage = STAFF_PAGES.find((p) => p.fullScreen && matchPath({ path: `/staff/${p.path}`, end: true }, pathname));
+  if (fullScreenPage) {
+    return (
+      <main className="staff-fullscreen" data-testid="staff-fullscreen">
+        {fullScreenPage.element}
+      </main>
+    );
+  }
 
   const items: SideNavItem[] = STAFF_PAGES.filter((p) => p.inNav).map((p) => ({
     key: p.key,
@@ -30,6 +43,7 @@ export default function StaffShell({ onSignOut }: StaffShellProps) {
     label: p.label,
     icon: p.icon,
     end: p.path === '',
+    below: p.key === 'tv' ? <TvTakingsSwitch /> : undefined,
   }));
 
   return (

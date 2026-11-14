@@ -23,6 +23,7 @@ import staffMenuRouter from './staff-menu.js';
 import staffFloorRouter from './staff-floor.js';
 import staffSalesRouter from './staff-sales.js';
 import staffQrRouter from './staff-qr.js';
+import staffTvRouter from './staff-tv.js';
 import sseRouter from './sse.js';
 
 export interface RouteModule {
@@ -32,7 +33,7 @@ export interface RouteModule {
   mount: '/api' | '/sse';
   router: Router;
   /** Which Unit owns the module's body. */
-  owner: 'v1' | 'U5' | 'U7';
+  owner: 'v1' | 'U5' | 'U7' | 'U8';
 }
 
 export const routeModules: RouteModule[] = [
@@ -50,5 +51,7 @@ export const routeModules: RouteModule[] = [
   { name: 'staff-floor', mount: '/api', router: staffFloorRouter, owner: 'U7' },
   { name: 'staff-sales', mount: '/api', router: staffSalesRouter, owner: 'U7' },
   { name: 'staff-qr', mount: '/api', router: staffQrRouter, owner: 'U7' },
+  // U8: the TV wall's summary and setting routes, behind the staff guard like U7's modules (BR6.1).
+  { name: 'staff-tv', mount: '/api', router: staffTvRouter, owner: 'U8' },
   { name: 'sse', mount: '/sse', router: sseRouter, owner: 'v1' },
 ];

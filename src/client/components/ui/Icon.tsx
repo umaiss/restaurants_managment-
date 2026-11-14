@@ -21,6 +21,7 @@ const PATHS = {
   plus: 'M12 5v14M5 12h14',
   alert: 'M12 4 3 19.5h18L12 4ZM12 10v4.5M12 17h.01',
   clock: 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM12 8v4.2l2.8 1.8',
+  tv: 'M3.5 6.5A1.5 1.5 0 0 1 5 5h14a1.5 1.5 0 0 1 1.5 1.5v10A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5v-10ZM8.5 21h7M12 18v3',
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -29,6 +30,7 @@ export type IconName = keyof typeof PATHS;
 const EMOJI_TO_ICON: Record<string, IconName> = {
   '🍳': 'kitchen', '🗺️': 'floor', '📝': 'menu', '⭐': 'star', '📈': 'chart', '🔳': 'qr', '🔥': 'flame', '🧾': 'receipt',
   '🍽️': 'utensils', '🛒': 'cart', '📋': 'receipt', '🚪': 'logout', '⚙': 'gear', '⚙️': 'gear', '🔔': 'bell', '🔒': 'lock',
+  '📺': 'tv',
 };
 
 export function iconForEmoji(emoji: string | undefined): IconName | null {

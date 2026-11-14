@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TV wall, reconnecting: Manager TV wall mockup</title>
+<link rel="stylesheet" href="tv-wall.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>TV wall: live connection lost (US5.1)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="dark" aria-pressed="true">Dark</button><button data-mode="light" aria-pressed="false">Light</button>
+  </div>
+</div>
+<p class="mock-note">The live connection dropped at 20:05. The last figures stay on screen, the header says "Reconnecting…" with the time of the last update, and everything is read again as soon as the connection is back.</p>
+<div class="tv" data-testid="tv-wall">
+  <header class="tv-head">
+    <div class="tv-brand"><span class="dot" aria-hidden="true"></span>Table Order · TV wall</div>
+    <div class="tv-status"><span class="tv-reconnecting" role="status" data-testid="tv-reconnecting">Reconnecting… last update 20:05</span><span class="tv-clock" data-testid="tv-clock">20:07</span></div>
+  </header>
+  <div class="tv-body">
+    <section class="orders" aria-labelledby="orders-h">
+      <div class="orders-head"><h1 id="orders-h">Open orders</h1><span class="count" data-testid="tv-open-count">4 open</span></div>
+      <ol class="order-list" data-testid="tv-order-list">
+        <li class="order slow" data-testid="tv-order"><span class="table">Table 4</span><span class="num">#63</span><span class="items">3 items</span><span class="wait">10 min</span><span class="flag">Slow</span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 11</span><span class="num">#64</span><span class="items">2 items</span><span class="wait">6 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 2</span><span class="num">#65</span><span class="items">1 item</span><span class="wait">4 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 6</span><span class="num">#66</span><span class="items">2 items</span><span class="wait">2 min</span><span class="flag"></span></li>
+      </ol>
+    </section>
+    <aside class="figures" aria-label="Today's figures">
+      <div class="tile oldest" data-testid="tv-oldest"><div class="k">Oldest wait · <span class="slow">Slow</span></div><div class="v">10 min</div></div>
+      <div class="tile" data-testid="tv-takings">
+        <div class="k">Today's takings</div><div class="v" data-testid="tv-takings-closed">$1,612.00</div>
+        <div class="k">On open tables</div><div class="v2" data-testid="tv-takings-open">$188.50</div>
+      </div>
+      <div class="tile" data-testid="tv-busiest"><div class="k">Busiest table</div><div class="v">Table 5</div><div class="sub">7 orders today</div></div>
+      <div class="tile" data-testid="tv-top-dish"><div class="k">Top dish</div><div class="v dish">Classic Burger</div><div class="sub">29 portions today</div></div>
+    </aside>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

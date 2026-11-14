@@ -10,6 +10,8 @@ export interface SideNavItem {
   icon?: string;
   /** True when only the exact path is current (the index page). */
   end?: boolean;
+  /** Shown directly under the link (U8: the "Show takings on TV" switch under "TV wall"). */
+  below?: React.ReactNode;
 }
 
 export interface SideNavProps {
@@ -29,14 +31,17 @@ export function SideNav({ items, onNavigate, footer }: SideNavProps) {
         <span>Table Order</span>
       </div>
       {items.map((item) => (
-        <NavLink key={item.key} to={item.to} end={item.end} data-testid={`nav-${item.key}`} onClick={onNavigate}>
-          {item.icon && (
-            <span className="nav-ico" aria-hidden="true">
-              {iconForEmoji(item.icon) ? <Icon name={iconForEmoji(item.icon)!} /> : item.icon}
-            </span>
-          )}
-          <span>{item.label}</span>
-        </NavLink>
+        <React.Fragment key={item.key}>
+          <NavLink to={item.to} end={item.end} data-testid={`nav-${item.key}`} onClick={onNavigate}>
+            {item.icon && (
+              <span className="nav-ico" aria-hidden="true">
+                {iconForEmoji(item.icon) ? <Icon name={iconForEmoji(item.icon)!} /> : item.icon}
+              </span>
+            )}
+            <span>{item.label}</span>
+          </NavLink>
+          {item.below}
+        </React.Fragment>
       ))}
       <div className="spacer" />
       {footer}

@@ -1,0 +1,33 @@
+{
+  "stage": "code-generation",
+  "unit": "u8-tv-foundation",
+  "version": 1,
+  "writes": [
+    { "path": "src/shared/tvWall.ts" },
+    { "path": "src/server/salesRules.ts" },
+    { "path": "src/server/tvSettings.ts" },
+    { "path": "src/server/tvWallSummary.ts" },
+    { "path": "src/server/routes/staff-tv.ts" },
+    { "path": "src/client/staff/TvTakingsSwitch.tsx" },
+    { "path": "src/client/staff/tv.css" },
+    { "path": "src/client/staff/pages/tv/" },
+    { "path": "src/server/__tests__/u8/" },
+    { "path": "src/shared/__tests__/tvWall.test.ts" },
+    { "path": "src/client/staff/__tests__/TvTakingsSwitch.test.tsx" },
+    { "path": "e2e/u8-tv-foundation/" },
+    { "path": "src/server/db.ts" },
+    { "path": "src/server/routes/u7/sales.ts" },
+    { "path": "src/server/repositories/orderRepo.ts" },
+    { "path": "src/server/repositories/serviceCallRepo.ts" },
+    { "path": "src/server/repositories/billingRepo.ts" },
+    { "path": "src/server/routes/registry.ts" },
+    { "path": "src/client/hooks/eventNames.ts" },
+    { "path": "src/client/staff/pages/registry.tsx" },
+    { "path": "src/client/staff/StaffShell.tsx" },
+    { "path": "src/client/components/ui/Icon.tsx" },
+    { "path": "src/client/components/ui/SideNav.tsx" },
+    { "path": "src/client/hooks/__tests__/liveHooksV2.test.ts" },
+    { "path": "src/client/staff/__tests__/StaffShell.test.tsx" },
+    { "path": "e2e/u5-foundation/mockup-match.spec.ts" }
+  ]
+}

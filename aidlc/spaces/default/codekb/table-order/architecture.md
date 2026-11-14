@@ -1,221 +1,184 @@
+# Architecture: table-order
+
 ## Architecture Analysis
 
 ### System Overview
 
-One npm package holds a Node.js/Express server and a React single-page app. The server exposes a JSON REST API under `/api`, two Server-Sent Events streams under `/sse`, and serves the built client from `dist/` for every other path. Data lives in one SQLite file through `better-sqlite3` (synchronous calls). There is no external service, queue, cache, auth provider or background job.
+One Node.js process serves everything: an Express JSON API under `/api`, Server-Sent Events under `/sse`, and the built React single-page app from `dist/` (with an `index.html` fallback for every other path). Data lives in one SQLite file opened with better-sqlite3 (synchronous, WAL mode). Live state that does not need to survive a restart (staff sessions, login lockouts, diner page presence, SSE subscribers and their replay buffers) lives in server memory.
+
+The browser app has two halves selected by path: the diner app at `/table/:id` (phone-shaped column, bottom tab bar) and the staff app at `/staff/*` (PIN gate, then a shell with side navigation and pages from a registry).
 
 ### Architectural Style
 
-Layered monolith, single process, single node.
-- Evidence: `src/server/index.ts` mounts routers and static files in one Express app; routes call repositories; repositories call `getDb()` (a module singleton in `src/server/db.ts`); live events use in-memory structures in `src/server/sse.ts`.
-- Clean layering on the server: route (validation, status codes, publishing events) -> repository (SQL, rules) -> database. Routes publish events after the repository call succeeds.
-- Client: route-level views (`TableView`, `StaffView`) -> screens -> components, with data hooks (`useCart`, `useBoardOrders`, `useBill`, `useMenuAvailability`, `useTableSSE`, `useStaffSSE`). No global store, no data-fetching library: each hook uses `fetch` and local state.
+**Modular monolith, layered.** Evidence:
+- One deployable (`npm start` runs `tsx src/server/index.ts`), one database file, no network calls between parts
+- Server layers: routes (`src/server/routes/`) validate input, call repositories or domain modules, publish events after a successful write, and map errors to the `{ error: { code, message, details? } }` envelope; repositories (`src/server/repositories/`) own SQL and business rules; small domain modules (`routes/u7/*.ts`, `services/waitEstimation.ts`, `presence.ts`, `staffAccess.ts`) hold the rest
+- Extension points were built in for parallel build Units: a route registry (`routes/registry.ts`), a staff page registry (`client/staff/pages/registry.tsx`) and a diner feature registry (`client/diner/features/registry.ts`). New work is added by adding an entry, not by editing shared code paths
+- Push-based UI: every write that changes what someone sees publishes an SSE event; screens either apply the event directly (Kitchen Board, bill) or re-read their route on the relevant events (`useLiveRead`)
 
 ### Component Relationships
 
 ```mermaid
 flowchart LR
   subgraph Browser
-    TV[TableView /table/:id]
-    SV[StaffView /staff]
-    TV --> MS[MenuScreen]
-    TV --> CS[CartScreen]
-    TV --> MO[MyOrdersScreen]
-    SV --> KB[KitchenBoardScreen]
-    SV --> TB[TableBillScreen]
-    KB --> MAP[MenuAvailabilityPanel]
-    TV --> UTS[useTableSSE]
-    KB --> UBO[useBoardOrders]
-    TB --> UB[useBill]
-    UBO --> USS[useStaffSSE]
-    UB --> USS
-    MAP --> UMA[useMenuAvailability]
-    UMA --> USS
-    CS --> UC[useCart localStorage]
-    MS --> UC
+    DV[Diner TableView] --> TSSE[useTableSSE]
+    SV[StaffView PIN gate] --> SS[StaffShell and page registry]
+    SS --> KB[Kitchen Board]
+    SS --> FP[Floor map]
+    SS --> SP[Sales page]
+    SS --> OP[Menu, Special, QR, Bill, Receipt]
+    KB --> SSSE[useStaffSSE shared EventSource]
+    FP --> LR[useLiveRead]
+    SP --> LR
+    LR --> SSSE
+    LR --> SF[staffFetch]
+    KB --> SF
   end
   subgraph Server
-    API[Express app index.ts]
-    API --> OR[routes/orders]
-    API --> BR[routes/billing]
-    API --> MR[routes/menu]
-    API --> SR[routes/sse]
-    OR --> ORP[orderRepo]
-    OR --> TRP[tableRepo]
-    BR --> BRP[billingRepo]
-    MR --> MRP[menuRepo]
-    BRP --> ORP
-    BRP --> TRP
-    ORP --> DB[(db.ts SQLite)]
-    TRP --> DB
-    BRP --> DB
-    MRP --> DB
-    OR --> HUB[sse.ts hub]
-    BR --> HUB
-    MR --> HUB
-    SR --> HUB
+    REG[Route registry] --> SR[staff.ts login and guard]
+    REG --> DR[Diner routes: menu, orders, calls, ratings, presence, estimate]
+    REG --> UR[Staff routes: stations, menu admin, floor, sales]
+    REG --> SSER[SSE routes]
+    SR --> SA[staffAccess sessions and lockout]
+    DR --> REPO[Repositories]
+    UR --> DOM[u7 domain modules]
+    DOM --> REPO
+    REPO --> DB[(SQLite file)]
+    DR --> HUB[sse.ts event hub]
+    UR --> HUB
+    SSER --> HUB
+    SSER --> PRES[presence.ts]
+    PRES --> HUB
+    BG[Background jobs] --> REPO
+    BG --> SA
+    BG --> PRES
   end
-  Browser -- fetch /api --> API
-  Browser -- EventSource /sse --> SR
-  API -- static dist and index.html --> Browser
+  SF -->|HTTP JSON with staff cookie| REG
+  TSSE -->|EventSource| SSER
+  SSSE -->|EventSource| SSER
+  DV -->|HTTP JSON| REG
 ```
 
-Text fallback: the browser has two route trees (diner and staff); screens use hooks; hooks call `/api` with `fetch` and listen on `/sse` with `EventSource`. On the server, four routers call three-plus repositories which share one SQLite singleton; three routers publish to the in-memory SSE hub, and the SSE router subscribes connections to it.
+Text fallback: The browser has a diner app (TableView with its own table stream) and a staff app (PIN gate, then StaffShell with registered pages). Staff pages either build state from the shared staff stream (Kitchen Board) or re-read their route when an event arrives (Floor map, Sales via useLiveRead); every staff request goes through staffFetch, which returns the screen to the PIN screen on a 401. On the server, the route registry mounts the staff login and guard first, then diner routes, staff routes and the SSE routes. Routes call repositories and domain modules, which use the SQLite file. Routes, presence tracking and the background jobs publish through the in-memory event hub, which writes to every subscribed stream.
 
 ### Data Flow
 
-- **Write path**: a client POSTs; the route validates, calls a repository (SQL in one call or transaction), then calls `publish(channel, type, payload)`; the response returns. Event publication is not transactional with the database write.
-- **Read path**: screens fetch on mount and re-fetch (or patch local state) when an event for their table arrives; on every SSE reconnect the staff hooks (`useBoardOrders`, `useBill`) and the diner (`TableView.checkTableReset`) reload so missed events do not leave stale data.
-- **Cart** is client-only: `localStorage` key `cart:table:<id>`, placement key in `sessionStorage` `cart-placement-key:<id>`, last-seen closed visit in `localStorage` `cart-closed-marker:<id>`.
-- **Channels**: `staff` receives every order, status, close and availability event; `table:<id>` receives events for that table plus availability changes for every table.
-
-### Database Schema (SQLite, `src/server/db.ts`)
-
-Created on every start with `CREATE TABLE IF NOT EXISTS`; pragmas `journal_mode = WAL`, `foreign_keys = ON`.
-
-| Table | Columns | Notes |
-|---|---|---|
-| `tables` | `id` INTEGER PK, `label` TEXT, `status` TEXT default `'open'` | `status` is not read; table state is derived from `visits` |
-| `categories` | `id` TEXT PK, `name`, `sort_order` INTEGER default 0 | seeded `c-01..c-04` |
-| `items` | `id` TEXT PK, `category_id` -> categories, `name`, `description` default `''`, `price_cents` INTEGER, `image` TEXT default `''` (an emoji in seed data, or a URL), `available` INTEGER default 1 | seeded `i-01..i-12` |
-| `visits` | `id` TEXT PK (UUID), `table_id` -> tables, `opened_at` TEXT default `datetime('now')`, `closed_at` TEXT NULL | open visit = `closed_at IS NULL`; timestamps are SQLite UTC text |
-| `orders` | `id` INTEGER PK AUTOINCREMENT, `order_number` INTEGER UNIQUE, `visit_id` -> visits, `table_id` -> tables, `status` TEXT default `'Pending'`, `placed_by` TEXT default `'diner'`, `placement_key` TEXT, `placed_at` TEXT (ISO-8601 from app code), `UNIQUE(table_id, visit_id, placement_key)` | the unique key is the idempotency guard |
-| `order_items` | `id` PK AUTOINCREMENT, `order_id` -> orders, `item_id` -> items, `quantity`, `unit_price_cents` | price frozen at order time |
-| `order_counter` | `id` INTEGER PK `CHECK (id = 1)`, `next_order_number` default 1 | one row, `INSERT OR IGNORE` at init; incremented with `UPDATE ... RETURNING` |
-
-**Migrations**: none. There is no version table, `PRAGMA user_version` or migration runner. Changes to a `CREATE TABLE` do not reach an existing database file. For v2 ("new tables or columns with defaults only, never wipe") the additive pattern is: new tables via `CREATE TABLE IF NOT EXISTS`, new columns via a guarded `ALTER TABLE ... ADD COLUMN ... DEFAULT ...` (check `PRAGMA table_info`) run from `initSchema`.
-
-**Seed data** (`seedIfEmpty`, runs only when `tables` is empty, called from `index.ts` only when the file is the process entry point; tests call it themselves): 10 tables ("Table 1".."Table 10"), 4 categories (Starters, Mains, Desserts, Drinks), 12 items:
-Garlic Bread 650, House Salad 850, Caesar Salad 950 (Starters); Classic Burger 1450, Grilled Salmon 1850, Margherita Pizza 1350, Pasta Carbonara 1250 (Mains); Chocolate Fondant 950, Creme Brulee 850 (Desserts); Sparkling Water 350, Fresh Orange Juice 450, House Coffee 400 (Drinks). `db.test.ts` asserts these counts, so v2 seed additions must not change them for v1's test unless the team chooses to.
-
-### Live Events (SSE)
-
-| Event | Published by | Channels | Payload |
-|---|---|---|---|
-| `ORDER_PLACED` | `POST /api/tables/:id/orders` (new order only) | `staff`, `table:<id>` | `order_number, table_id, visit_id, status, placed_at, lines[{menu_item_id,name,quantity,price_cents_each,subtotal_cents}], total_cents` |
-| `ORDER_STATUS_CHANGED` | `POST /api/orders/:n/transition` | `staff`, `table:<id>` | `order_number, table_id, status` |
-| `TABLE_CLOSED` | `POST /api/tables/:id/close` | `staff`, `table:<id>` | `table_id, archived_visit_id` |
-| `MENU_AVAILABILITY_CHANGED` | `POST /api/menu/items/:id/availability` | `staff`, every `table:<n>` | `menu_item_id, available` |
-| `HELLO` | on connect, that connection only | none (no id, not buffered) | `message` |
-
-Mechanics (`src/server/sse.ts`): global counter starting at `Date.now()`; per-channel ring buffer of 60; replay of events newer than `Last-Event-ID` (header) or `?lastEventId=`; `retry: 2000`; `: keep-alive` every 20 s; headers `Content-Type: text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`. A browser only receives named events it registered a listener for: `useTableSSE` registers the four above plus the unnamed `message`; `useStaffSSE` registers those four plus `TABLE_STATUS_CHANGED` (never published).
-
-### How the Server Serves Pages
-
-`express.static(distDir)` with `distDir = path.join(__dirname, '../../dist')`, then a catch-all `app.get('*')` that calls `res.sendFile('index.html', { root: distDir })`. The `{ root }` form is mandatory (a team rule): Express refuses an absolute path that passes through a dot-folder such as `.aidlc/worktrees/`. If `dist/index.html` is missing, the catch-all answers 200 with a small placeholder HTML page. The catch-all is registered after `/api` and `/sse`, so any new API or SSE router must be mounted before it. The server starts (`seedIfEmpty()` then `listen`) only when `index.ts` is the process entry point, so tests can import `app` without opening a port. Port: `PORT ?? E2E_PORT ?? 3000`.
-
-### Styling Approach (design system and Dark mode input)
-
-- Tokens live in `src/client/index.css` `:root` (single, dark-only theme): colours `--bg-primary #0f1216`, `--bg-secondary #171b22`, `--bg-card #1f2630`, `--bg-tab-bar rgba(15,18,22,.95)`, `--border #2a313c`, `--text-primary #f1f3f6`, `--text-secondary #a6aeb8`, `--text-muted #7b8491`, `--accent #ffb04a` (+ `--accent-hover`, `--accent-soft`, `--accent-fg`, `--accent-gradient`, `--accent-glow`), status colours `--status-pending #ffc75a`, `--status-preparing #4cb3ff`, `--status-completed #5dd48e`, `--status-cancelled #8a94a2` each with a `-soft` tint, `--danger #ff6b6b`, `--highlight-new`, `--tab-active`, `--tab-inactive`; shape `--radius-card 12px`, `--radius-pill 20px`, `--radius-sm 6px`; shadows `--shadow-card`, `--shadow-tab-bar`; motion `--transition-fast/normal`, `--ease-out`, `--ease-spring`; layout `--diner-max 520px`.
-- There is no type scale, spacing scale or light theme token set. Font: system stack. A body gradient background (amber and blue radial glows) is set in CSS.
-- Most component styling is inline `style={{}}` using `var(--token, #fallback)`; about 143 literal colour values remain in TSX (e.g. `#22c55e`, `#ef4444`, `rgba(234,179,8,...)`, `#eab308`, `rgba(255,255,255,0.08)` borders). A few components inject `<style>` strings (`TableBillScreen`, `NewHighlight`, shimmer in `MenuScreen` and `MyOrdersScreen`).
-- Utility classes in `index.css`: `.screen-enter`, `.stagger` (uses `--i`), `.pop-in`, `.fade-in`, `.slide-up`, `.bump`, `.icon-hop`, `.status-flash`, `.hover-lift`, `.btn-primary`, `.live-dot`, `.diner-shell`, `.diner-fixed`, `.skeleton`, `.tab-indicator`, `.check-ring`, `.panel-slide`, `.table-link`, `.float`; keyframes for each.
-- Accessibility and motion rules already in place: a global `@media (prefers-reduced-motion: reduce)` block that zeroes animation, transition and smooth scrolling; `:focus-visible` amber outline on buttons and links; 44 px touch area on key buttons; focus traps in `ConfirmModal` and `MenuAvailabilityPanel`; `role="alertdialog"` on the table-closed takeover; the Cart tab shows a count badge (`data-testid="cart-badge"`).
-- Layout rules the team wants preserved: diner Menu/Cart/My orders as a bottom tab bar (`DinerTabBar`, fixed, `.diner-fixed`), "View cart" and "Place" bar above it, sticky category pills, "+ Add" pill with 44 px touch area, frosted (`backdrop-filter: blur`) bars. The diner is a phone column (max 520 px) centred on wide screens; staff screens are a responsive grid (`repeat(auto-fill, minmax(20rem, 1fr))`) and the bill is max 56 rem wide.
-
-### Screens and Routes (client)
-
-| Route | View | Screen(s) | Notes |
-|---|---|---|---|
-| `/table/:id` | `TableView` | `MenuScreen`, `CartScreen`, `MyOrdersScreen` (tabs `menu`, `cart`, `orders`; state in React, not in the URL) | header "Table <id>" with a live/reconnecting dot; order confirmation banners; table-closed takeover; reconnect banner after 3 s |
-| `/staff` | `StaffView` (index route) | `KitchenBoardScreen` | "Kitchen Board", live dot "Updated live", Menu availability button |
-| `/staff/tables/:id` | `StaffView` | `TableBillScreen` | "Table <id> — Bill", "← Board" link, Close table |
-| `/`, any other path | redirect to `/staff` | | |
-
-Tab and screen state is not in the URL; a diner reload returns to the Menu tab.
+1. **Order placement**: diner POSTs `/api/tables/:id/orders` with a placement key and lines. The route validates shape, computes the wait estimate, then `placeOrderAtTable` opens the visit if needed and writes the order, lines, options and any special stock reduction in one immediate transaction. After the commit the route publishes `ORDER_PLACED` to `staff` and `table:<id>`, and `SPECIAL_CHANGED` when stock changed.
+2. **Kitchen progress**: staff mark a station done (`POST /api/staff/orders/:n/stations/:s/done`) or change status directly (`POST /api/orders/:n/transition` with `by=staff`). All status changes go through `transitionOrder` (one legal-transition table); `completed_at` is set on Completed. Events `STATION_DONE` and `ORDER_STATUS_CHANGED` follow the write.
+3. **Close and sales**: staff close a table (`POST /api/tables/:id/close`); the visit gets `closed_at`, its open calls are answered, `TABLE_CLOSED` is published. Sales are computed on read by `getSales()` from closed visits only.
+4. **Menu changes**: staff menu writes publish `MENU_CHANGED` (or `MENU_AVAILABILITY_CHANGED`) to staff and to every table channel; `watchSpecial` adds `SPECIAL_CHANGED` when the live special changes as a side effect.
+5. **Presence**: each diner page opens `/sse/tables/:id?page=<id>` and sends heartbeats; presence counts feed the floor state and `TABLE_PRESENCE_CHANGED` (debounced to once a second per table).
+6. **Reconnects**: SSE events carry rising ids and each channel keeps the last 60 for `Last-Event-ID` replay; staff screens also re-read their data each time their stream reconnects.
 
 ### Key Design Decisions
 
-- **Visit model**: closing a table archives the visit instead of deleting orders, so history exists in the database for a future "past visits" feature; nothing reads it yet.
-- **Idempotent order placement** via `UNIQUE(table_id, visit_id, placement_key)`; a repeat returns 200 with the original order and publishes nothing.
-- **Frozen line prices** keep the bill right after a menu price change.
-- **Events carry enough to patch local state, but screens still re-fetch** for diner My orders and the bill (simple and correct, slightly chatty).
-- **Reconnect reconciliation** over guaranteed delivery: ring buffer is only 60 events, so hooks reload on reconnect.
-- **Race guards** in `useBoardOrders` (fetches in flight record touched orders and closed tables) and `TableView.checkTableReset` (sequence numbers) prevent stale answers from overwriting newer live state.
-- **Single-process in-memory SSE** keeps the code small; scaling beyond one process would need a shared bus.
-- **Port and DB file from environment variables** so parallel worktrees never collide.
+| Decision | Implication |
+|---|---|
+| Single process, SQLite, plain HTTP on the local network | Nothing to host; no horizontal scaling; sessions and presence reset on restart |
+| Write, then publish (BR9.1) | Events never announce data that was rolled back; clients may briefly miss an event and recover by re-reading on reconnect |
+| One shared `EventSource` per staff page | Avoids the browser's ~6 connections per host limit; every new staff screen should subscribe through `useStaffSSE`, never open its own stream |
+| Event names registered once in `eventNames.ts` | A new event type must be added there or browsers silently ignore it |
+| Staff guard mounted inside `staff.ts`, listed before staff route modules | Every later `/api/staff/*` route is protected automatically; a module listed before `staff` would not be |
+| Staff stream does not refresh the idle timer (BR1.9) | A screen that only listens is signed out after 12 hours without a staff request |
+| Additive-only schema upgrade (`upgradeSchema`, named steps) | New data needs a new step that adds a table or a column with a default; v1 data is never rewritten |
+| Prices frozen on order lines; names read live from items | Money figures are historically exact; item names can drift after renames |
+| Two stored time formats, read through `parseStoredTime` | Never compare stored times as text |
+| Registries for routes, staff pages and diner features | Parallel Units could build without editing the same lines; new pages follow the same pattern |
 
 ### Improvement Opportunities
 
-- Add a migration step (versioned, additive) before v2 adds columns.
-- Introduce a shared types module for `Order`, `OrderLine`, `OrderStatus`, `MenuItem`, status colours and money formatting (now duplicated).
-- Move literal colours into tokens and add a light token set before Dark mode; add type and spacing scales for the design system.
-- Add a staff authentication layer (PIN) and stop trusting `by` from the request body.
-- Add an endpoint that lists tables so the board and a floor map need not hard-code 10 tables and make 10 requests.
-- Add lint, type-check script and CI.
+- An aggregated "open orders across all tables" read would replace the Kitchen Board's one-request-per-table load and could serve other live overviews
+- `getSales()` and `getRatings()` scan all history; a day-bounded query (using the `orders_completed` index or a `visits.closed_at` range on parsed times) would keep them cheap as history grows
+- Unify route error mapping on `AppError` and one status map
+- Remove the dead `staff-qr` 501 stub and `PagePlaceholder`
+- Persist staff sessions if devices must survive restarts, or document a re-sign-in flow for unattended screens
+- Add a linter config and a CI run of `npm test && npm run test:e2e`
 
 ## Interaction Diagrams
 
-### Diner places an order
+### Placing an order and seeing it on the Kitchen Board
 
 ```mermaid
 sequenceDiagram
-  participant D as Diner (CartScreen)
-  participant API as POST /api/tables/:id/orders
-  participant OR as orderRepo
+  participant D as Diner browser
+  participant O as routes/orders.ts
+  participant W as waitEstimation
+  participant R as orderRepo
   participant DB as SQLite
-  participant HUB as sse hub
+  participant H as sse.ts hub
   participant K as Kitchen Board (useBoardOrders)
-  participant T as Diner (useTableSSE)
-  D->>API: placement_key + lines
-  API->>API: validate body, quantity 1..20
-  API->>OR: getTableStatus, getOrOpenVisit
-  OR->>DB: find or insert visit
-  API->>OR: placeOrder
-  OR->>DB: check placement_key, resolve items, nextOrderNumber, insert order + order_items
-  OR-->>API: order, dropped_lines
-  API->>HUB: publish staff ORDER_PLACED
-  API->>HUB: publish table:id ORDER_PLACED
-  API-->>D: 201 (200 if repeated key)
-  HUB-->>K: ORDER_PLACED, new card with glow
-  HUB-->>T: ORDER_PLACED, My orders re-fetches
-  D->>D: clear cart, open My orders, 3 s banner
+  D->>O: POST /api/tables/5/orders with placement_key and lines
+  O->>W: computeEstimate()
+  W->>DB: today's completed orders, open order count
+  O->>R: placeOrderAtTable(5, key, lines, estimate)
+  R->>DB: one immediate transaction: open visit if none, insert order, lines, options, reduce special stock
+  R-->>O: order_number, lines, dropped_lines
+  O->>H: publish staff ORDER_PLACED
+  O->>H: publish table:5 ORDER_PLACED
+  O-->>D: 201 order
+  H-->>K: event ORDER_PLACED (shared /sse/staff stream)
+  K->>K: add order to table 5 card, mark new, raise banner and sound
 ```
 
-Text fallback: the diner posts the cart; the route validates, opens or reuses the visit, `placeOrder` freezes prices and numbers the order, the route publishes `ORDER_PLACED` to the staff and table channels and answers 201; the board shows a new card and the diner's My orders reloads.
+Text fallback: The diner posts the order. The route asks the wait estimation for the current estimate, then the order repository opens the visit if needed and writes the order, its lines, options and any special stock change in one transaction. After the commit the route publishes ORDER_PLACED to the staff channel and the table's channel and answers 201. The Kitchen Board receives the event on the shared staff stream, adds the order to the table's card and raises the new-order banner.
 
-### Staff moves an order and the diner sees it
+### A station marks its part done
 
 ```mermaid
 sequenceDiagram
-  participant S as OrderCard (staff)
-  participant API as POST /api/orders/:n/transition
-  participant OR as orderRepo
-  participant HUB as sse hub
-  participant B as Board and Bill hooks
-  participant D as Diner My orders
-  S->>API: to Preparing, by staff
-  API->>OR: transitionOrder
-  OR->>OR: check LEGAL_TRANSITIONS[status][actor]
-  OR-->>API: order_number, status, table_id
-  API->>HUB: publish staff and table:id ORDER_STATUS_CHANGED
-  API-->>S: 200 or 422 ILLEGAL_TRANSITION
-  HUB-->>B: update card, bill re-fetches
-  HUB-->>D: re-fetch orders, status pill changes
+  participant S as Station cook
+  participant SR as routes/staff-stations.ts
+  participant ST as u7/stations.markStationDone
+  participant OR as orderRepo.transitionOrder
+  participant H as sse.ts hub
+  S->>SR: POST /api/staff/orders/42/stations/Grill/done (cookie)
+  SR->>ST: markStationDone(42, Grill)
+  ST->>ST: one immediate transaction: check order, lines for station, existing mark
+  ST->>OR: Pending to Preparing (actor station)
+  ST->>OR: Preparing to Completed when every station is done
+  ST-->>SR: status, stations_done, stations_remaining, changes
+  SR->>H: STATION_DONE to staff
+  SR->>H: ORDER_STATUS_CHANGED to staff and table channel, per change
+  SR-->>S: 200 result
 ```
 
-### Staff closes a table
+Text fallback: The cook presses "Grill done". The route checks the station name and order number and calls markStationDone, which in one transaction checks the order and the existing marks, writes the mark, and moves the order to Preparing and, when every station with lines is done, to Completed through the single transition function. The route then publishes STATION_DONE and one ORDER_STATUS_CHANGED per change, and answers.
+
+### Closing a table and the sales page
 
 ```mermaid
 sequenceDiagram
-  participant S as TableBillScreen
-  participant API as POST /api/tables/:id/close
+  participant M as Manager (Table bill)
+  participant B as routes/billing.ts
   participant BR as billingRepo.closeTable
-  participant DB as SQLite
-  participant HUB as sse hub
-  participant D as Diner TableView
-  S->>API: confirm Close table
-  API->>BR: closeTable (immediate transaction)
-  BR->>DB: read visit and orders, refuse if any Pending or Preparing
-  BR->>DB: UPDATE visits SET closed_at
-  BR-->>API: closed, archived_visit_id
-  API->>HUB: publish TABLE_CLOSED to staff and table:id
-  API-->>S: 200, navigate to /staff
-  HUB-->>D: TableClosedTakeover, cart cleared, closed marker saved
+  participant H as sse.ts hub
+  participant SP as Sales page (useLiveRead)
+  participant SA as routes/staff-sales.ts
+  M->>B: POST /api/tables/5/close (cookie)
+  B->>BR: closeTable(5)
+  BR->>BR: one immediate transaction: refuse if any order open, set visits.closed_at, answer open calls
+  B->>H: TABLE_CLOSED to staff and table:5
+  B-->>M: 200 archived_visit_id
+  H-->>SP: TABLE_CLOSED
+  SP->>SA: GET /api/staff/sales (re-read)
+  SA-->>SP: days[] from closed visits, newest first
 ```
 
-Error exits: 409 `TABLE_ALREADY_CLOSED`, 422 `CLOSE_BLOCKED` (with blocking order numbers) and `TABLE_EMPTY`, each mapped to a message on the bill screen.
+Text fallback: The manager closes the table from its bill. The billing repository refuses while any order is open, otherwise stamps the visit closed and answers its open service calls in one transaction. The route publishes TABLE_CLOSED. The sales page, listening through useLiveRead, re-reads GET /api/staff/sales, which recomputes every day's totals from closed visits.
 
-### Sold-out toggle
+### Staff sign-in gate
 
-Staff panel -> `POST /api/menu/items/:id/availability` -> `menuRepo.updateItemAvailability` -> publish `MENU_AVAILABILITY_CHANGED` to `staff` and each of the 10 `table:<n>` channels -> every open Menu screen marks the item "Sold out"; an order submitted before the diner noticed has that line dropped with reason `SOLD_OUT_AT_SUBMIT`.
+```mermaid
+flowchart TD
+  A[Open /staff/...] --> B[useStaffSession: GET /api/staff/session]
+  B -->|200| C[StaffShell shows the requested page]
+  B -->|401| D[PinScreen]
+  B -->|no answer| E[Server did not answer, Try again]
+  D -->|POST /api/staff/login correct PIN| F[Set-Cookie staff_session HttpOnly SameSite Strict]
+  F --> C
+  D -->|wrong PIN| G[INVALID_PIN, tries left]
+  G -->|5 wrong in a row from one address| H[LOCKED 60 s]
+  C -->|any staffFetch answers 401 or stream refused| D
+```
+
+Text fallback: Every staff address first asks GET /api/staff/session. A 200 shows the shell and the requested page; a 401 shows the PIN screen; no answer shows a retry message. A correct PIN sets an HttpOnly, SameSite=Strict session cookie and shows the shell. Wrong PINs count per client address and lock it for 60 seconds after five. Any later 401 from a staff request, or a refused staff stream confirmed by the session check, returns to the PIN screen.

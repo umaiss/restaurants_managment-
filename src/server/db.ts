@@ -258,6 +258,9 @@ export function upgradeSchema(db: Database.Database): void {
       )`),
     ],
     ['backfill of the v2 seed details', () => backfillSeedDetails(db)],
+    // U8 (BR1.4, plan R-01): the TV wall's show-takings setting and two indexes for "today" reads. It inserts no
+    // row, so an upgraded database reads as hidden (BR1.1), and it never touches existing data.
+    ['tv-settings', () => addTvSettings(db)],
   ];
 
   for (const [name, run] of steps) {
@@ -268,6 +271,23 @@ export function upgradeSchema(db: Database.Database): void {
       throw new Error(`Database upgrade failed at step "${name}": ${reason}`);
     }
   }
+}
+
+/**
+ * U8's upgrade step 'tv-settings' (BR1.4, C5): the tv_settings table (one row at most, key 'show_takings';
+ * a missing row means hidden) and the indexes visits_closed_at and orders_placed_at, which let the day
+ * window of BR3.4 read only a few days of rows. Additive and repeatable.
+ */
+function addTvSettings(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tv_settings (
+      key TEXT PRIMARY KEY,
+      value INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NULL
+    );
+    CREATE INDEX IF NOT EXISTS visits_closed_at ON visits(closed_at);
+    CREATE INDEX IF NOT EXISTS orders_placed_at ON orders(placed_at);
+  `);
 }
 
 export function seedIfEmpty(): void {

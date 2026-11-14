@@ -1,0 +1,51 @@
+/*
+ * U8: the "Show takings on TV" switch in the staff navigation and the plain TV wall page.
+ * Existing design tokens only (no colour literals); U9 replaces the page's look and keeps these class names free to change.
+ */
+
+/* ---------- the switch row, directly under the "TV wall" link (BR9.2) ---------- */
+.tv-switch-wrap { display: flex; flex-direction: column; gap: var(--space-1); }
+.tv-switch-row {
+  display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch); padding: 0 var(--space-2) 0 var(--space-3);
+  margin-left: var(--space-2); border-radius: var(--radius-md); background: color-mix(in srgb, var(--on-dark) 5%, transparent);
+  color: var(--on-dark); font-size: var(--text-sm); font-weight: var(--weight-medium);
+}
+.tv-switch-label { flex: 1; }
+.tv-switch-state { font-weight: var(--weight-semibold); color: var(--on-dark); min-width: 2.2em; text-align: right; }
+.tv-switch {
+  position: relative; flex: none; width: 48px; min-height: var(--touch); padding: 0; border: 0; background: transparent; cursor: pointer;
+}
+/* the visible track is smaller than the 44 px touch area */
+.tv-switch::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 26px; transform: translateY(-50%);
+  border-radius: var(--radius-pill); background: color-mix(in srgb, var(--on-dark) 22%, transparent);
+  transition: background var(--t-fast) var(--ease-out);
+}
+.tv-switch[aria-checked='true']::before { background: var(--accent); }
+.tv-switch-knob {
+  position: absolute; top: 50%; left: 3px; width: 20px; height: 20px; transform: translateY(-50%);
+  border-radius: var(--radius-pill); background: var(--on-dark); box-shadow: var(--shadow-sm);
+  transition: left var(--t-fast) var(--ease-out);
+}
+.tv-switch[aria-checked='true'] .tv-switch-knob { left: 25px; }
+.tv-switch:focus-visible { outline: none; box-shadow: var(--focus-glow); border-radius: var(--radius-pill); }
+.tv-switch-error { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); color: var(--on-dark); font-size: var(--text-sm); }
+
+/* ---------- the plain TV wall page (U8 only; U9 replaces this look) ---------- */
+.tv-wall { min-height: 100vh; background: var(--bg); color: var(--text); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
+.tv-wall-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.tv-wall-head h1 { margin: 0; font-size: var(--text-2xl); }
+.tv-wall-connection { font-size: var(--text-lg); color: var(--text-2); }
+.tv-wall-grid { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-5); align-items: start; }
+.tv-wall-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.tv-wall-panel h2 { margin: 0; font-size: var(--text-lg); }
+.tv-wall-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--text-lg); }
+.tv-wall-list li { display: flex; gap: var(--space-4); align-items: baseline; }
+.tv-wall-figure { font-size: var(--text-xl); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }
+.tv-wall-muted { color: var(--text-2); }
+.tv-wait-slow { color: var(--warn-amber); font-weight: var(--weight-bold); }
+.tv-wait-late { color: var(--warn-red); font-weight: var(--weight-bold); }
+@media (max-width: 900px) { .tv-wall-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) {
+  .tv-switch::before, .tv-switch-knob { transition: none; }
+}

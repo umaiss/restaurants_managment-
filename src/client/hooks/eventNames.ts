@@ -17,8 +17,11 @@ export const EVENT_NAMES = [
 
 export type EventName = (typeof EVENT_NAMES)[number];
 
-/** v1's staff stream also listens for TABLE_STATUS_CHANGED; it stays. */
-export const STAFF_EVENT_NAMES: readonly string[] = [...EVENT_NAMES, 'TABLE_STATUS_CHANGED'];
+/**
+ * v1's staff stream also listens for TABLE_STATUS_CHANGED; it stays. U8 adds TV_SETTINGS_CHANGED (contract C3),
+ * which only the staff channel carries: the TV wall and the "Show takings on TV" switch follow it.
+ */
+export const STAFF_EVENT_NAMES: readonly string[] = [...EVENT_NAMES, 'TABLE_STATUS_CHANGED', 'TV_SETTINGS_CHANGED'];
 
 /** How often an open diner page tells the server it is still there (BR8.1). */
 export const HEARTBEAT_INTERVAL_MS = 60_000;

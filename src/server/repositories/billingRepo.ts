@@ -2,6 +2,7 @@ import { getDb, getCurrentVisit } from '../db.js';
 import { getOrdersByVisit, type OrderLine, type OrderStatus } from './orderRepo.js';
 import { closeCurrentVisit, hasClosedVisit } from './tableRepo.js';
 import { clearOpenCalls, getBillRequest, type PaymentMethod } from './serviceCallRepo.js';
+import { lineTotalCents } from '../salesRules.js';
 
 export type BillingErrorCode =
   | 'UNKNOWN_TABLE'
@@ -161,6 +162,25 @@ export function buildReceipt(visitId: string): Receipt {
     payment_method: request.payment_method,
     receipt_requested: request.wants_receipt,
   };
+}
+
+/**
+ * U8 (BR3.2, C5): the money on open tables, the sum of the live bills of every open visit. It uses buildBill's
+ * line rule: quantity x the stored line price, cancelled orders left out, lines joined to their menu item.
+ * Read only, one query.
+ */
+export function openVisitsBillTotalCents(): number {
+  const rows = getDb()
+    .prepare(
+      `SELECT oi.quantity, oi.unit_price_cents
+       FROM visits v
+       JOIN orders o ON o.visit_id = v.id
+       JOIN order_items oi ON oi.order_id = o.id
+       JOIN items i ON i.id = oi.item_id
+       WHERE v.closed_at IS NULL AND o.status != 'Cancelled'`
+    )
+    .all() as Array<{ quantity: number; unit_price_cents: number }>;
+  return rows.reduce((sum, row) => sum + lineTotalCents(row), 0);
 }
 
 /**

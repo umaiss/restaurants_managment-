@@ -6,6 +6,7 @@
 import { getDb, getCurrentVisit } from '../db.js';
 import { AppError } from '../errors.js';
 import { toIso } from '../time.js';
+import type { OpenRequestView } from '../../shared/tvWall.js';
 
 export type CallKind = 'waiter' | 'bill';
 /** How the table will pay, chosen when it asks for the bill. */
@@ -126,6 +127,13 @@ export function listCalls(tableId: number): ServiceCall[] {
     .prepare(`SELECT ${COLUMNS} FROM service_calls WHERE visit_id = ? ORDER BY opened_at, rowid`)
     .all(visit.id) as Row[];
   return rows.map(toCall);
+}
+
+/** U8 (BR5.1, C5): every open waiter and bill request across all tables, oldest first. Read only. */
+export function listOpenCallsAllTables(): OpenRequestView[] {
+  return getDb()
+    .prepare('SELECT id AS call_id, table_id, kind, opened_at FROM service_calls WHERE responded_at IS NULL ORDER BY opened_at, rowid')
+    .all() as OpenRequestView[];
 }
 
 /** Marks every open request of a visit responded (BR6.3). Called inside the close transaction. */

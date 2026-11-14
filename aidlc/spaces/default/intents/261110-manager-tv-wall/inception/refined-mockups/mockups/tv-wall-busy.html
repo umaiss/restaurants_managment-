@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TV wall, busy service, takings shown: Manager TV wall mockup</title>
+<link rel="stylesheet" href="tv-wall.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>TV wall: busy service, takings shown (US1.1, US2.1, US2.2, US3.1, US3.2, US3.3, US5.1, US5.3)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="dark" aria-pressed="true">Dark</button><button data-mode="light" aria-pressed="false">Light</button>
+  </div>
+</div>
+<p class="mock-note">Saturday 19:42. 14 open orders: 8 fit beside the requests strip, so the last row reads "+6 more". A staff member has turned "Show takings on TV" on. Drawn at 1920 by 1080, the TV's size.</p>
+<div class="tv" data-testid="tv-wall">
+  <header class="tv-head">
+    <div class="tv-brand"><span class="dot" aria-hidden="true"></span>Table Order · TV wall</div>
+    <div class="tv-status"><span class="tv-live" data-testid="tv-live">Live</span><span class="tv-clock" data-testid="tv-clock">19:42</span></div>
+  </header>
+  <div class="tv-body">
+    <section class="orders" aria-labelledby="orders-h">
+      <div class="orders-head"><h1 id="orders-h">Open orders</h1><span class="count" data-testid="tv-open-count">14 open</span></div>
+      <ol class="order-list" data-testid="tv-order-list">
+        <li class="order late" data-testid="tv-order"><span class="table">Table 5</span><span class="num">#41</span><span class="items">3 items</span><span class="wait">17 min</span><span class="flag">Late</span></li>
+        <li class="order late" data-testid="tv-order"><span class="table">Table 2</span><span class="num">#42</span><span class="items">2 items</span><span class="wait">15 min</span><span class="flag">Late</span></li>
+        <li class="order slow" data-testid="tv-order"><span class="table">Table 9</span><span class="num">#44</span><span class="items">5 items</span><span class="wait">11 min</span><span class="flag">Slow</span></li>
+        <li class="order slow" data-testid="tv-order"><span class="table">Table 1</span><span class="num">#45</span><span class="items">1 item</span><span class="wait">8 min</span><span class="flag">Slow</span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 7</span><span class="num">#46</span><span class="items">4 items</span><span class="wait">6 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 3</span><span class="num">#47</span><span class="items">2 items</span><span class="wait">5 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 12</span><span class="num">#48</span><span class="items">6 items</span><span class="wait">3 min</span><span class="flag"></span></li>
+        <li class="order" data-testid="tv-order"><span class="table">Table 5</span><span class="num">#49</span><span class="items">2 items</span><span class="wait">1 min</span><span class="flag"></span></li>
+        <li class="order more" data-testid="tv-more">+6 more</li>
+      </ol>
+      <div class="requests" data-testid="tv-requests"><strong>Requests</strong><span class="req">Table 4 — Bill</span><span class="sep">·</span><span class="req">Table 8 — Waiter</span><span class="sep">·</span><span class="req">+1 more</span></div>
+    </section>
+    <aside class="figures" aria-label="Today's figures">
+      <div class="tile oldest late" data-testid="tv-oldest"><div class="k">Oldest wait · <span class="late">Late</span></div><div class="v">17 min</div></div>
+      <div class="tile" data-testid="tv-takings">
+        <div class="k">Today's takings</div><div class="v" data-testid="tv-takings-closed">$1,284.50</div>
+        <div class="k">On open tables</div><div class="v2" data-testid="tv-takings-open">$412.00</div>
+      </div>
+      <div class="tile" data-testid="tv-busiest"><div class="k">Busiest table</div><div class="v">Table 5</div><div class="sub">6 orders today</div></div>
+      <div class="tile" data-testid="tv-top-dish"><div class="k">Top dish</div><div class="v dish">Classic Burger</div><div class="sub">23 portions today</div></div>
+    </aside>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

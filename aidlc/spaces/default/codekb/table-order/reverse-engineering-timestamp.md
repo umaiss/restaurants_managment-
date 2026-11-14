@@ -2,59 +2,79 @@
 
 ## Run Record
 
-- Date: 2026-11-07
-- Commit: 70f4eba6315a5fbbd8347c7109d1b908167af2d3
+- Date: 2026-11-10
+- Commit: 49b31b1cddc50bd3f1bbb4447fcedc24c0d8faf4
+- Repo: table-order (project-root repo)
+- Breadth: full rescan of `./`
+- Depth: Standard
+- Intent: manager-tv-wall
+- Run by: developer lead working alone (scan and synthesis)
+- Mode: read only; no tests, builds or programs were run
+
+Deep reading covered every server production file, the shared helpers, the staff client (session, shell, page registry, live hooks, board, floor, sales, QR, stations), the design system and UI kit, and every root configuration file. The diner screens and feature modules, the menu and special pages, the bill screen and the test suites were opened and classified but read in part; they are listed under `shallow.paths` below for readers. Left out unopened: `node_modules/`, `dist/`, `coverage/`, `test-results/`, the SQLite database files, and AI-DLC's own install.
 
 ## Scope of Analysis
 
 ```yaml
 scope_version: 1
 kind: full
-intent: 261107-table-order-v2
-fingerprint: b24ef984b48115328903bed99e0680b43b7fd30b
+intent: manager-tv-wall
+fingerprint: e4aa1289cc105d3ff695486ad733cbe5a6b1cfc1
 analyzed:
   paths:
     - ./
   components:
-    - Express App Entry
-    - Database Module
-    - SSE Hub
-    - Menu Router
-    - Orders Router
-    - Billing Router
-    - SSE Router
-    - Route Param Helpers
+    - Server Entry and Route Registry
+    - Configuration
+    - Database and Schema Upgrade
+    - Error Envelope
+    - Staff Access
+    - Live Event Hub
+    - Presence Tracker
     - Order Repository
-    - Billing Repository
     - Table Repository
+    - Billing Repository
     - Menu Repository
-    - App Router
-    - Global Stylesheet
-    - TableView
-    - StaffView
-    - MenuScreen
-    - CartScreen
-    - MyOrdersScreen
-    - KitchenBoardScreen
-    - TableBillScreen
-    - DinerTabBar
-    - TableClosedTakeover
-    - ConfirmModal
-    - OrderCard
-    - BillOrderCard
-    - BillTotal
-    - CloseTableSection
-    - MenuAvailabilityPanel
-    - NewHighlight
-    - money helpers
-    - useTableSSE
-    - useStaffSSE
-    - useCart
-    - useBoardOrders
-    - useBill
-    - useMenuAvailability
-    - Vitest Unit Suites
-    - Playwright E2E Suites
+    - Menu Administration
+    - Specials Repository
+    - Service Call Repository
+    - Rating Repository
+    - Wait Estimation
+    - Kitchen Stations
+    - Floor State
+    - Sales and Ratings Reports
+    - Background Jobs
+    - Guarded Stub Router
+    - Shared Time and Wait Helpers
+    - Client App Router
+    - Staff Session and PIN Gate
+    - Staff Shell and Page Registry
+    - Staff Live Stream Hook
+    - Live Read Hook
+    - Kitchen Board
+    - Floor Map Page
+    - Sales Page
+    - Menu Management Page
+    - Chef Special Page
+    - QR Codes Page
+    - Station Page
+    - Table Bill and Receipt
+    - Alerts
+    - Design System
+    - Diner Table View
+    - Diner Feature Modules
+    - Unit and Integration Test Suite
+    - Browser Test Suite
 shallow:
-  paths: []
+  paths:
+    - src/client/screens/diner/
+    - src/client/diner/features/
+    - src/client/staff/pages/menu/
+    - src/client/staff/pages/special/
+    - src/client/components/staff/
+    - src/client/alerts/
+    - src/server/__tests__/
+    - e2e/
+    - ideas/
+    - V2 Scope/
 ```

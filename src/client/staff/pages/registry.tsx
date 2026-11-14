@@ -13,6 +13,7 @@ import SpecialPage from './special/index.js';
 import SalesPage from './sales/index.js';
 import QrPage from './qr/index.js';
 import StationPage from './stations/index.js';
+import TvWallPage from './tv/index.js';
 
 export interface StaffPage {
   key: string;
@@ -24,6 +25,8 @@ export interface StaffPage {
   element: React.ReactElement;
   /** False for pages reached from other pages and not listed in the navigation. */
   inNav: boolean;
+  /** U8 (BR9.1): true for a page that fills the screen; the shell then shows no navigation and no top bar. */
+  fullScreen?: boolean;
 }
 
 export const STAFF_PAGES: StaffPage[] = [
@@ -33,6 +36,7 @@ export const STAFF_PAGES: StaffPage[] = [
   { key: 'special', path: 'special', label: "Chef's special", icon: '⭐', element: <SpecialPage />, inNav: true },
   { key: 'sales', path: 'sales', label: 'Past visits and sales', icon: '📈', element: <SalesPage />, inNav: true },
   { key: 'qr', path: 'qr', label: 'QR codes', icon: '🔳', element: <QrPage />, inNav: true },
+  { key: 'tv', path: 'tv', label: 'TV wall', icon: '📺', element: <TvWallPage />, inNav: true, fullScreen: true },
   { key: 'stations', path: 'stations/:station', label: 'Station', icon: '🔥', element: <StationPage />, inNav: false },
   { key: 'bill', path: 'tables/:id', label: 'Table bill', icon: '🧾', element: <TableBillScreen />, inNav: false },
   { key: 'receipt', path: 'receipt/:visitId', label: 'Receipt', icon: '🧾', element: <ReceiptScreen />, inNav: false },

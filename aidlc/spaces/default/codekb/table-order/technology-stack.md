@@ -1,75 +1,82 @@
-# Technology Stack
+# Technology Stack: table-order
 
-Versions are the ranges declared in `package.json`; the lock file was not read, so installed patch versions may be newer.
+Versions are the ranges declared in `package.json`; the exact installed versions are pinned in `package-lock.json` (not re-resolved in this scan).
 
-## Languages and Runtime
+## Languages and runtime
 
-| Item | Detail |
-|---|---|
-| TypeScript | ^5.4.2, `strict: true`, target ES2022, `moduleResolution: bundler`, `jsx: react-jsx`, `noEmit` (type check only) |
-| Node.js | version not pinned (no `engines`, no `.nvmrc`); `@types/node` ^20.11.30; code uses global `crypto.randomUUID()` and ESM (`"type": "module"`) |
-| Module system | ESM everywhere; server imports use `.js` extensions on TS files |
-| Database | SQLite file via better-sqlite3 (WAL mode); `:memory:` for tests |
-
-## Runtime Dependencies
-
-| Package | Range | Use |
+| Item | Version | Notes |
 |---|---|---|
-| express | ^4.18.3 | HTTP server, routing, static files |
-| better-sqlite3 | ^13.0.0 | synchronous SQLite driver (native module) |
-| react, react-dom | ^18.3.1 | UI (StrictMode in `main.tsx`) |
-| react-router-dom | ^6.22.3 | client routing (`BrowserRouter`, `Routes`, `Link`, `useParams`, `useNavigate`) |
+| TypeScript | ^5.4.2 | `strict: true`, `noEmit`, target ES2022, bundler module resolution, `jsx: react-jsx` |
+| Node.js | 20 or newer (README; built on 22) | ESM package (`"type": "module"`); server runs through `tsx` with no compile step |
+| CSS | plain CSS files with custom properties | No preprocessor, no CSS-in-JS library; some screens use inline styles |
+| SQL | SQLite dialect | Hand-written SQL in repositories; no ORM or query builder |
 
-## Development and Test Dependencies
+## Server
 
-| Package | Range | Use |
+| Library | Version | Purpose |
 |---|---|---|
-| vite | ^5.1.6 | dev server and production bundle (`dist/`) |
-| @vitejs/plugin-react | ^4.2.1 | React transform |
-| tsx | ^4.7.1 | runs the server from TypeScript, watch mode in `dev` |
-| concurrently | ^8.2.2 | runs server and Vite together in `dev` |
-| typescript | ^5.4.2 | type checking |
-| vitest | ^1.4.0 | unit test runner |
-| @vitest/coverage-v8 | ^1.4.0 | coverage |
-| jsdom | ^29.1.1 | browser-like environment for component tests |
-| @testing-library/react ^16.3.3, user-event ^14.6.8, jest-dom ^7.0.1 | | component testing |
-| supertest | ^6.3.4 | HTTP-level API tests against the exported `app` |
-| @playwright/test | ^1.42.1 | browser tests |
-| @types/* (better-sqlite3, express, node, react, react-dom, supertest) | | typings |
+| express | ^4.18.3 | HTTP routing, JSON body parsing, static files |
+| better-sqlite3 | ^13.0.0 | Synchronous SQLite with WAL journal and foreign keys |
+| tsx | ^4.7.1 (dev) | Runs `src/server/index.ts` in production and `tsx watch` in development |
+| Node `crypto` | built in | PIN hashing for constant-time compare, session tokens, ids |
 
-Not present: any CSS framework or preprocessor, CSS-in-JS library, UI kit, icon library, state manager, data-fetching library, form library, QR-code library, chart library, i18n library, ORM, migration tool, linter or formatter, authentication library.
+No cookie, session, CORS, validation, logging or SSE library is used: those are a few lines of the app's own code.
 
-## Build, Run and Test Commands
+## Client
 
-| Command | What it does |
-|---|---|
-| `npm start` | `tsx src/server/index.ts` (serves API, SSE and the built client from `dist/`) |
-| `npm run dev` | server with watch plus Vite dev server (Vite proxies `/api` and `/sse` to `localhost:3000`) |
-| `npm run build` | `vite build` to `dist/` (emptied first) |
-| `npm test` | `vitest run` with verbose and JSON reporters, writes `test-results/unit.json` and, through `--coverage`, `coverage/` (v8, `text` and `json-summary`) |
-| `npm run test:e2e` | `playwright test --reporter=json --output=test-results/e2e.json` |
-| `npm run preview` | `vite preview` |
-| Verification command | `npm test && npm run test:e2e` |
-| Cross-browser run | `npx playwright test --config playwright.cross-browser.config.ts` (Chrome and WebKit; JSON to `test-results/cross-browser.json`) |
-| Unit-scoped run | `npx vitest run --reporter=verbose <paths>` (see `unit-test-instructions.md`) |
+| Library | Version | Purpose |
+|---|---|---|
+| react, react-dom | ^18.3.1 | UI (StrictMode) |
+| react-router-dom | ^6.22.3 | `BrowserRouter`, nested `Routes`, `NavLink` |
+| qrcode | ^1.5.4 | QR codes drawn in the browser |
+| @fontsource-variable/inter | ^5.3.0 | Self-hosted Inter variable font |
+| Browser `EventSource` | built in | Live updates over SSE |
+| Browser `localStorage` | built in | Per-device preferences (theme, sound, allergies, cart) through `safeStorage` |
 
-`test:e2e` needs a current `dist/` (run `npm run build` first); the Playwright web server does not build.
+No state-management library, no UI component library and no icon package: the UI kit and SVG icons are in `src/client/components/ui/`.
 
-## Environment Variables
+## Build and dev tooling
 
-| Variable | Default | Read in | Meaning |
-|---|---|---|---|
-| `PORT` | 3000 | `src/server/index.ts` (`PORT ?? E2E_PORT ?? 3000`) | app port, main folder only |
-| `E2E_PORT` | 3100 | `playwright.config.ts`, `index.ts` fallback | browser-test port (specs needing their own server use +100 and +200); parallel Bolts use 4100, 5100, 6100, 7100 |
-| `DB_FILE` | `table-order.db` | `src/server/db.ts` | SQLite file path; `:memory:` in tests; each parallel Bolt uses its own file in its worktree |
-| `CI` | unset | `playwright.config.ts` | enables `forbidOnly` and 2 retries |
+| Tool | Version | Purpose |
+|---|---|---|
+| vite | ^5.1.6 | Client bundle to `dist/`; dev server proxying `/api` and `/sse` to `PORT` |
+| @vitejs/plugin-react | ^4.2.1 | JSX and fast refresh |
+| concurrently | ^8.2.2 | `npm run dev` runs server and Vite together |
 
-Avoid exporting `PORT` globally: it would take precedence over `E2E_PORT` during test runs (noted in `.env.example`). The app does not load `.env` files itself (no dotenv); values come from the shell.
+## Testing
 
-## Browsers
+| Tool | Version | Purpose |
+|---|---|---|
+| vitest | ^1.4.0 | Unit and integration tests (`pool: forks`, isolated) |
+| @vitest/coverage-v8 | ^1.4.0 | Coverage to `coverage/coverage-summary.json` |
+| jsdom | ^29.1.1 | DOM for `src/client/**` tests |
+| @testing-library/react | ^16.3.3 | Component tests |
+| @testing-library/user-event | ^14.6.8 | Interaction simulation |
+| @testing-library/jest-dom | ^7.0.1 | DOM matchers |
+| supertest | ^6.3.4 | HTTP tests against the Express app |
+| @playwright/test | ^1.42.1 | Browser tests: Chromium by default; installed Google Chrome and WebKit in the cross-browser config; Firefox is never installed or tested |
 
-Playwright default: Chromium (Desktop Chrome). Cross-browser config: installed Google Chrome and WebKit (Desktop Safari). Firefox is not installed or tested (team rule).
+## Type packages
 
-## Hosting and Deployment
+`@types/better-sqlite3` ^7.6.8, `@types/express` ^4.17.21, `@types/node` ^20.11.30, `@types/qrcode` ^1.5.5, `@types/react` ^18.3.1, `@types/react-dom` ^18.3.0, `@types/supertest` ^6.0.2.
 
-No Dockerfile, CI pipeline, infrastructure code or cloud config in the repo. The app is run locally with `npm start` after `npm run build`. Single process, single node (the SSE hub is in memory).
+## Runtime configuration (environment)
+
+| Variable | Default | Used by |
+|---|---|---|
+| `PORT` | 3000 | `getPort()` (falls back to `E2E_PORT`, then 3000); Vite dev proxy |
+| `E2E_PORT` | 3100 | Playwright server and base URL |
+| `DB_FILE` | `table-order.db` | `getDbFile()`; tests use `:memory:` |
+| `STAFF_PIN` | random 4 digits, printed once | `staffAccess.getPin()` |
+
+## Infrastructure
+
+None in the repo: no Dockerfile, IaC, CI pipeline or cloud dependency. The app is designed to run on one machine on the restaurant's local network over plain HTTP.
+
+## Stack constraints for new work
+
+- New server code is TypeScript ESM with `.js` import suffixes (as every existing import)
+- Database changes go through a new named step in `upgradeSchema` and must only add
+- New styles use tokens only: `src/client/design/__tests__/restyle.test.tsx` fails on any hex, rgb, rgba or hsl value outside `tokens.css`, and `tokens.test.ts` checks both themes define the same tokens, contrast and reduced motion; motion must stop under `prefers-reduced-motion`
+- Ports and the database file come from environment variables; parallel Bolts use their own `E2E_PORT` and `DB_FILE`
+- Adding an npm dependency is a visible decision: v2 added only `qrcode`

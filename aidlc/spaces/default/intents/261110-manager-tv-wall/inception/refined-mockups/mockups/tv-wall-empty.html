@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TV wall, start of the day: Manager TV wall mockup</title>
+<link rel="stylesheet" href="tv-wall.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>TV wall: start of the day, nothing ordered yet (US2.1, US2.2, US3.1, US3.2, US3.3)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="dark" aria-pressed="true">Dark</button><button data-mode="light" aria-pressed="false">Light</button>
+  </div>
+</div>
+<p class="mock-note">Opening time. No order has been placed today and takings are shown, so both amounts read $0.00, never a blank.</p>
+<div class="tv" data-testid="tv-wall">
+  <header class="tv-head">
+    <div class="tv-brand"><span class="dot" aria-hidden="true"></span>Table Order · TV wall</div>
+    <div class="tv-status"><span class="tv-live" data-testid="tv-live">Live</span><span class="tv-clock" data-testid="tv-clock">11:02</span></div>
+  </header>
+  <div class="tv-body">
+    <section class="orders" aria-labelledby="orders-h">
+      <div class="orders-head"><h1 id="orders-h">Open orders</h1><span class="count" data-testid="tv-open-count">0 open</span></div>
+      <div class="empty" data-testid="tv-orders-empty">No open orders<small>New orders appear here as soon as a table orders.</small></div>
+    </section>
+    <aside class="figures" aria-label="Today's figures">
+      <div class="tile oldest" data-testid="tv-oldest"><div class="k">Oldest wait</div><div class="v">No open orders</div></div>
+      <div class="tile" data-testid="tv-takings">
+        <div class="k">Today's takings</div><div class="v" data-testid="tv-takings-closed">$0.00</div>
+        <div class="k">On open tables</div><div class="v2" data-testid="tv-takings-open">$0.00</div>
+      </div>
+      <div class="tile" data-testid="tv-busiest"><div class="k">Busiest table</div><div class="v">No orders yet</div></div>
+      <div class="tile" data-testid="tv-top-dish"><div class="k">Top dish</div><div class="v dish">No dishes yet</div></div>
+    </aside>
+  </div>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>

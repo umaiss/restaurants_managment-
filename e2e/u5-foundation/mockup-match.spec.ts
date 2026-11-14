@@ -319,7 +319,9 @@ for (const theme of THEMES) {
         accept('markCompleted', 'emptyBoard');
         // The navigation names every page and the current one is marked
         await expect(page.getByTestId('nav-board')).toHaveAttribute('aria-current', 'page');
-        await expect(page.getByTestId('side-nav').locator('a')).toHaveCount(6);
+        // U8 (Manager TV wall) adds a seventh link, "TV wall", after QR codes; the U5 mockup's six links are still all there.
+        await expect(page.getByTestId('side-nav').locator('a')).toHaveCount(7);
+        await expect(page.getByTestId('side-nav').locator('a').last()).toHaveText('TV wall');
         await savePair(browser, `staff-board-${theme}.png`, await mock.shot('.desk', 0), await page.screenshot());
       } finally {
         for (const t of [3, 5, 7]) await resetTableState(request, t);

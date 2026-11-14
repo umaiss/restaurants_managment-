@@ -2,18 +2,17 @@
  * Sales and ratings reports (U7 Step 4). Rules: BR7.1 (closed visits grouped by local day of closed_at,
  * either stored time format), BR7.2 (best sellers), BR7.3 (average minutes to Completed, null when none),
  * BR7.4 (cancelled orders count nowhere), BR7.6 (best and worst rated, with a stated tie rule).
+ * U8 (BR3.1, BR10.1): the day rule and the line-total rule now live in src/server/salesRules.ts, shared with the
+ * TV wall's closedDayTakingsCents. getSales keeps its single pass over closed visits and its output.
  */
 import { getDb } from '../../db.js';
 import { parseStoredTime } from '../../time.js';
+import { dayOfStoredTime, lineTotalCents, localDay } from '../../salesRules.js';
 import { BEST_SELLERS_TOP, DAY_PATTERN, RATED_TOP, RATING_TIE_RULE } from './constants.js';
 import { invalid } from './errors.js';
 
-/** The server's local calendar day of an instant, as YYYY-MM-DD. */
-export function localDay(date: Date): string {
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${m}-${d}`;
-}
+/** The server's local calendar day of an instant (re-exported from salesRules.ts, where U8 moved it). */
+export { localDay };
 
 /** Reads YYYY-MM-DD; returns the same text when it is a real date, else null. */
 export function readDay(text: unknown): string | null {
@@ -63,8 +62,8 @@ export function getSales(query: SalesQuery = {}): SalesDay[] {
 
   const dayOfVisit = new Map<string, string>();
   for (const v of visits) {
-    const closed = parseStoredTime(v.closed_at);
-    if (closed) dayOfVisit.set(v.id, localDay(closed));
+    const day = dayOfStoredTime(v.closed_at);
+    if (day) dayOfVisit.set(v.id, day);
   }
 
   interface Acc {
@@ -113,7 +112,7 @@ export function getSales(query: SalesQuery = {}): SalesDay[] {
     if (!day) continue;
     const a = acc(day);
     a.orders.add(l.order_number);
-    a.total += l.quantity * l.unit_price_cents;
+    a.total += lineTotalCents(l);
     const seen = a.sold.get(l.item_id);
     if (seen) seen.quantity += l.quantity;
     else a.sold.set(l.item_id, { item_id: l.item_id, name: l.name, quantity: l.quantity });

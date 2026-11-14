@@ -6,7 +6,9 @@
  * BR3.10 (all or nothing), BR5.3 and BR5.4 (special lines), BR12.1 (a station on every line).
  */
 import { getDb, openVisit as dbOpenVisit, getCurrentVisit, nextOrderNumber } from '../db.js';
-import { toIso } from '../time.js';
+import { parseStoredTime, toIso } from '../time.js';
+import { dayOfStoredTime, dayWindow } from '../salesRules.js';
+import type { OpenOrderView } from '../../shared/tvWall.js';
 import { getLastClosedVisitId } from './tableRepo.js';
 import type { Station } from '../config.js';
 import { endIfSoldOut, getSpecialById, isLive, reduceSpecialStock } from './specialsRepo.js';
@@ -538,6 +540,73 @@ export function getOrderByNumber(orderNumber: number): {
 
   if (!row) return null;
   return { ...row, status: row.status as OrderStatus };
+}
+
+// ---------------------------------------------------------------- U8: read-only views for the TV wall (C5)
+
+/** Instant of a stored time for sorting; an unreadable time sorts first rather than being dropped. */
+function sortTime(text: string): number {
+  return parseStoredTime(text)?.getTime() ?? -Infinity;
+}
+
+/**
+ * Every open order (Pending or Preparing) across all tables and visits, whatever day it was placed (BR2.1), with
+ * its portions: the sum of its line quantities, 0 when it has no lines (BR2.2). Oldest placed_at first (read as
+ * an instant, so both stored time formats sort together), then order_number.
+ */
+export function getOpenOrdersAllTables(): OpenOrderView[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT o.order_number, o.table_id, o.status, o.placed_at, COALESCE(SUM(oi.quantity), 0) AS portions
+       FROM orders o LEFT JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.status IN ('Pending', 'Preparing')
+       GROUP BY o.id`
+    )
+    .all() as OpenOrderView[];
+  return rows.sort((a, b) => sortTime(a.placed_at) - sortTime(b.placed_at) || a.order_number - b.order_number);
+}
+
+/**
+ * Today's non-cancelled orders per table (BR4.1), open and closed visits alike, for the server-local `day`. Rows
+ * are picked through the BR3.4 window on placed_at (index orders_placed_at) and then checked for the exact day.
+ * Most orders first; a tie goes to the lower table_id.
+ */
+export function getTodayOrderCountsByTable(day: string): Array<{ table_id: number; orders: number }> {
+  const { from, to } = dayWindow(day);
+  const rows = getDb()
+    .prepare(`SELECT table_id, placed_at FROM orders WHERE placed_at >= ? AND placed_at < ? AND status != 'Cancelled'`)
+    .all(from, to) as Array<{ table_id: number; placed_at: string }>;
+  const counts = new Map<number, number>();
+  for (const row of rows) {
+    if (dayOfStoredTime(row.placed_at) === day) counts.set(row.table_id, (counts.get(row.table_id) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([table_id, orders]) => ({ table_id, orders }))
+    .sort((a, b) => b.orders - a.orders || a.table_id - b.table_id);
+}
+
+/**
+ * Today's portions per menu item (BR4.2): line quantities of non-cancelled orders placed on the server-local
+ * `day` (BR3.4 window, then the exact day), with the item's live name. Most portions first; a tie goes to the
+ * name first in alphabetical order (localeCompare, as the Sales page's best sellers).
+ */
+export function getTodayPortionsByItem(day: string): Array<{ item_id: string; name: string; portions: number }> {
+  const { from, to } = dayWindow(day);
+  const rows = getDb()
+    .prepare(
+      `SELECT o.placed_at, oi.item_id, i.name, oi.quantity
+       FROM orders o JOIN order_items oi ON oi.order_id = o.id JOIN items i ON i.id = oi.item_id
+       WHERE o.placed_at >= ? AND o.placed_at < ? AND o.status != 'Cancelled'`
+    )
+    .all(from, to) as Array<{ placed_at: string; item_id: string; name: string; quantity: number }>;
+  const byItem = new Map<string, { item_id: string; name: string; portions: number }>();
+  for (const row of rows) {
+    if (dayOfStoredTime(row.placed_at) !== day) continue;
+    const seen = byItem.get(row.item_id);
+    if (seen) seen.portions += row.quantity;
+    else byItem.set(row.item_id, { item_id: row.item_id, name: row.name, portions: row.quantity });
+  }
+  return [...byItem.values()].sort((a, b) => b.portions - a.portions || a.name.localeCompare(b.name));
 }
 
 export function getOrOpenVisit(tableId: number): string {

@@ -1,126 +1,217 @@
-# Component Inventory
+# Component Inventory: table-order
 
-Each heading is a component name; the Scope of Analysis block in `reverse-engineering-timestamp.md` lists these names literally.
+Each heading below is a component name. Dependencies name other components in this list.
 
 ## Server
 
-### Express App Entry
-`src/server/index.ts` (57 lines). Builds and exports `app`; mounts `/api` routers and `/sse`; serves `dist/`; SPA catch-all; starts listening only as the process entry point (after `seedIfEmpty()`). Depends on: Database Module, Menu Router, Orders Router, Billing Router, SSE Router.
+### Server Entry and Route Registry
+- **Files**: `src/server/index.ts`, `src/server/routes/registry.ts`
+- **Responsibility**: Build the Express app, mount every route module in a fixed order (staff login and guard before staff modules, all before the SPA fallback), serve `dist/`, start background jobs when run as the entry
+- **Depends on**: Configuration, Database and Schema Upgrade, Background Jobs, every route module
 
-### Database Module
-`src/server/db.ts` (155 lines). SQLite singleton `getDb()` (file from `DB_FILE`, WAL, foreign keys), `resetDb()` for tests, `initSchema` (7 tables), `seedIfEmpty`, `openVisit`, `getCurrentVisit`, `nextOrderNumber`. Depends on: better-sqlite3, Node `crypto`.
+### Configuration
+- **Files**: `src/server/config.ts`, `src/server/routes/u7/constants.ts`
+- **Responsibility**: Ports and DB file from the environment; every tunable number (idle time, lockout, presence, keep-alive, estimate allowance, limits, list lengths); station and allergen lists
+- **Depends on**: none
 
-### SSE Hub
-`src/server/sse.ts` (171 lines). `subscribe(channel, res)`, `publish(channel, type, data)`, `sendEvent` (single connection), ring buffers (60), replay, keep-alive timer (20 s), `_resetForTest`. In-memory only. Depends on: Express types.
+### Database and Schema Upgrade
+- **Files**: `src/server/db.ts`
+- **Responsibility**: One better-sqlite3 handle (WAL, foreign keys); v1 schema; additive named upgrade steps; seed of 10 tables, 4 categories, 12 items; one-time seed backfill; visit helpers; order number counter
+- **Tables**: `tables`, `categories`, `items`, `visits`, `orders`, `order_items`, `order_counter`, `option_groups`, `option_choices`, `order_item_options`, `station_done`, `chef_specials`, `service_calls`, `dish_ratings`, `visit_feedback`, `seed_backfill`
+- **Depends on**: Configuration, Shared Time and Wait Helpers
 
-### Menu Router
-`src/server/routes/menu.ts`. `GET /api/menu`, `POST /api/menu/items/:id/availability`; publishes availability to every table channel and `staff`. Depends on: Menu Repository, SSE Hub, Database Module.
+### Error Envelope
+- **Files**: `src/server/errors.ts`, `src/server/routes/u7/errors.ts`, `src/server/routes/tableId.ts`
+- **Responsibility**: `AppError`, status maps, the `{ error: { code, message, details? } }` envelope, logged 500s, strict path-id parsing
+- **Depends on**: none
 
-### Orders Router
-`src/server/routes/orders.ts` (214 lines). Place order, list orders of the current visit, transition, table status. Validates input and maps error codes. Depends on: Order Repository, Table Repository, Database Module, SSE Hub, Route Param Helpers.
+### Staff Access
+- **Files**: `src/server/staffAccess.ts`, `src/server/routes/staff.ts`
+- **Responsibility**: Staff PIN from `STAFF_PIN` (or random, printed once); constant-time compare; per-address lockout; in-memory sessions with 12-hour idle end; cookie; `requireStaff` guard; login, logout, session routes
+- **Depends on**: Configuration, Error Envelope, Live Event Hub
 
-### Billing Router
-`src/server/routes/billing.ts`. `GET /api/tables/:id/bill`, `POST /api/tables/:id/close`; publishes `TABLE_CLOSED`. Depends on: Billing Repository, SSE Hub, Route Param Helpers.
+### Live Event Hub
+- **Files**: `src/server/sse.ts`, `src/server/routes/sse.ts`, `src/server/menuEvents.ts`
+- **Responsibility**: Channels `staff` and `table:<id>`; publish, subscribe, 60-event replay buffer, keep-alive, closing staff streams with their session; menu and special fan-out helpers
+- **Depends on**: Staff Access (session validator, registered at load), Presence Tracker, Table Repository, Specials Repository
 
-### SSE Router
-`src/server/routes/sse.ts`. `GET /sse/staff`, `GET /sse/tables/:id`. Depends on: SSE Hub, Route Param Helpers.
-
-### Route Param Helpers
-`src/server/routes/tableId.ts`. `parseTableId`, `parseOrderNumber`, `unknownTable`, `unknownOrder`.
+### Presence Tracker
+- **Files**: `src/server/presence.ts`, `src/server/routes/presence.ts`
+- **Responsibility**: Count open diner pages per table (5-minute window, caps, sweep); debounced `TABLE_PRESENCE_CHANGED`; heartbeat route
+- **Depends on**: Configuration, Live Event Hub
 
 ### Order Repository
-`src/server/repositories/orderRepo.ts` (261 lines). `placeOrder` (idempotency, sold-out dropping, price freezing), `transitionOrder` with `LEGAL_TRANSITIONS`, `getOrdersByVisit`, `getOrderByNumber`, `getOrOpenVisit`; `OrderError`. Depends on: Database Module.
-
-### Billing Repository
-`src/server/repositories/billingRepo.ts`. `buildBill` (read only), `closeTable` (immediate transaction), `BillingError`. Depends on: Database Module, Order Repository, Table Repository.
+- **Files**: `src/server/repositories/orderRepo.ts`, `src/server/routes/orders.ts`
+- **Responsibility**: Place orders in one transaction (option checks, frozen price and station, special stock); the single legal-transition table; read orders by visit and by last closed visit; order routes
+- **Depends on**: Database and Schema Upgrade, Table Repository, Specials Repository, Wait Estimation, Live Event Hub, Staff Access
 
 ### Table Repository
-`src/server/repositories/tableRepo.ts`. `getTableStatus`, `openVisit`, `closeCurrentVisit`, `hasClosedVisit`, `closeVisit`. Depends on: Database Module.
+- **Files**: `src/server/repositories/tableRepo.ts`
+- **Responsibility**: Table existence and status, current and last closed visit, close visit, add table (max 50), archive table (refused while guests have orders)
+- **Depends on**: Database and Schema Upgrade, Error Envelope
+
+### Billing Repository
+- **Files**: `src/server/repositories/billingRepo.ts`, `src/server/routes/billing.ts`
+- **Responsibility**: Live bill of a table's current visit (Cancelled left out), receipt of a closed visit, close table (refused while any order is open; answers open calls)
+- **Depends on**: Order Repository, Table Repository, Service Call Repository, Live Event Hub, Staff Access
 
 ### Menu Repository
-`src/server/repositories/menuRepo.ts`. `getMenu`, `updateItemAvailability`. Depends on: Database Module.
+- **Files**: `src/server/repositories/menuRepo.ts`, `src/server/routes/menu.ts`
+- **Responsibility**: Diner menu (hidden filtered), staff menu (all), options per item, availability toggle
+- **Depends on**: Database and Schema Upgrade, Live Event Hub, Staff Access
+
+### Menu Administration
+- **Files**: `src/server/routes/staff-menu.ts`, `src/server/routes/u7/menuAdmin.ts`, `src/server/routes/u7/validation.ts`
+- **Responsibility**: Create and edit items and categories, replace option groups, all checks, publish `MENU_CHANGED`
+- **Depends on**: Menu Repository, Specials Repository, Live Event Hub, Error Envelope
+
+### Specials Repository
+- **Files**: `src/server/repositories/specialsRepo.ts`, `src/server/routes/specials.ts`
+- **Responsibility**: Launch (one live), current, end, expiry, guarded stock reduction
+- **Depends on**: Database and Schema Upgrade, Live Event Hub, Staff Access
+
+### Service Call Repository
+- **Files**: `src/server/repositories/serviceCallRepo.ts`, `src/server/routes/calls.ts`
+- **Responsibility**: Open (one per kind per visit), respond, list, clear on close; payment method and receipt wish on bill calls
+- **Depends on**: Database and Schema Upgrade, Live Event Hub, Staff Access
+
+### Rating Repository
+- **Files**: `src/server/repositories/ratingRepo.ts`, `src/server/routes/ratings.ts`
+- **Responsibility**: Save, change and lock thumbs per dish per closed visit, plus one comment
+- **Depends on**: Table Repository, Database and Schema Upgrade
+
+### Wait Estimation
+- **Files**: `src/server/services/waitEstimation.ts`, `src/server/routes/estimate.ts`
+- **Responsibility**: Estimate = today's mean minutes to Completed (by `placed_at` in the server-local day; 15 when none) + 2 per open order, at least 1
+- **Depends on**: Database and Schema Upgrade, Shared Time and Wait Helpers, Configuration
+
+### Kitchen Stations
+- **Files**: `src/server/routes/staff-stations.ts`, `src/server/routes/u7/stations.ts`
+- **Responsibility**: A station's board of open tickets; the done mark that moves orders to Preparing and Completed
+- **Depends on**: Order Repository, Live Event Hub, Error Envelope
+
+### Floor State
+- **Files**: `src/server/routes/staff-floor.ts`, `src/server/routes/u7/floor.ts`
+- **Responsibility**: Table list with state (needs bill, waiting, eating, browsing, empty), presence and open calls; add and archive tables
+- **Depends on**: Database and Schema Upgrade, Presence Tracker, Table Repository
+
+### Sales and Ratings Reports
+- **Files**: `src/server/routes/staff-sales.ts`, `src/server/routes/u7/sales.ts`
+- **Responsibility**: Sales by local day of close (closed visits only, Cancelled excluded, frozen prices, best sellers top 5, average minutes); best and worst rated dishes of a day
+- **Depends on**: Database and Schema Upgrade, Shared Time and Wait Helpers, Error Envelope
+
+### Background Jobs
+- **Files**: `src/server/background.ts`
+- **Responsibility**: Staff session sweep (10 min), presence sweep (30 s), special expiry check (5 s); all timers unref'd
+- **Depends on**: Staff Access, Presence Tracker, Specials Repository, Live Event Hub
+
+### Guarded Stub Router
+- **Files**: `src/server/routes/stubs.ts`, `src/server/routes/staff-qr.ts`
+- **Responsibility**: Leftover guarded `501 NOT_BUILT` for `GET /api/staff/qr/:table` (QR codes are drawn in the browser); dead code kept by tests
+- **Depends on**: Staff Access, Error Envelope
+
+## Shared
+
+### Shared Time and Wait Helpers
+- **Files**: `src/shared/time.ts`, `src/shared/wait.ts`, `src/server/time.ts`
+- **Responsibility**: Read both stored time formats as UTC instants; ISO writing; server-local day bounds; "Running late" or minutes remaining for an order
+- **Depends on**: none
 
 ## Client
 
-### App Router
-`src/client/main.tsx` and `src/client/App.tsx`. React 18 root in StrictMode, imports `index.css`, `BrowserRouter` with routes `/table/:id`, `/staff/*`, redirects to `/staff`. Depends on: TableView, StaffView.
+### Client App Router
+- **Files**: `src/client/main.tsx`, `src/client/App.tsx`, `index.html`
+- **Responsibility**: Apply saved theme before first paint; route `/table/:id` to the diner app and `/staff/*` to the staff app; everything else to `/staff`
+- **Depends on**: Design System, Staff Session and PIN Gate, Diner Table View
 
-### Global Stylesheet
-`src/client/index.css` (331 lines). Dark-only design tokens in `:root`, reduced-motion block, body background, button feedback, keyframes and utility classes (see `architecture.md` Styling Approach).
+### Staff Session and PIN Gate
+- **Files**: `src/client/views/StaffView.tsx`, `src/client/staff/useStaffSession.ts`, `src/client/staff/PinScreen.tsx`, `src/client/staff/staffAuth.ts`
+- **Responsibility**: Ask the server for the session before showing any staff page; PIN keypad with tries left and lockout countdown; `staffFetch` returns to the PIN screen on any 401
+- **Depends on**: Design System
 
-### TableView
-`src/client/views/TableView.tsx` (336 lines). Diner shell: header with live dot, tab state, order confirmation banners, sticky "View cart" bar, table-closed handling (live event plus on-load and on-reconnect check of `last_closed_visit_id`), reconnect banner. Depends on: useTableSSE, useCart, DinerTabBar, TableClosedTakeover, MenuScreen, CartScreen, MyOrdersScreen.
+### Staff Shell and Page Registry
+- **Files**: `src/client/staff/StaffShell.tsx`, `src/client/staff/pages/registry.tsx`, `src/client/components/ui/SideNav.tsx`, `src/client/staff/pages/PagePlaceholder.tsx` (unused)
+- **Responsibility**: Side navigation at 1024 px and wider, menu button below; theme switch; sign out; renders every page from `STAFF_PAGES` (`inNav` decides the nav link)
+- **Depends on**: Design System, every staff page
 
-### StaffView
-`src/client/views/StaffView.tsx`. Staff layout and nested routes: index = Kitchen Board, `tables/:id` = Table Bill. No access control.
+### Staff Live Stream Hook
+- **Files**: `src/client/hooks/useStaffSSE.ts`, `src/client/hooks/eventNames.ts`
+- **Responsibility**: One shared `EventSource('/sse/staff')` per page; numbered event list (last 200); connected flag; session check when the stream is refused
+- **Depends on**: Staff Session and PIN Gate
 
-### MenuScreen
-`src/client/screens/diner/MenuScreen.tsx` (497 lines). Fetches `/api/menu`, sticky category pills with IntersectionObserver highlight, item cards (emoji or image URL, "+ Add" pill with 44 px target, "Sold out"), live availability updates, cart price refresh. Depends on: useCart.
+### Live Read Hook
+- **Files**: `src/client/staff/pages/useLiveRead.ts`
+- **Responsibility**: Latest-wins read of a staff route, kept on failure with an error flag; re-read on listed event types and on every reconnect
+- **Depends on**: Staff Live Stream Hook, Staff Session and PIN Gate
 
-### CartScreen
-`src/client/screens/diner/CartScreen.tsx` (370 lines). Cart lines with quantity controls, Clear all, price refresh notice on open, confirm modal, order submit with placement key, error banner, empty state. Depends on: useCart, ConfirmModal.
+### Kitchen Board
+- **Files**: `src/client/screens/staff/KitchenBoardScreen.tsx`, `src/client/hooks/useBoardOrders.ts`, `src/client/staff/board/*`, `src/client/components/staff/OrderCard.tsx`, `NewHighlight.tsx`, `MenuAvailabilityPanel.tsx`, `src/client/hooks/useMenuAvailability.ts`, `src/client/hooks/useSoundPreference.ts`
+- **Responsibility**: Live table cards with orders, status buttons and ticket timers (8 min Slow, 15 min Late); station tabs and boards; new-order and call banners with sound; pulsing calling tables; menu availability panel
+- **Depends on**: Staff Live Stream Hook, Alerts, Design System, Staff Session and PIN Gate
 
-### MyOrdersScreen
-`src/client/screens/diner/MyOrdersScreen.tsx` (375 lines). Lists the visit's orders with status pill (icon and word), re-fetches on `ORDER_PLACED` and `ORDER_STATUS_CHANGED`, cancel flow with confirm and 422 notice.
+### Floor Map Page
+- **Files**: `src/client/staff/pages/floor/*`
+- **Responsibility**: Live grid of tables with state word and colour; link to each bill
+- **Depends on**: Live Read Hook, Design System
 
-### KitchenBoardScreen
-`src/client/screens/staff/KitchenBoardScreen.tsx` (227 lines). Grid of table cards (`TableSection`), shimmer, empty state, reconnect banner, "Menu availability" button, link "Table <n> →" to the bill. Depends on: useBoardOrders, OrderCard, MenuAvailabilityPanel.
+### Sales Page
+- **Files**: `src/client/staff/pages/sales/*`
+- **Responsibility**: Day cards (total, average minutes, average per visit, best sellers), month filter and month total, today's best and worst rated
+- **Depends on**: Live Read Hook, Design System
 
-### TableBillScreen
-`src/client/screens/staff/TableBillScreen.tsx` (210 lines). Bill view, empty, loading and error states, Close table flow with confirm and error mapping, redirect to `/staff` on close. Depends on: useBill, BillOrderCard, BillTotal, CloseTableSection, ConfirmModal, money.
+### Menu Management Page
+- **Files**: `src/client/staff/pages/menu/*`
+- **Responsibility**: Item and category editor with option groups, allergens, stations, hide and show
+- **Depends on**: Live Read Hook, Staff Session and PIN Gate, Design System
 
-### DinerTabBar
-`src/client/components/diner/DinerTabBar.tsx`. Fixed bottom `nav` with Menu, Cart (count badge), My orders; sliding indicator; `aria-label="Diner navigation"`.
+### Chef Special Page
+- **Files**: `src/client/staff/pages/special/index.tsx`
+- **Responsibility**: Live special with countdown and stock; launch form; end now
+- **Depends on**: Staff Live Stream Hook, Live Read Hook, Design System
 
-### TableClosedTakeover
-`src/client/components/diner/TableClosedTakeover.tsx`. Full-screen `alertdialog` with animated check mark, shown on table close.
+### QR Codes Page
+- **Files**: `src/client/staff/pages/qr/*`
+- **Responsibility**: Printable QR code per table (drawn in the browser); add and remove tables
+- **Depends on**: Live Read Hook, Design System
 
-### ConfirmModal
-`src/client/components/ConfirmModal.tsx` (169 lines). Portal modal with focus trap, Escape to cancel, focus restore. Used by CartScreen (place order, clear cart), MyOrdersScreen (cancel), TableBillScreen (close table).
+### Station Page
+- **Files**: `src/client/staff/pages/stations/index.tsx`
+- **Responsibility**: One station's board by address (`/staff/stations/:station`), not in the nav
+- **Depends on**: Kitchen Board, Staff Live Stream Hook
 
-### OrderCard
-`src/client/components/staff/OrderCard.tsx` (248 lines). Kitchen order card with status pill, lines, Start preparing, Complete, Cancel with inline confirm; posts transitions with `by: 'staff'`.
+### Table Bill and Receipt
+- **Files**: `src/client/screens/staff/TableBillScreen.tsx`, `ReceiptScreen.tsx`, `src/client/hooks/useBill.ts`, `src/client/components/staff/BillOrderCard.tsx`, `BillTotal.tsx`, `CloseTableSection.tsx`, `src/client/components/ReceiptCard.tsx`, `ConfirmModal.tsx`, `src/client/components/staff/money.ts`
+- **Responsibility**: Live bill, close table with confirmation, receipt page to print; money and time formatting
+- **Depends on**: Staff Live Stream Hook, Staff Session and PIN Gate, Design System
 
-### BillOrderCard
-`src/client/components/staff/BillOrderCard.tsx`. One order on the bill with status pill, placed time, lines and subtotal.
+### Alerts
+- **Files**: `src/client/alerts/*`
+- **Responsibility**: Fire an alert once per event id and never for events older than the page; sound only after a tap and when not muted; vibration where supported
+- **Depends on**: none
 
-### BillTotal
-`src/client/components/staff/BillTotal.tsx`. "Combined total" row.
+### Design System
+- **Files**: `src/client/design/tokens.css`, `components.css`, `screens.css`, `src/client/index.css`, `src/client/staff/staff-u7.css`, `src/client/components/ui/*`, `src/client/hooks/useTheme.ts`, `src/client/lib/safeStorage.ts`
+- **Responsibility**: Paprika tokens (dark default, light, follow device), type scale 12 to 40 px, spacing, radius, shadows, motion (stopped under reduced motion); UI primitives; staff stat tiles, floor tiles, data tables; theme choice saved per device
+- **Depends on**: none
 
-### CloseTableSection
-`src/client/components/staff/CloseTableSection.tsx`. Close table button (44 px min height) and the note naming blocking orders.
+### Diner Table View
+- **Files**: `src/client/views/TableView.tsx`, `src/client/screens/diner/*`, `src/client/components/diner/*`, `src/client/hooks/useTableSSE.ts`, `useCart.ts`, `useAllergies.ts`
+- **Responsibility**: Diner app: Menu, Cart and My orders tabs, table stream with backoff and heartbeats, cart in storage, table-closed takeover
+- **Depends on**: Diner Feature Modules, Design System, Alerts
 
-### MenuAvailabilityPanel
-`src/client/components/staff/MenuAvailabilityPanel.tsx` (227 lines). Slide-in dialog with focus trap and Escape; toggles item availability.
+### Diner Feature Modules
+- **Files**: `src/client/diner/features/*`
+- **Responsibility**: Options sheet, allergies, estimate, tracker, ready banner, same again, help card (calls), special card, rating, receipt, settings; `api.ts` calls; `cartModel.ts` pure cart rules
+- **Depends on**: Design System, Alerts, Shared Time and Wait Helpers
 
-### NewHighlight
-`src/client/components/staff/NewHighlight.tsx`. Glow wrapper and "new" label for fresh Pending orders, reduced-motion aware.
+## Tests
 
-### money helpers
-`src/client/components/staff/money.ts`. `formatMoney(cents)` and `formatPlacedTime(iso)`. Other screens use their own local `formatPrice`.
+### Unit and Integration Test Suite
+- **Files**: `src/server/__tests__/**`, `src/client/**/__tests__/**`, `src/test-setup.ts`, `vitest.config.ts`
+- **Responsibility**: Vitest tests for every server module and client component; helpers `requestAsStaff`, `freshApp`, `makeClosedVisit`, `localIso`, `localSqlite`, `addRating`
+- **Depends on**: all server and client components
 
-### useTableSSE
-`src/client/hooks/useTableSSE.ts`. EventSource for `/sse/tables/:id`, backoff 1, 2, 5, 10, 15 s, `lastEventId` query on reconnect, keeps newest 200 events with `seq`.
-
-### useStaffSSE
-`src/client/hooks/useStaffSSE.ts`. EventSource for `/sse/staff`; no manual backoff (relies on the browser's reconnect and the server's `retry: 2000`); one instance per consumer hook (the "shared" in its comment is per component tree usage; each hook that calls it opens its own connection).
-
-### useCart
-`src/client/hooks/useCart.ts` (314 lines). Cart in `localStorage`, placement key in `sessionStorage`, closed marker, `cart-updated` window event for same-tab sync, price refresh, max quantity 20.
-
-### useBoardOrders
-`src/client/hooks/useBoardOrders.ts` (212 lines). Loads tables 1 to 10, merges SSE events with in-flight fetches, "new" flag, removes a table on `TABLE_CLOSED`.
-
-### useBill
-`src/client/hooks/useBill.ts`. Loads the bill, re-fetches on this table's order events and on reconnect, flags `closed`.
-
-### useMenuAvailability
-`src/client/hooks/useMenuAvailability.ts`. Menu list for the panel, optimistic toggle with rollback, live availability patching.
-
-## Test Assets
-
-### Vitest Unit Suites
-`src/server/__tests__/` (api, billing-api, billing, db, menu-availability, orderRepo, sse-hello, sse, tableClose, tableStatus) and `src/client/**/__tests__/` (ConfirmModal, DinerTabBar, TableClosedTakeover, BillOrderCard, BillTotal, CloseTableSection, MenuAvailabilityPanel, NewHighlight, OrderCard, six hooks, three diner screens, two staff screens, TableView). 322 tests passing at v1 sign-off.
-
-### Playwright E2E Suites
-`e2e/u1-walking-skeleton`, `u2-diner-screens`, `u3-kitchen-board`, `u4-bill-and-close` (flow specs plus mockup-match per unit), and `e2e/build-and-test` (board-to-bill link, keyboard-only journey, live update timing, motion, shared `helpers.ts`). About 50 tests; Chromium by default, Chrome and WebKit through the cross-browser config.
+### Browser Test Suite
+- **Files**: `e2e/**`, `playwright.config.ts`, `playwright.cross-browser.config.ts`
+- **Responsibility**: Playwright specs per Unit (`u1` to `u7`) and `build-and-test/`, each Unit with a `mockup-match.spec.ts`; global staff sign-in; helpers that place orders, move them, close tables, set presence
+- **Depends on**: the built app in `dist/`, Server Entry and Route Registry

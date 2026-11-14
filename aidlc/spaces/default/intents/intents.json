@@ -14,5 +14,13 @@
     "scope": "dpl-workshop",
     "status": "complete",
     "request": "7136f268"
+  },
+  {
+    "uuid": "01a1c674-0c0f-71ac-abf9-a81235d9cfcc",
+    "slug": "manager-tv-wall",
+    "dirName": "261110-manager-tv-wall",
+    "scope": "dpl-workshop",
+    "status": "in-flight",
+    "request": "44654bf4"
   }
 ]

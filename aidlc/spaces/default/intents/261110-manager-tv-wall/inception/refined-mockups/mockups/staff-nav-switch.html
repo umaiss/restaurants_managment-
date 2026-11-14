@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Staff navigation with TV wall link and takings switch: Manager TV wall mockup</title>
+<link rel="stylesheet" href="tv-wall.css" />
+</head>
+<body>
+<div class="mock-toolbar">
+  <nav><a href="index.html">← All mockups</a><strong>Staff navigation: "TV wall" link and "Show takings on TV" switch (US1.1, US4.2)</strong></nav>
+  <div class="mock-theme" role="group" aria-label="Theme preview">
+    <button data-mode="dark" aria-pressed="true">Dark</button><button data-mode="light" aria-pressed="false">Light</button>
+  </div>
+</div>
+<p class="mock-note">The only change to v1 and v2: the staff navigation gains a "TV wall" link and, directly under it, the "Show takings on TV" switch (Off by default). Click the switch to preview On. Every other link and the page content are unchanged; the Kitchen Board is shown only as the backdrop.</p>
+<div class="desk">
+  <nav class="sidenav" aria-label="Staff navigation" data-testid="staff-nav">
+    <div class="brand">Table Order</div>
+    <a href="#" aria-current="page">🍳 Kitchen Board</a>
+    <a href="#">🗺 Floor map</a>
+    <a href="#">📋 Menu management</a>
+    <a href="#">⭐ Chef's special</a>
+    <a href="#">📈 Past visits and sales</a>
+    <a href="#">▦ QR codes</a>
+    <a href="tv-wall-hidden.html" data-testid="nav-tv-wall">📺 TV wall</a>
+    <div class="navswitch" data-testid="tv-takings-switch-row">
+      <span id="tv-switch-label">Show takings on TV</span>
+      <span class="state" data-testid="tv-takings-switch-state">Off</span>
+      <button class="switch" role="switch" aria-checked="false" aria-labelledby="tv-switch-label" data-testid="tv-takings-switch"></button>
+    </div>
+    <div class="spacer"></div>
+    <a href="#">Sign out</a>
+  </nav>
+  <main class="main">
+    <h1>Kitchen Board</h1>
+    <div class="card">The Kitchen Board is unchanged and shown here only as the page behind the navigation.</div>
+  </main>
+</div>
+<script src="mockup.js"></script>
+</body>
+</html>
